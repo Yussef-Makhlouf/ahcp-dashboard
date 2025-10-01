@@ -1,6 +1,6 @@
 import { forwardRef } from 'react';
 import { cn } from '@/lib/utils';
-import { ChevronDownIcon } from '@heroicons/react/20/solid';
+import { ChevronDown } from 'lucide-react';
 
 type Option = {
   value: string | number;
@@ -71,7 +71,7 @@ export const FormSelect = forwardRef<HTMLSelectElement, SelectProps>(
             ))}
           </select>
           <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center px-2 text-gray-500 rtl:left-auto rtl:right-0">
-            <ChevronDownIcon className="h-4 w-4" />
+            <ChevronDown className="h-4 w-4" />
           </div>
         </div>
 

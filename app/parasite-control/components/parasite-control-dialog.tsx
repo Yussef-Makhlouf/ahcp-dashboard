@@ -150,7 +150,7 @@ export function ParasiteControlDialog({
     }
   }, [item, form]);
 
-  const onSubmit = async (data: FormData) => {
+  const onSubmit = async (data: any) => {
     try {
       if (item) {
         await parasiteControlApi.update(item.serialNo, data as any);
@@ -189,7 +189,7 @@ export function ParasiteControlDialog({
               <TabsContent value="basic" className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <FormField
-                    control={form.control}
+                    control={form.control as any}
                     name="date"
                     render={({ field }) => (
                       <FormItem>
@@ -202,7 +202,7 @@ export function ParasiteControlDialog({
                     )}
                   />
                   <FormField
-                    control={form.control}
+                    control={form.control as any}
                     name="supervisor"
                     render={({ field }) => (
                       <FormItem>
@@ -215,7 +215,7 @@ export function ParasiteControlDialog({
                     )}
                   />
                   <FormField
-                    control={form.control}
+                    control={form.control as any}
                     name="vehicleNo"
                     render={({ field }) => (
                       <FormItem>
@@ -228,7 +228,7 @@ export function ParasiteControlDialog({
                     )}
                   />
                   <FormField
-                    control={form.control}
+                    control={form.control as any}
                     name="category"
                     render={({ field }) => (
                       <FormItem>
@@ -246,7 +246,7 @@ export function ParasiteControlDialog({
               <TabsContent value="owner" className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <FormField
-                    control={form.control}
+                    control={form.control as any}
                     name="owner.name"
                     render={({ field }) => (
                       <FormItem>
@@ -259,7 +259,7 @@ export function ParasiteControlDialog({
                     )}
                   />
                   <FormField
-                    control={form.control}
+                    control={form.control as any}
                     name="owner.id"
                     render={({ field }) => (
                       <FormItem>
@@ -272,7 +272,7 @@ export function ParasiteControlDialog({
                     )}
                   />
                   <FormField
-                    control={form.control}
+                    control={form.control as any}
                     name="owner.birthDate"
                     render={({ field }) => (
                       <FormItem>
@@ -285,7 +285,7 @@ export function ParasiteControlDialog({
                     )}
                   />
                   <FormField
-                    control={form.control}
+                    control={form.control as any}
                     name="owner.phone"
                     render={({ field }) => (
                       <FormItem>
@@ -303,7 +303,7 @@ export function ParasiteControlDialog({
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <FormField
-                    control={form.control}
+                    control={form.control as any}
                     name="location.e"
                     render={({ field }) => (
                       <FormItem>
@@ -325,7 +325,7 @@ export function ParasiteControlDialog({
                     )}
                   />
                   <FormField
-                    control={form.control}
+                    control={form.control as any}
                     name="location.n"
                     render={({ field }) => (
                       <FormItem>
@@ -362,7 +362,7 @@ export function ParasiteControlDialog({
                       {["total", "young", "female", "treated"].map((field) => (
                         <FormField
                           key={`${animal}.${field}`}
-                          control={form.control}
+                          control={form.control as any}
                           name={`herd.${animal}.${field}` as any}
                           render={({ field: formField }) => (
                             <FormItem>
@@ -394,7 +394,7 @@ export function ParasiteControlDialog({
               <TabsContent value="treatment" className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <FormField
-                    control={form.control}
+                    control={form.control as any}
                     name="insecticide.type"
                     render={({ field }) => (
                       <FormItem>
@@ -416,7 +416,7 @@ export function ParasiteControlDialog({
                     )}
                   />
                   <FormField
-                    control={form.control}
+                    control={form.control as any}
                     name="insecticide.method"
                     render={({ field }) => (
                       <FormItem>
@@ -438,7 +438,7 @@ export function ParasiteControlDialog({
                     )}
                   />
                   <FormField
-                    control={form.control}
+                    control={form.control as any}
                     name="insecticide.volume_ml"
                     render={({ field }) => (
                       <FormItem>
@@ -456,7 +456,7 @@ export function ParasiteControlDialog({
                     )}
                   />
                   <FormField
-                    control={form.control}
+                    control={form.control as any}
                     name="insecticide.status"
                     render={({ field }) => (
                       <FormItem>
@@ -479,7 +479,7 @@ export function ParasiteControlDialog({
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <FormField
-                    control={form.control}
+                    control={form.control as any}
                     name="herdHealthStatus"
                     render={({ field }) => (
                       <FormItem>
@@ -501,7 +501,7 @@ export function ParasiteControlDialog({
                     )}
                   />
                   <FormField
-                    control={form.control}
+                    control={form.control as any}
                     name="complying"
                     render={({ field }) => (
                       <FormItem>
@@ -523,7 +523,7 @@ export function ParasiteControlDialog({
                   />
                 </div>
                 <FormField
-                  control={form.control}
+                  control={form.control as any}
                   name="remarks"
                   render={({ field }) => (
                     <FormItem>

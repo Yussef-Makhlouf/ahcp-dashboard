@@ -1,7 +1,7 @@
 import { ReactNode, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Menu, X, ChevronRight, ChevronDown } from 'lucide-react';
+import { Menu, X, ChevronRight, ChevronDown, Bell, Home, Bug, Shield, Truck, FlaskConical, Heart, Users, User } from 'lucide-react';
 
 interface NavItem {
   name: string;
@@ -11,13 +11,13 @@ interface NavItem {
 }
 
 const navItems: NavItem[] = [
-  { name: 'الرئيسية', href: '/dashboard', icon: <HomeIcon /> },
-  { name: 'مكافحة الطفيليات', href: '/parasite-control', icon: <BugIcon /> },
-  { name: 'التحصين', href: '/vaccination', icon: <ShieldIcon /> },
-  { name: 'العيادات المتنقلة', href: '/mobile-clinics', icon: <TruckIcon /> },
-  { name: 'المختبرات', href: '/labs', icon: <FlaskIcon /> },
-  { name: 'صحة الخيول', href: '/equine-health', icon: <HeartIcon /> },
-  { name: 'العملاء', href: '/clients', icon: <UsersIcon /> },
+  { name: 'الرئيسية', href: '/dashboard', icon: <Home className="h-5 w-5" /> },
+  { name: 'مكافحة الطفيليات', href: '/parasite-control', icon: <Bug className="h-5 w-5" /> },
+  { name: 'التحصين', href: '/vaccination', icon: <Shield className="h-5 w-5" /> },
+  { name: 'العيادات المتنقلة', href: '/mobile-clinics', icon: <Truck className="h-5 w-5" /> },
+  { name: 'المختبرات', href: '/labs', icon: <FlaskConical className="h-5 w-5" /> },
+  { name: 'صحة الخيول', href: '/equine-health', icon: <Heart className="h-5 w-5" /> },
+  { name: 'العملاء', href: '/clients', icon: <Users className="h-5 w-5" /> },
 ];
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
@@ -127,13 +127,13 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
           <div className="flex items-center space-x-4">
             <div className="flex items-center space-x-4">
               <button className="relative rounded-full p-2 text-gray-600 hover:bg-blue-100 hover:text-blue-800 transition-all duration-200 hover:scale-105">
-                <BellIcon className="h-5 w-5" />
+                <Bell className="h-5 w-5" />
                 <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-red-500 animate-pulse"></span>
               </button>
               <div className="h-8 w-px bg-gray-200"></div>
               <div className="flex items-center space-x-2">
                 <div className="h-9 w-9 rounded-full bg-gradient-to-br from-primary-500 to-primary-600 flex items-center justify-center text-white shadow-sm">
-                  <UserIcon className="h-5 w-5" />
+                  <User className="h-5 w-5" />
                 </div>
                 <div className="flex flex-col items-start">
                   <span className="text-sm font-medium text-gray-800">المشرف</span>
