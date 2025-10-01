@@ -8,6 +8,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter,
+  DialogBody,
 } from "@/components/ui/dialog";
 import { Button, LoadingButton } from "@/components/ui/button-modern";
 import { Input } from "@/components/ui/input";
@@ -26,7 +27,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { CalendarIcon, Package, AlertCircle, Plus, Minus } from "lucide-react";
+import { CalendarIcon, Package, AlertCircle, Plus, Minus, Activity } from "lucide-react";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
 import { cn } from "@/lib/utils";
@@ -91,6 +92,7 @@ const locations = [
 ];
 
 export function InventoryDialog({ open, onOpenChange, item, onSave }: InventoryDialogProps) {
+  const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
     category: "",
@@ -213,7 +215,7 @@ export function InventoryDialog({ open, onOpenChange, item, onSave }: InventoryD
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-gradient-to-br from-orange-50 to-amber-100 border-2 border-orange-400 shadow-2xl">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto p-2">
         <DialogHeader>
           <DialogTitle>
             {item ? "تعديل بيانات الصنف" : "إضافة صنف جديد"}
@@ -223,17 +225,36 @@ export function InventoryDialog({ open, onOpenChange, item, onSave }: InventoryD
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit}>
-          <Tabs defaultValue="basic" className="w-full" dir="rtl">
-            <TabsList className="grid w-full grid-cols-2 lg:grid-cols-4 mb-6 bg-white/80 border-2 border-gray-300 rounded-lg p-1">
-              <TabsTrigger value="basic" className="data-[state=active]:bg-orange-600 data-[state=active]:text-white font-medium text-sm">البيانات الأساسية</TabsTrigger>
-              <TabsTrigger value="stock" className="data-[state=active]:bg-orange-600 data-[state=active]:text-white font-medium text-sm">المخزون</TabsTrigger>
-              <TabsTrigger value="movement" className="data-[state=active]:bg-orange-600 data-[state=active]:text-white font-medium text-sm">حركة المخزون</TabsTrigger>
-              <TabsTrigger value="additional" className="data-[state=active]:bg-orange-600 data-[state=active]:text-white font-medium text-sm">بيانات إضافية</TabsTrigger>
-            </TabsList>
+        <DialogBody>
+          <form id="inventory-form" onSubmit={handleSubmit}>
+            <Tabs defaultValue="basic" className="tabs-modern" dir="rtl">
+              <TabsList className="tabs-list-modern">
+                <TabsTrigger value="basic" className="tabs-trigger-modern">
+                  <Package className="w-4 h-4 ml-2" />
+                  البيانات الأساسية
+                </TabsTrigger>
+                <TabsTrigger value="stock" className="tabs-trigger-modern">
+                  <AlertCircle className="w-4 h-4 ml-2" />
+                  المخزون
+                </TabsTrigger>
+                <TabsTrigger value="movement" className="tabs-trigger-modern">
+                  <Activity className="w-4 h-4 ml-2" />
+                  حركة المخزون
+                </TabsTrigger>
+                <TabsTrigger value="additional" className="tabs-trigger-modern">
+                  <Plus className="w-4 h-4 ml-2" />
+                  بيانات إضافية
+                </TabsTrigger>
+              </TabsList>
 
-            <TabsContent value="basic" className="space-y-4 mt-4">
-              <div className="grid grid-cols-2 gap-4">
+            <TabsContent value="basic" className="space-y-6 mt-4 p-2">
+              <div className="section-modern">
+                <div className="section-header-modern">
+                  <h3 className="section-title-modern">معلومات الصنف</h3>
+                  <p className="section-description-modern">أدخل البيانات الأساسية للصنف</p>
+                </div>
+                
+                <div className="grid-modern grid-cols-2-modern">
                 <div className="space-y-2">
                   <Label>اسم الصنف *</Label>
                   <Input
@@ -391,6 +412,7 @@ export function InventoryDialog({ open, onOpenChange, item, onSave }: InventoryD
                       placeholder="درجة الحرارة المطلوبة"
                     />
                   )}
+                </div>
                 </div>
               </div>
             </TabsContent>
@@ -667,25 +689,30 @@ export function InventoryDialog({ open, onOpenChange, item, onSave }: InventoryD
                 </Card>
               )}
             </TabsContent>
-          </Tabs>
+            </Tabs>
+          </form>
+        </DialogBody>
 
-          <DialogFooter className="mt-6 flex gap-3 pt-4 border-t border-orange-200 bg-white/50 backdrop-blur-sm rounded-lg p-4">
-            <Button 
-              type="button" 
-              variant="outline" 
-              onClick={() => onOpenChange(false)}
-              className="h-11 px-6 border-gray-300 hover:bg-gray-50 hover:border-gray-400 text-gray-700 hover:text-gray-800 transition-all duration-200 font-medium"
-            >
-              إلغاء
-            </Button>
-            <Button 
-              type="submit"
-              className="h-11 px-6 bg-orange-600 hover:bg-orange-700 text-white shadow-lg hover:shadow-xl transition-all duration-200 font-medium"
-            >
-              {item ? "حفظ التعديلات" : "إضافة الصنف"}
-            </Button>
-          </DialogFooter>
-        </form>
+        <DialogFooter>
+          <Button 
+            type="button" 
+            variant="secondary" 
+            onClick={() => onOpenChange(false)}
+            disabled={loading}
+          >
+            إلغاء
+          </Button>
+          <LoadingButton 
+            type="submit"
+            form="inventory-form"
+            variant="default"
+            loading={loading}
+            loadingText="جاري الحفظ..."
+            leftIcon={<Package className="w-4 h-4" />}
+          >
+            {item ? "حفظ التعديلات" : "إضافة الصنف"}
+          </LoadingButton>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

@@ -8,6 +8,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter,
+  DialogBody,
 } from "@/components/ui/dialog";
 import { Button, LoadingButton } from "@/components/ui/button-modern";
 import { Input } from "@/components/ui/input";
@@ -26,7 +27,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { CalendarIcon, MapPin, Stethoscope, Plus, Trash2 } from "lucide-react";
+import { CalendarIcon, MapPin, Stethoscope, Plus, Trash2, User, Heart, Shield, Activity } from "lucide-react";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
 import { cn } from "@/lib/utils";
@@ -247,7 +248,7 @@ export function MobileClinicDialog({ open, onOpenChange, clinic, onSave }: Mobil
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-gradient-to-br from-teal-50 to-cyan-100 border-2 border-teal-400 shadow-2xl">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto p-2">
         <DialogHeader>
           <DialogTitle>
             {clinic ? "تعديل زيارة العيادة المتنقلة" : "إضافة زيارة عيادة متنقلة جديدة"}
@@ -257,14 +258,27 @@ export function MobileClinicDialog({ open, onOpenChange, clinic, onSave }: Mobil
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit}>
-          <Tabs defaultValue="basic" className="w-full" dir="rtl">
-            <TabsList className="grid w-full grid-cols-2 lg:grid-cols-4 mb-6 bg-white/80 border-2 border-gray-300 rounded-lg p-1">
-              <TabsTrigger value="basic" className="data-[state=active]:bg-teal-600 data-[state=active]:text-white font-medium text-sm">البيانات الأساسية</TabsTrigger>
-              <TabsTrigger value="animals" className="data-[state=active]:bg-teal-600 data-[state=active]:text-white font-medium text-sm">الحيوانات</TabsTrigger>
-              <TabsTrigger value="diagnosis" className="data-[state=active]:bg-teal-600 data-[state=active]:text-white font-medium text-sm">التشخيص والعلاج</TabsTrigger>
-              <TabsTrigger value="followup" className="data-[state=active]:bg-teal-600 data-[state=active]:text-white font-medium text-sm">المتابعة</TabsTrigger>
-            </TabsList>
+        <DialogBody>
+          <form id="mobile-clinic-form" onSubmit={handleSubmit}>
+            <Tabs defaultValue="basic" className="tabs-modern" dir="rtl">
+              <TabsList className="tabs-list-modern">
+                <TabsTrigger value="basic" className="tabs-trigger-modern">
+                  <User className="w-4 h-4 ml-2" />
+                  البيانات الأساسية
+                </TabsTrigger>
+                <TabsTrigger value="animals" className="tabs-trigger-modern">
+                  <Heart className="w-4 h-4 ml-2" />
+                  الحيوانات
+                </TabsTrigger>
+                <TabsTrigger value="diagnosis" className="tabs-trigger-modern">
+                  <Shield className="w-4 h-4 ml-2" />
+                  التشخيص والعلاج
+                </TabsTrigger>
+                <TabsTrigger value="followup" className="tabs-trigger-modern">
+                  <Activity className="w-4 h-4 ml-2" />
+                  المتابعة
+                </TabsTrigger>
+              </TabsList>
 
             <TabsContent value="basic" className="space-y-4 mt-4">
               <div className="grid grid-cols-2 gap-4">
@@ -764,25 +778,27 @@ export function MobileClinicDialog({ open, onOpenChange, clinic, onSave }: Mobil
                 />
               </div>
             </TabsContent>
-          </Tabs>
+            </Tabs>
+          </form>
+        </DialogBody>
 
-          <DialogFooter className="mt-6 flex gap-3 pt-4 border-t border-teal-200 bg-white/50 backdrop-blur-sm rounded-lg p-4">
-            <Button 
-              type="button" 
-              variant="outline" 
-              onClick={() => onOpenChange(false)}
-              className="h-11 px-6 border-gray-300 hover:bg-gray-50 hover:border-gray-400 text-gray-700 hover:text-gray-800 transition-all duration-200 font-medium"
-            >
-              إلغاء
-            </Button>
-            <Button 
-              type="submit"
-              className="h-11 px-6 bg-teal-600 hover:bg-teal-700 text-white shadow-lg hover:shadow-xl transition-all duration-200 font-medium"
-            >
-              {clinic ? "حفظ التعديلات" : "إضافة الزيارة"}
-            </Button>
-          </DialogFooter>
-        </form>
+        <DialogFooter>
+          <Button 
+            type="button" 
+            variant="secondary" 
+            onClick={() => onOpenChange(false)}
+          >
+            إلغاء
+          </Button>
+          <LoadingButton 
+            type="submit"
+            form="mobile-clinic-form"
+            variant="default"
+            leftIcon={<Activity className="w-4 h-4" />}
+          >
+            {clinic ? "حفظ التعديلات" : "إضافة الزيارة"}
+          </LoadingButton>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

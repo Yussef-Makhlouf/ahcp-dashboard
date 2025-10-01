@@ -34,7 +34,11 @@ import {
   Phone,
   AlertCircle,
   Bell,
-  Repeat
+  Repeat,
+  User,
+  Heart,
+  Shield,
+  Activity
 } from "lucide-react";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
@@ -189,7 +193,7 @@ export function ScheduleDialog({ open, onOpenChange, event, onSave }: ScheduleDi
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-gradient-to-br from-pink-50 to-rose-100 border-2 border-pink-400 shadow-2xl">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto p-2">
         <DialogHeader>
           <DialogTitle>
             {event ? "تعديل الموعد" : "إضافة موعد جديد"}
@@ -199,14 +203,27 @@ export function ScheduleDialog({ open, onOpenChange, event, onSave }: ScheduleDi
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit}>
-          <Tabs defaultValue="basic" className="w-full" dir="rtl">
-            <TabsList className="grid w-full grid-cols-2 lg:grid-cols-4 mb-6 bg-white/80 border-2 border-gray-300 rounded-lg p-1">
-              <TabsTrigger value="basic" className="data-[state=active]:bg-pink-600 data-[state=active]:text-white font-medium text-sm">البيانات الأساسية</TabsTrigger>
-              <TabsTrigger value="team" className="data-[state=active]:bg-pink-600 data-[state=active]:text-white font-medium text-sm">الفريق</TabsTrigger>
-              <TabsTrigger value="details" className="data-[state=active]:bg-pink-600 data-[state=active]:text-white font-medium text-sm">التفاصيل</TabsTrigger>
-              <TabsTrigger value="reminders" className="data-[state=active]:bg-pink-600 data-[state=active]:text-white font-medium text-sm">التذكيرات</TabsTrigger>
-            </TabsList>
+        <DialogBody>
+          <form id="schedule-form" onSubmit={handleSubmit}>
+            <Tabs defaultValue="basic" className="tabs-modern" dir="rtl">
+              <TabsList className="tabs-list-modern">
+                <TabsTrigger value="basic" className="tabs-trigger-modern">
+                  <User className="w-4 h-4 ml-2" />
+                  البيانات الأساسية
+                </TabsTrigger>
+                <TabsTrigger value="team" className="tabs-trigger-modern">
+                  <Heart className="w-4 h-4 ml-2" />
+                  الفريق
+                </TabsTrigger>
+                <TabsTrigger value="details" className="tabs-trigger-modern">
+                  <Shield className="w-4 h-4 ml-2" />
+                  التفاصيل
+                </TabsTrigger>
+                <TabsTrigger value="reminders" className="tabs-trigger-modern">
+                  <Activity className="w-4 h-4 ml-2" />
+                  التذكيرات
+                </TabsTrigger>
+              </TabsList>
 
             <TabsContent value="basic" className="space-y-4 mt-4">
               <div className="space-y-2">
@@ -608,25 +625,27 @@ export function ScheduleDialog({ open, onOpenChange, event, onSave }: ScheduleDi
                 </CardContent>
               </Card>
             </TabsContent>
-          </Tabs>
+            </Tabs>
+          </form>
+        </DialogBody>
 
-          <DialogFooter className="mt-6 flex gap-3 pt-4 border-t border-pink-200 bg-white/50 backdrop-blur-sm rounded-lg p-4">
-            <Button 
-              type="button" 
-              variant="outline" 
-              onClick={() => onOpenChange(false)}
-              className="h-11 px-6 border-gray-300 hover:bg-gray-50 hover:border-gray-400 text-gray-700 hover:text-gray-800 transition-all duration-200 font-medium"
-            >
-              إلغاء
-            </Button>
-            <Button 
-              type="submit"
-              className="h-11 px-6 bg-pink-600 hover:bg-pink-700 text-white shadow-lg hover:shadow-xl transition-all duration-200 font-medium"
-            >
-              {event ? "حفظ التعديلات" : "إضافة الموعد"}
-            </Button>
-          </DialogFooter>
-        </form>
+        <DialogFooter>
+          <Button 
+            type="button" 
+            variant="secondary" 
+            onClick={() => onOpenChange(false)}
+          >
+            إلغاء
+          </Button>
+          <LoadingButton 
+            type="submit"
+            form="schedule-form"
+            variant="default"
+            leftIcon={<Activity className="w-4 h-4" />}
+          >
+            {event ? "حفظ التعديلات" : "إضافة الموعد"}
+          </LoadingButton>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

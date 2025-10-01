@@ -8,6 +8,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter,
+  DialogBody,
 } from "@/components/ui/dialog";
 import { Button, LoadingButton } from "@/components/ui/button-modern";
 import { Input } from "@/components/ui/input";
@@ -26,7 +27,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { CalendarIcon, Plus, Trash2, AlertCircle, CheckCircle2 } from "lucide-react";
+import { CalendarIcon, Plus, Trash2, AlertCircle, CheckCircle2, User, Heart, Shield, Activity } from "lucide-react";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
 import { cn } from "@/lib/utils";
@@ -216,7 +217,7 @@ export function LaboratoryDialog({ open, onOpenChange, laboratory, onSave }: Lab
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-gradient-to-br from-indigo-50 to-purple-100 border-2 border-indigo-400 shadow-2xl">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto p-2">
         <DialogHeader>
           <DialogTitle>
             {laboratory ? "تعديل نتائج الفحص المخبري" : "إضافة فحص مخبري جديد"}
@@ -226,14 +227,27 @@ export function LaboratoryDialog({ open, onOpenChange, laboratory, onSave }: Lab
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit}>
-          <Tabs defaultValue="basic" className="w-full" dir="rtl">
-            <TabsList className="grid w-full grid-cols-2 lg:grid-cols-4 mb-6 bg-white/80 border-2 border-gray-300 rounded-lg p-1">
-              <TabsTrigger value="basic" className="data-[state=active]:bg-indigo-600 data-[state=active]:text-white font-medium text-sm">البيانات الأساسية</TabsTrigger>
-              <TabsTrigger value="samples" className="data-[state=active]:bg-indigo-600 data-[state=active]:text-white font-medium text-sm">العينات</TabsTrigger>
-              <TabsTrigger value="results" className="data-[state=active]:bg-indigo-600 data-[state=active]:text-white font-medium text-sm">النتائج</TabsTrigger>
-              <TabsTrigger value="report" className="data-[state=active]:bg-indigo-600 data-[state=active]:text-white font-medium text-sm">التقرير</TabsTrigger>
-            </TabsList>
+        <DialogBody>
+          <form id="laboratory-form" onSubmit={handleSubmit}>
+            <Tabs defaultValue="basic" className="tabs-modern" dir="rtl">
+              <TabsList className="tabs-list-modern">
+                <TabsTrigger value="basic" className="tabs-trigger-modern">
+                  <User className="w-4 h-4 ml-2" />
+                  البيانات الأساسية
+                </TabsTrigger>
+                <TabsTrigger value="samples" className="tabs-trigger-modern">
+                  <Heart className="w-4 h-4 ml-2" />
+                  العينات
+                </TabsTrigger>
+                <TabsTrigger value="results" className="tabs-trigger-modern">
+                  <Shield className="w-4 h-4 ml-2" />
+                  النتائج
+                </TabsTrigger>
+                <TabsTrigger value="report" className="tabs-trigger-modern">
+                  <Activity className="w-4 h-4 ml-2" />
+                  التقرير
+                </TabsTrigger>
+              </TabsList>
 
             <TabsContent value="basic" className="space-y-4 mt-4">
               <div className="grid grid-cols-2 gap-4">
@@ -632,7 +646,7 @@ export function LaboratoryDialog({ open, onOpenChange, laboratory, onSave }: Lab
                               <Badge variant="outline">{result.animalId}</Badge>
                               <span className="text-sm">{result.testType}</span>
                               {result.result === "positive" && (
-                                <Badge variant="destructive">إيجابي</Badge>
+                                <Badge variant="danger">إيجابي</Badge>
                               )}
                               {result.result === "negative" && (
                                 <Badge variant="default">سلبي</Badge>
@@ -727,25 +741,27 @@ export function LaboratoryDialog({ open, onOpenChange, laboratory, onSave }: Lab
                 </Alert>
               )}
             </TabsContent>
-          </Tabs>
+            </Tabs>
+          </form>
+        </DialogBody>
 
-          <DialogFooter className="mt-6 flex gap-3 pt-4 border-t border-indigo-200 bg-white/50 backdrop-blur-sm rounded-lg p-4">
-            <Button 
-              type="button" 
-              variant="outline" 
-              onClick={() => onOpenChange(false)}
-              className="h-11 px-6 border-gray-300 hover:bg-gray-50 hover:border-gray-400 text-gray-700 hover:text-gray-800 transition-all duration-200 font-medium"
-            >
-              إلغاء
-            </Button>
-            <Button 
-              type="submit"
-              className="h-11 px-6 bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg hover:shadow-xl transition-all duration-200 font-medium"
-            >
-              {laboratory ? "حفظ التعديلات" : "إضافة الفحص"}
-            </Button>
-          </DialogFooter>
-        </form>
+        <DialogFooter>
+          <Button 
+            type="button" 
+            variant="secondary" 
+            onClick={() => onOpenChange(false)}
+          >
+            إلغاء
+          </Button>
+          <LoadingButton 
+            type="submit"
+            form="laboratory-form"
+            variant="default"
+            leftIcon={<Activity className="w-4 h-4" />}
+          >
+            {laboratory ? "حفظ التعديلات" : "إضافة الفحص"}
+          </LoadingButton>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

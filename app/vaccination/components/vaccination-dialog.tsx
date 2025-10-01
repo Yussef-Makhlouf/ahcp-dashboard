@@ -10,6 +10,7 @@ import { arEG } from "date-fns/locale/ar-EG";
 import { Button, LoadingButton } from "@/components/ui/button-modern";
 import {
   Dialog,
+  DialogBody,
   DialogContent,
   DialogDescription,
   DialogFooter,
@@ -44,7 +45,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { CalendarIcon, Loader2 } from "lucide-react";
+import { CalendarIcon, Loader2, User, Heart, Shield } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { vaccinationApi } from "@/lib/api/vaccination";
@@ -365,31 +366,39 @@ export function VaccinationDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-gradient-to-br from-blue-50 to-indigo-100 border-2 border-blue-400 shadow-2xl">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto p-2">
         <DialogHeader>
-          <DialogTitle className="text-2xl text-center text-blue-600">
+          <DialogTitle>
             {item ? "تعديل سجل التحصين" : "إضافة سجل تحصين جديد"}
           </DialogTitle>
-          <DialogDescription className="text-center">
-            {item
-              ? "قم بتعديل بيانات سجل التحصين"
-              : "املأ النموذج لإضافة سجل تحصين جديد"}
+          <DialogDescription>
+            {item ? "قم بتعديل بيانات سجل التحصين" : "أدخل بيانات سجل التحصين الجديد"}
           </DialogDescription>
         </DialogHeader>
 
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <Tabs
-              value={activeTab}
-              onValueChange={setActiveTab}
-              className="w-full"
-              dir="rtl"
-            >
-              <TabsList className="grid w-full grid-cols-3 mb-6 bg-white/80 border-2 border-gray-500 rounded-lg p-1">
-                <TabsTrigger value="info" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white font-medium">المعلومات الأساسية</TabsTrigger>
-                <TabsTrigger value="herd" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white font-medium">تفاصيل القطيع</TabsTrigger>
-                <TabsTrigger value="request" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white font-medium">معلومات الطلب</TabsTrigger>
-              </TabsList>
+        <DialogBody>
+          <Form {...form}>
+            <form id="vaccination-form" onSubmit={form.handleSubmit(onSubmit)}>
+              <Tabs
+                value={activeTab}
+                onValueChange={setActiveTab}
+                className="tabs-modern"
+                dir="rtl"
+              >
+                <TabsList className="tabs-list-modern">
+                  <TabsTrigger value="info" className="tabs-trigger-modern">
+                    <User className="w-4 h-4 ml-2" />
+                    المعلومات الأساسية
+                  </TabsTrigger>
+                  <TabsTrigger value="herd" className="tabs-trigger-modern">
+                    <Heart className="w-4 h-4 ml-2" />
+                    تفاصيل القطيع
+                  </TabsTrigger>
+                  <TabsTrigger value="request" className="tabs-trigger-modern">
+                    <Shield className="w-4 h-4 ml-2" />
+                    معلومات الطلب
+                  </TabsTrigger>
+                </TabsList>
 
               <TabsContent value="info" className="space-y-6">
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -510,37 +519,31 @@ export function VaccinationDialog({
                   </div>
                 </div>
               </TabsContent>
-            </Tabs>
+              </Tabs>
+            </form>
+          </Form>
+        </DialogBody>
 
-            <DialogFooter className="flex gap-3 pt-4 border-t-2 border-blue-400 bg-white/50 backdrop-blur-sm rounded-lg p-4">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => onOpenChange(false)}
-                disabled={isSubmitting}
-                className="h-11 px-6 border-gray-300 hover:bg-gray-50 hover:border-gray-400 text-gray-700 hover:text-gray-800 transition-all duration-200 font-medium"
-              >
-                إلغاء
-              </Button>
-              <Button 
-                type="submit" 
-                disabled={isSubmitting}
-                className="h-11 px-6 bg-blue-600 hover:bg-blue-700 text-white shadow-lg hover:shadow-xl transition-all duration-200 disabled:opacity-50 font-medium"
-              >
-                {isSubmitting ? (
-                  <>
-                    <Loader2 className="ml-2 h-4 w-4 animate-spin" />
-                    جاري الحفظ...
-                  </>
-                ) : item ? (
-                  "حفظ التغييرات"
-                ) : (
-                  "إضافة سجل"
-                )}
-              </Button>
-            </DialogFooter>
-          </form>
-        </Form>
+        <DialogFooter>
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={() => onOpenChange(false)}
+            disabled={isSubmitting}
+          >
+            إلغاء
+          </Button>
+          <LoadingButton 
+            type="submit"
+            form="vaccination-form"
+            variant="default"
+            loading={isSubmitting}
+            loadingText="جاري الحفظ..."
+            leftIcon={<Heart className="w-4 h-4" />}
+          >
+            {item ? "حفظ التغييرات" : "إضافة سجل"}
+          </LoadingButton>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

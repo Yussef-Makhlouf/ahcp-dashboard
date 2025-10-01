@@ -6,8 +6,10 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import {
   Dialog,
+  DialogBody,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -36,6 +38,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { parasiteControlApi } from "@/lib/api/parasite-control";
 import type { ParasiteControl } from "@/types";
 import { validateEgyptianPhone } from "@/lib/utils";
+import { User, Heart, Shield, Activity } from "lucide-react";
 
 const formSchema = z.object({
   date: z.string().min(1, "التاريخ مطلوب"),
@@ -168,25 +171,38 @@ export function ParasiteControlDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-gradient-to-br from-green-50 to-emerald-100 border-2 border-green-400 shadow-2xl">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto p-2">
         <DialogHeader>
           <DialogTitle>
             {item ? "تعديل سجل مكافحة الطفيليات" : "إضافة سجل مكافحة طفيليات جديد"}
           </DialogTitle>
           <DialogDescription>
-            قم بملء البيانات المطلوبة لإضافة أو تعديل سجل مكافحة الطفيليات
+            {item ? "قم بتعديل بيانات سجل مكافحة الطفيليات" : "أدخل بيانات سجل مكافحة الطفيليات الجديد"}
           </DialogDescription>
         </DialogHeader>
 
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            <Tabs defaultValue="basic" className="w-full" dir="rtl">
-              <TabsList className="grid w-full grid-cols-2 lg:grid-cols-4 mb-6 bg-white/80 border-2 border-gray-300 rounded-lg p-1">
-                <TabsTrigger value="basic" className="data-[state=active]:bg-green-600 data-[state=active]:text-white font-medium text-sm">البيانات الأساسية</TabsTrigger>
-                <TabsTrigger value="owner" className="data-[state=active]:bg-green-600 data-[state=active]:text-white font-medium text-sm">بيانات المربي</TabsTrigger>
-                <TabsTrigger value="herd" className="data-[state=active]:bg-green-600 data-[state=active]:text-white font-medium text-sm">القطيع</TabsTrigger>
-                <TabsTrigger value="treatment" className="data-[state=active]:bg-green-600 data-[state=active]:text-white font-medium text-sm">المعالجة</TabsTrigger>
-              </TabsList>
+        <DialogBody>
+          <Form {...form}>
+            <form id="parasite-control-form" onSubmit={form.handleSubmit(onSubmit)}>
+              <Tabs defaultValue="basic" className="tabs-modern" dir="rtl">
+                <TabsList className="tabs-list-modern">
+                  <TabsTrigger value="basic" className="tabs-trigger-modern">
+                    <User className="w-4 h-4 ml-2" />
+                    البيانات الأساسية
+                  </TabsTrigger>
+                  <TabsTrigger value="owner" className="tabs-trigger-modern">
+                    <Heart className="w-4 h-4 ml-2" />
+                    بيانات المربي
+                  </TabsTrigger>
+                  <TabsTrigger value="herd" className="tabs-trigger-modern">
+                    <Shield className="w-4 h-4 ml-2" />
+                    القطيع
+                  </TabsTrigger>
+                  <TabsTrigger value="treatment" className="tabs-trigger-modern">
+                    <Activity className="w-4 h-4 ml-2" />
+                    المعالجة
+                  </TabsTrigger>
+                </TabsList>
 
               <TabsContent value="basic" className="space-y-6">
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -542,26 +558,28 @@ export function ParasiteControlDialog({
                   )}
                 />
               </TabsContent>
-            </Tabs>
+              </Tabs>
+            </form>
+          </Form>
+        </DialogBody>
 
-            <div className="flex justify-end gap-3 pt-4 border-t border-green-200 bg-white/50 backdrop-blur-sm rounded-lg p-4">
-              <Button 
-                type="button" 
-                variant="outline" 
-                onClick={() => onOpenChange(false)}
-                className="h-11 px-6 border-gray-300 hover:bg-gray-50 hover:border-gray-400 text-gray-700 hover:text-gray-800 transition-all duration-200 font-medium"
-              >
-                إلغاء
-              </Button>
-              <Button 
-                type="submit"
-                className="h-11 px-6 bg-green-600 hover:bg-green-700 text-white shadow-lg hover:shadow-xl transition-all duration-200 font-medium"
-              >
-                {item ? "تحديث" : "إضافة"}
-              </Button>
-            </div>
-          </form>
-        </Form>
+        <DialogFooter>
+          <Button 
+            type="button" 
+            variant="secondary" 
+            onClick={() => onOpenChange(false)}
+          >
+            إلغاء
+          </Button>
+          <LoadingButton 
+            type="submit"
+            form="parasite-control-form"
+            variant="default"
+            leftIcon={<Activity className="w-4 h-4" />}
+          >
+            {item ? "تحديث" : "إضافة"}
+          </LoadingButton>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
