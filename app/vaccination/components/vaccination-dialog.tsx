@@ -7,7 +7,7 @@ import * as z from "zod";
 import { format } from "date-fns";
 import { arEG } from "date-fns/locale/ar-EG";
 
-import { Button } from "@/components/ui/button";
+import { Button, LoadingButton } from "@/components/ui/button-modern";
 import {
   Dialog,
   DialogContent,
@@ -26,6 +26,8 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardHeader, CardTitle, StatsCard } from "@/components/ui/card-modern";
+import { Badge, StatusBadge } from "@/components/ui/badge-modern";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
@@ -224,8 +226,8 @@ export function VaccinationDialog({
       control={form.control as any}
       name={name as any}
       render={({ field }) => (
-        <FormItem className="mb-4">
-          <FormLabel className="block text-sm font-medium text-gray-700">
+        <FormItem className="mb-6 space-y-3">
+          <FormLabel className="block text-sm font-semibold text-gray-800 mb-2">
             {label}
           </FormLabel>
           <FormControl>
@@ -235,7 +237,7 @@ export function VaccinationDialog({
                 defaultValue={field.value}
                 dir="rtl"
               >
-                <SelectTrigger className="w-full">
+                <SelectTrigger className="w-full border-2 border-gray-400 focus:border-blue-500 transition-colors duration-200">
                   <SelectValue placeholder={`اختر ${label.toLowerCase()}`} />
                 </SelectTrigger>
                 <SelectContent>
@@ -253,7 +255,7 @@ export function VaccinationDialog({
                     <Button
                       variant={"outline"}
                       className={cn(
-                        "w-full pl-3 text-right font-normal",
+                        "w-full pl-3 text-right font-normal border-2 border-gray-400 focus:border-blue-500 transition-colors duration-200",
                         !field.value && "text-muted-foreground"
                       )}
                     >
@@ -309,7 +311,7 @@ export function VaccinationDialog({
                     field.onChange(e.target.value);
                   }
                 }}
-                className="w-full"
+                className="w-full border-2 border-gray-400 focus:border-blue-500 transition-colors duration-200"
                 dir="rtl"
               />
             )}
@@ -321,14 +323,14 @@ export function VaccinationDialog({
   );
 
   const renderHerdInputs = (animal: string) => (
-    <div className="space-y-4 p-4 border rounded-lg bg-gray-50">
-      <h4 className="font-medium text-center">
+    <div className="space-y-6 p-6 border-2 border-gray-500 rounded-xl bg-gray-50 shadow-sm">
+      <h4 className="font-semibold text-center text-lg text-gray-800 mb-4">
         {animal === "sheep" && "الأغنام"}
         {animal === "goats" && "الماعز"}
         {animal === "camel" && "الإبل"}
         {animal === "cattle" && "الأبقار"}
       </h4>
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
         {renderFormField(
           `herd.${animal}.total`,
           "العدد الكلي",
@@ -363,7 +365,7 @@ export function VaccinationDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-gradient-to-br from-blue-50 to-indigo-100 border-2 border-blue-400 shadow-2xl">
         <DialogHeader>
           <DialogTitle className="text-2xl text-center text-blue-600">
             {item ? "تعديل سجل التحصين" : "إضافة سجل تحصين جديد"}
@@ -383,16 +385,16 @@ export function VaccinationDialog({
               className="w-full"
               dir="rtl"
             >
-              <TabsList className="grid w-full grid-cols-3 mb-4">
-                <TabsTrigger value="info">المعلومات الأساسية</TabsTrigger>
-                <TabsTrigger value="herd">تفاصيل القطيع</TabsTrigger>
-                <TabsTrigger value="request">معلومات الطلب</TabsTrigger>
+              <TabsList className="grid w-full grid-cols-3 mb-6 bg-white/80 border-2 border-gray-500 rounded-lg p-1">
+                <TabsTrigger value="info" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white font-medium">المعلومات الأساسية</TabsTrigger>
+                <TabsTrigger value="herd" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white font-medium">تفاصيل القطيع</TabsTrigger>
+                <TabsTrigger value="request" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white font-medium">معلومات الطلب</TabsTrigger>
               </TabsList>
 
-              <TabsContent value="info" className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-4">
-                    <h3 className="text-lg font-medium text-blue-600">
+              <TabsContent value="info" className="space-y-6">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                  <div className="space-y-6">
+                    <h3 className="text-xl font-semibold text-blue-700 border-b-2 border-blue-400 pb-3">
                       معلومات المالك
                     </h3>
                     {renderFormField("owner.name", "اسم المالك")}
@@ -401,8 +403,8 @@ export function VaccinationDialog({
                     {renderFormField("owner.birthDate", "تاريخ الميلاد", "date")}
                   </div>
 
-                  <div className="space-y-4">
-                    <h3 className="text-lg font-medium text-blue-600">
+                  <div className="space-y-6">
+                    <h3 className="text-xl font-semibold text-blue-700 border-b-2 border-blue-400 pb-3">
                       معلومات التحصين
                     </h3>
                     {renderFormField("date", "تاريخ التحصين", "date")}
@@ -450,11 +452,11 @@ export function VaccinationDialog({
                 </div>
               </TabsContent>
 
-              <TabsContent value="herd" className="space-y-6">
-                <h3 className="text-lg font-medium text-blue-600">
+              <TabsContent value="herd" className="space-y-8">
+                <h3 className="text-xl font-semibold text-blue-700 border-b-2 border-blue-400 pb-3">
                   تفاصيل القطيع
                 </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                   {renderHerdInputs("sheep")}
                   {renderHerdInputs("goats")}
                   {renderHerdInputs("camel")}
@@ -463,10 +465,10 @@ export function VaccinationDialog({
               </TabsContent>
 
               <TabsContent value="request" className="space-y-6">
-                <h3 className="text-lg font-medium text-blue-600">
+                <h3 className="text-xl font-semibold text-blue-700 border-b-2 border-blue-400 pb-3">
                   معلومات الطلب
                 </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                   <div className="space-y-4">
                     {renderFormField("request.date", "تاريخ الطلب", "date")}
                     {renderFormField(
@@ -510,20 +512,20 @@ export function VaccinationDialog({
               </TabsContent>
             </Tabs>
 
-            <DialogFooter className="flex gap-2 pt-4 border-t">
+            <DialogFooter className="flex gap-3 pt-4 border-t-2 border-blue-400 bg-white/50 backdrop-blur-sm rounded-lg p-4">
               <Button
                 type="button"
                 variant="outline"
                 onClick={() => onOpenChange(false)}
                 disabled={isSubmitting}
-                className="border-gray-300 hover:bg-gray-50 hover:border-gray-400 text-gray-700 hover:text-gray-800"
+                className="h-11 px-6 border-gray-300 hover:bg-gray-50 hover:border-gray-400 text-gray-700 hover:text-gray-800 transition-all duration-200 font-medium"
               >
                 إلغاء
               </Button>
               <Button 
                 type="submit" 
                 disabled={isSubmitting}
-                className="bg-blue-600 hover:bg-blue-700 text-white shadow-lg hover:shadow-xl transition-all duration-200 disabled:opacity-50"
+                className="h-11 px-6 bg-blue-600 hover:bg-blue-700 text-white shadow-lg hover:shadow-xl transition-all duration-200 disabled:opacity-50 font-medium"
               >
                 {isSubmitting ? (
                   <>

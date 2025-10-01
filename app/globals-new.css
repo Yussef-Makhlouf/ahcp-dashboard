@@ -34,8 +34,7 @@
   
   /* الخطوط */
   --font-arabic-primary: 'Cairo', system-ui, sans-serif;
-  --font-arabic-secondary: 'Tajawal', system-ui, sans-serif;
-  --font-latin-primary: 'Inter', system-ui, sans-serif;
+
   
   /* أحجام الخطوط */
   --text-h1: 1.875rem; /* 30px */

@@ -9,7 +9,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
+import { Button, LoadingButton } from "@/components/ui/button-modern";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -31,8 +31,8 @@ import { format } from "date-fns";
 import { ar } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle, StatsCard } from "@/components/ui/card-modern";
+import { Badge, StatusBadge } from "@/components/ui/badge-modern";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Progress } from "@/components/ui/progress";
@@ -216,7 +216,7 @@ export function LaboratoryDialog({ open, onOpenChange, laboratory, onSave }: Lab
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-gradient-to-br from-indigo-50 to-purple-100 border-2 border-indigo-400 shadow-2xl">
         <DialogHeader>
           <DialogTitle>
             {laboratory ? "تعديل نتائج الفحص المخبري" : "إضافة فحص مخبري جديد"}
@@ -227,12 +227,12 @@ export function LaboratoryDialog({ open, onOpenChange, laboratory, onSave }: Lab
         </DialogHeader>
 
         <form onSubmit={handleSubmit}>
-          <Tabs defaultValue="basic" className="w-full">
-            <TabsList className="grid w-full grid-cols-4">
-              <TabsTrigger value="basic">البيانات الأساسية</TabsTrigger>
-              <TabsTrigger value="samples">العينات</TabsTrigger>
-              <TabsTrigger value="results">النتائج</TabsTrigger>
-              <TabsTrigger value="report">التقرير</TabsTrigger>
+          <Tabs defaultValue="basic" className="w-full" dir="rtl">
+            <TabsList className="grid w-full grid-cols-2 lg:grid-cols-4 mb-6 bg-white/80 border-2 border-gray-300 rounded-lg p-1">
+              <TabsTrigger value="basic" className="data-[state=active]:bg-indigo-600 data-[state=active]:text-white font-medium text-sm">البيانات الأساسية</TabsTrigger>
+              <TabsTrigger value="samples" className="data-[state=active]:bg-indigo-600 data-[state=active]:text-white font-medium text-sm">العينات</TabsTrigger>
+              <TabsTrigger value="results" className="data-[state=active]:bg-indigo-600 data-[state=active]:text-white font-medium text-sm">النتائج</TabsTrigger>
+              <TabsTrigger value="report" className="data-[state=active]:bg-indigo-600 data-[state=active]:text-white font-medium text-sm">التقرير</TabsTrigger>
             </TabsList>
 
             <TabsContent value="basic" className="space-y-4 mt-4">
@@ -729,18 +729,18 @@ export function LaboratoryDialog({ open, onOpenChange, laboratory, onSave }: Lab
             </TabsContent>
           </Tabs>
 
-          <DialogFooter className="mt-6">
+          <DialogFooter className="mt-6 flex gap-3 pt-4 border-t border-indigo-200 bg-white/50 backdrop-blur-sm rounded-lg p-4">
             <Button 
               type="button" 
               variant="outline" 
               onClick={() => onOpenChange(false)}
-              className="border-gray-300 hover:bg-gray-50 hover:border-gray-400 text-gray-700 hover:text-gray-800"
+              className="h-11 px-6 border-gray-300 hover:bg-gray-50 hover:border-gray-400 text-gray-700 hover:text-gray-800 transition-all duration-200 font-medium"
             >
               إلغاء
             </Button>
             <Button 
               type="submit"
-              className="bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg hover:shadow-xl transition-all duration-200"
+              className="h-11 px-6 bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg hover:shadow-xl transition-all duration-200 font-medium"
             >
               {laboratory ? "حفظ التعديلات" : "إضافة الفحص"}
             </Button>

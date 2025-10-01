@@ -3,7 +3,7 @@
 import Image from "next/image";
 
 import { MainLayout } from "@/components/layout/main-layout";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { StatsCard, Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card-modern";
 import { 
   Users, 
   Syringe, 
@@ -40,8 +40,8 @@ const stats = [
     change: "+12%",
     trend: "up",
     icon: Users,
-    color: "text-blue-600",
-    bgColor: "bg-blue-100",
+    color: "text-info",
+    bgColor: "bg-light",
   },
   {
     title: "التحصينات هذا الشهر",
@@ -49,8 +49,8 @@ const stats = [
     change: "+8%",
     trend: "up",
     icon: Syringe,
-    color: "text-green-600",
-    bgColor: "bg-green-100",
+    color: "text-success",
+    bgColor: "bg-light",
   },
   {
     title: "مكافحة الطفيليات",
@@ -58,8 +58,8 @@ const stats = [
     change: "-3%",
     trend: "down",
     icon: Bug,
-    color: "text-orange-600",
-    bgColor: "bg-orange-100",
+    color: "text-warning",
+    bgColor: "bg-light",
   },
   {
     title: "العيادات المتنقلة",
@@ -67,8 +67,8 @@ const stats = [
     change: "+15%",
     trend: "up",
     icon: Truck,
-    color: "text-purple-600",
-    bgColor: "bg-purple-100",
+    color: "text-primary",
+    bgColor: "bg-light",
   },
 ];
 
@@ -114,42 +114,20 @@ export default function Home() {
         </div>
 
         {/* Stats Cards */}
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <div className="grid-modern grid-cols-4-modern">
           {stats.map((stat) => {
             const Icon = stat.icon;
-            const TrendIcon = stat.trend === "up" ? TrendingUp : TrendingDown;
             
             return (
-              <Card key={stat.title} className="hover:shadow-lg transition-shadow">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">
-                    {stat.title}
-                  </CardTitle>
-                  <div className={`${stat.bgColor} p-2 rounded-lg`}>
-                    <Icon className={`h-4 w-4 ${stat.color}`} />
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{stat.value}</div>
-                  <div className="flex items-center text-xs mt-2">
-                    <TrendIcon
-                      className={`h-3 w-3 ml-1 ${
-                        stat.trend === "up" ? "text-green-600" : "text-red-600"
-                      }`}
-                    />
-                    <span
-                      className={
-                        stat.trend === "up" ? "text-green-600" : "text-red-600"
-                      }
-                    >
-                      {stat.change}
-                    </span>
-                    <span className="text-muted-foreground mr-2">
-                      مقارنة بالشهر الماضي
-                    </span>
-                  </div>
-                </CardContent>
-              </Card>
+              <StatsCard
+                key={stat.title}
+                title={stat.title}
+                value={stat.value}
+                change={stat.change}
+                trend={stat.trend as "up" | "down"}
+                icon={<Icon className="h-5 w-5" />}
+                description="مقارنة بالشهر الماضي"
+              />
             );
           })}
         </div>

@@ -9,7 +9,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
+import { Button, LoadingButton } from "@/components/ui/button-modern";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -40,8 +40,8 @@ import { format } from "date-fns";
 import { ar } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle, StatsCard } from "@/components/ui/card-modern";
+import { Badge, StatusBadge } from "@/components/ui/badge-modern";
 import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -189,7 +189,7 @@ export function ScheduleDialog({ open, onOpenChange, event, onSave }: ScheduleDi
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-gradient-to-br from-pink-50 to-rose-100 border-2 border-pink-400 shadow-2xl">
         <DialogHeader>
           <DialogTitle>
             {event ? "تعديل الموعد" : "إضافة موعد جديد"}
@@ -200,12 +200,12 @@ export function ScheduleDialog({ open, onOpenChange, event, onSave }: ScheduleDi
         </DialogHeader>
 
         <form onSubmit={handleSubmit}>
-          <Tabs defaultValue="basic" className="w-full">
-            <TabsList className="grid w-full grid-cols-4">
-              <TabsTrigger value="basic">البيانات الأساسية</TabsTrigger>
-              <TabsTrigger value="team">الفريق</TabsTrigger>
-              <TabsTrigger value="details">التفاصيل</TabsTrigger>
-              <TabsTrigger value="reminders">التذكيرات</TabsTrigger>
+          <Tabs defaultValue="basic" className="w-full" dir="rtl">
+            <TabsList className="grid w-full grid-cols-2 lg:grid-cols-4 mb-6 bg-white/80 border-2 border-gray-300 rounded-lg p-1">
+              <TabsTrigger value="basic" className="data-[state=active]:bg-pink-600 data-[state=active]:text-white font-medium text-sm">البيانات الأساسية</TabsTrigger>
+              <TabsTrigger value="team" className="data-[state=active]:bg-pink-600 data-[state=active]:text-white font-medium text-sm">الفريق</TabsTrigger>
+              <TabsTrigger value="details" className="data-[state=active]:bg-pink-600 data-[state=active]:text-white font-medium text-sm">التفاصيل</TabsTrigger>
+              <TabsTrigger value="reminders" className="data-[state=active]:bg-pink-600 data-[state=active]:text-white font-medium text-sm">التذكيرات</TabsTrigger>
             </TabsList>
 
             <TabsContent value="basic" className="space-y-4 mt-4">
@@ -610,11 +610,19 @@ export function ScheduleDialog({ open, onOpenChange, event, onSave }: ScheduleDi
             </TabsContent>
           </Tabs>
 
-          <DialogFooter className="mt-6">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+          <DialogFooter className="mt-6 flex gap-3 pt-4 border-t border-pink-200 bg-white/50 backdrop-blur-sm rounded-lg p-4">
+            <Button 
+              type="button" 
+              variant="outline" 
+              onClick={() => onOpenChange(false)}
+              className="h-11 px-6 border-gray-300 hover:bg-gray-50 hover:border-gray-400 text-gray-700 hover:text-gray-800 transition-all duration-200 font-medium"
+            >
               إلغاء
             </Button>
-            <Button type="submit">
+            <Button 
+              type="submit"
+              className="h-11 px-6 bg-pink-600 hover:bg-pink-700 text-white shadow-lg hover:shadow-xl transition-all duration-200 font-medium"
+            >
               {event ? "حفظ التعديلات" : "إضافة الموعد"}
             </Button>
           </DialogFooter>

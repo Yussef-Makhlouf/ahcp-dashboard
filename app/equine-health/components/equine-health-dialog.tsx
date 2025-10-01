@@ -21,7 +21,9 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle, StatsCard } from "@/components/ui/card-modern";
+import { Badge, StatusBadge } from "@/components/ui/badge-modern";
+import { Button, LoadingButton } from "@/components/ui/button-modern";
 import {
   Select,
   SelectContent,
@@ -132,7 +134,7 @@ export function EquineHealthDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-gradient-to-br from-purple-50 to-violet-100 border-2 border-purple-400 shadow-2xl">
         <DialogHeader>
           <DialogTitle>
             {item ? "تعديل سجل صحة الخيول" : "إضافة سجل صحة خيول جديد"}
@@ -144,24 +146,24 @@ export function EquineHealthDialog({
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            <Tabs defaultValue="basic" className="w-full">
-              <TabsList className="grid w-full grid-cols-4">
-                <TabsTrigger value="basic">البيانات الأساسية</TabsTrigger>
-                <TabsTrigger value="owner">بيانات المالك</TabsTrigger>
-                <TabsTrigger value="medical">المعلومات الطبية</TabsTrigger>
-                <TabsTrigger value="request">الطلب والمتابعة</TabsTrigger>
+            <Tabs defaultValue="basic" className="w-full" dir="rtl">
+              <TabsList className="grid w-full grid-cols-2 lg:grid-cols-4 mb-6 bg-white/80 border-2 border-gray-300 rounded-lg p-1">
+                <TabsTrigger value="basic" className="data-[state=active]:bg-purple-600 data-[state=active]:text-white font-medium text-sm">البيانات الأساسية</TabsTrigger>
+                <TabsTrigger value="owner" className="data-[state=active]:bg-purple-600 data-[state=active]:text-white font-medium text-sm">بيانات المالك</TabsTrigger>
+                <TabsTrigger value="medical" className="data-[state=active]:bg-purple-600 data-[state=active]:text-white font-medium text-sm">المعلومات الطبية</TabsTrigger>
+                <TabsTrigger value="request" className="data-[state=active]:bg-purple-600 data-[state=active]:text-white font-medium text-sm">الطلب والمتابعة</TabsTrigger>
               </TabsList>
 
-              <TabsContent value="basic" className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
+              <TabsContent value="basic" className="space-y-6 p-2">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                   <FormField
                     control={form.control as any}
                     name="date"
                     render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>التاريخ</FormLabel>
+                      <FormItem className="space-y-3">
+                        <FormLabel className="text-sm font-semibold text-gray-800">التاريخ</FormLabel>
                         <FormControl>
-                          <Input type="date" {...field} />
+                          <Input type="date" {...field} className="border-2 border-gray-400 focus:border-purple-500 transition-colors duration-200" dir="rtl" />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -214,7 +216,7 @@ export function EquineHealthDialog({
                 </div>
               </TabsContent>
 
-              <TabsContent value="owner" className="space-y-4">
+              <TabsContent value="owner" className="space-y-4 p-2">
                 <div className="grid grid-cols-2 gap-4">
                   <FormField
                     control={form.control as any}
@@ -320,7 +322,7 @@ export function EquineHealthDialog({
                 </div>
               </TabsContent>
 
-              <TabsContent value="medical" className="space-y-4">
+              <TabsContent value="medical" className="space-y-4 p-2">
                 <div className="grid grid-cols-2 gap-4">
                   <FormField
                     control={form.control as any}
@@ -452,18 +454,18 @@ export function EquineHealthDialog({
               </TabsContent>
             </Tabs>
 
-            <div className="flex justify-end gap-2">
+            <div className="flex justify-end gap-3 pt-4 border-t border-purple-200 bg-white/50 backdrop-blur-sm rounded-lg p-4">
               <Button 
                 type="button" 
                 variant="outline" 
                 onClick={() => onOpenChange(false)}
-                className="border-gray-300 hover:bg-gray-50 hover:border-gray-400 text-gray-700 hover:text-gray-800"
+                className="h-11 px-6 border-gray-300 hover:bg-gray-50 hover:border-gray-400 text-gray-700 hover:text-gray-800 transition-all duration-200 font-medium"
               >
                 إلغاء
               </Button>
               <Button 
                 type="submit"
-                className="bg-purple-600 hover:bg-purple-700 text-white shadow-lg hover:shadow-xl transition-all duration-200"
+                className="h-11 px-6 bg-purple-600 hover:bg-purple-700 text-white shadow-lg hover:shadow-xl transition-all duration-200 font-medium"
               >
                 {item ? "تحديث" : "إضافة"}
               </Button>

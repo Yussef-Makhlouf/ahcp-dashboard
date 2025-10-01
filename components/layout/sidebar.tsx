@@ -96,10 +96,8 @@ export function Sidebar() {
                   <Link
                     href={item.href}
                     className={cn(
-                      "nav-link flex items-center gap-3 rounded-md px-4 py-3 text-sm font-medium transition-all duration-300",
-                      "hover:bg-blue-100 hover:text-blue-800 hover:shadow-sm hover:scale-[1.02]",
-                      "focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2",
-                      isActive && "bg-blue-600 text-white shadow-lg scale-[1.02] hover:bg-blue-700 hover:text-white"
+                      "nav-link",
+                      isActive && "active"
                     )}
                   >
                     <Icon className="h-5 w-5" />

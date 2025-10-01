@@ -18,13 +18,13 @@ export const FormInput = forwardRef<HTMLInputElement, InputProps>(
     const inputId = props.id || props.name || `input-${Math.random().toString(36).substr(2, 9)}`;
 
     return (
-      <div className={cn('space-y-1.5', className)}>
+      <div className={cn('form-group', className)}>
         <label
           htmlFor={inputId}
-          className="block text-sm font-medium text-gray-700"
+          className="form-label"
         >
           {label}
-          {required && <span className="mr-1 text-red-500">*</span>}
+          {required && <span className="mr-1 text-danger">*</span>}
         </label>
         
         <div className="relative">
@@ -32,9 +32,8 @@ export const FormInput = forwardRef<HTMLInputElement, InputProps>(
             id={inputId}
             ref={ref}
             className={cn(
-              'block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm',
-              'disabled:cursor-not-allowed disabled:bg-gray-100',
-              error ? 'border-red-500' : 'border-gray-300',
+              'form-input',
+              error ? 'error' : '',
               rightElement ? 'pr-10' : ''
             )}
             {...props}
@@ -47,9 +46,9 @@ export const FormInput = forwardRef<HTMLInputElement, InputProps>(
           )}
         </div>
 
-        {error && <p className="mt-1 text-sm text-red-600">{error}</p>}
+        {error && <p className="form-error">{error}</p>}
         {description && !error && (
-          <p className="mt-1 text-xs text-gray-500">{description}</p>
+          <p className="text-small text-muted">{description}</p>
         )}
       </div>
     );

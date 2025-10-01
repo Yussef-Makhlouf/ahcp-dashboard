@@ -8,10 +8,13 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter,
+  DialogBody,
 } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { Button, LoadingButton } from "@/components/ui/button-modern";
+import { FormField, FormLabel, Input, FormError, FormHelp } from "@/components/ui/form-modern";
 import { Label } from "@/components/ui/label";
+import { Card, CardHeader, CardTitle, CardContent, StatsCard } from "@/components/ui/card-modern";
+import { StatusBadge, Badge } from "@/components/ui/badge-modern";
 import {
   Select,
   SelectContent,
@@ -26,13 +29,23 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { CalendarIcon, MapPin, Plus, Trash2 } from "lucide-react";
+import { 
+  CalendarIcon, 
+  MapPin, 
+  Plus, 
+  Trash2, 
+  User, 
+  Phone, 
+  Mail, 
+  Home,
+  Heart,
+  Shield,
+  Activity
+} from "lucide-react";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface ClientDialogProps {
@@ -81,6 +94,9 @@ export function ClientDialog({ open, onOpenChange, client, onSave }: ClientDialo
     preferredVet: "",
   });
 
+  const [loading, setLoading] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
   const [newAnimal, setNewAnimal] = useState<Animal>({
     id: "",
     type: "sheep",
@@ -118,14 +134,39 @@ export function ClientDialog({ open, onOpenChange, client, onSave }: ClientDialo
     }
   }, [client]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const validateForm = () => {
+    const newErrors: Record<string, string> = {};
+    
+    if (!formData.name.trim()) newErrors.name = "الاسم مطلوب";
+    if (!formData.id.trim()) newErrors.id = "رقم الهوية مطلوب";
+    if (!formData.phone.trim()) newErrors.phone = "رقم الهاتف مطلوب";
+    if (!formData.village) newErrors.village = "القرية مطلوبة";
+    
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    onSave({
-      ...formData,
-      birthDate: formData.birthDate ? format(formData.birthDate, "yyyy-MM-dd") : "",
-      totalAnimals: formData.animals.length,
-    });
-    onOpenChange(false);
+    
+    if (!validateForm()) return;
+    
+    setLoading(true);
+    
+    try {
+      await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate API call
+      
+      onSave({
+        ...formData,
+        birthDate: formData.birthDate ? format(formData.birthDate, "yyyy-MM-dd") : "",
+        totalAnimals: formData.animals.length,
+      });
+      onOpenChange(false);
+    } catch (error) {
+      console.error("Error saving client:", error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const addAnimal = () => {
@@ -156,7 +197,7 @@ export function ClientDialog({ open, onOpenChange, client, onSave }: ClientDialo
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto p-2">
         <DialogHeader>
           <DialogTitle>
             {client ? "تعديل بيانات المربي" : "إضافة مربي جديد"}
@@ -166,148 +207,176 @@ export function ClientDialog({ open, onOpenChange, client, onSave }: ClientDialo
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit}>
-          <Tabs defaultValue="basic" className="w-full">
-            <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="basic">البيانات الأساسية</TabsTrigger>
-              <TabsTrigger value="animals">الحيوانات</TabsTrigger>
-              <TabsTrigger value="additional">بيانات إضافية</TabsTrigger>
-            </TabsList>
+        <DialogBody>
+          <form id="client-form" onSubmit={handleSubmit}>
+            <Tabs defaultValue="basic" className="tabs-modern" dir="rtl">
+              <TabsList className="tabs-list-modern">
+                <TabsTrigger value="basic" className="tabs-trigger-modern">
+                  <User className="w-4 h-4 ml-2" />
+                  البيانات الأساسية
+                </TabsTrigger>
+                <TabsTrigger value="animals" className="tabs-trigger-modern">
+                  <Heart className="w-4 h-4 ml-2" />
+                  الحيوانات
+                </TabsTrigger>
+                <TabsTrigger value="additional" className="tabs-trigger-modern">
+                  <Shield className="w-4 h-4 ml-2" />
+                  بيانات إضافية
+                </TabsTrigger>
+              </TabsList>
 
-            <TabsContent value="basic" className="space-y-4 mt-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="name">الاسم الكامل *</Label>
-                  <Input
-                    id="name"
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    required
-                    placeholder="أدخل الاسم الكامل"
+            <TabsContent value="basic" className="space-y-6 mt-4 p-2">
+              <div className="section-modern">
+                <div className="section-header-modern">
+                  <h3 className="section-title-modern">المعلومات الشخصية</h3>
+                  <p className="section-description-modern">أدخل البيانات الأساسية للمربي</p>
+                </div>
+                
+                <div className="grid-modern grid-cols-2-modern">
+                  <FormField>
+                    <FormLabel htmlFor="name" required>الاسم الكامل</FormLabel>
+                    <Input
+                      id="name"
+                      value={formData.name}
+                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                      placeholder="أدخل الاسم الكامل"
+                      variant="enhanced"
+                      error={!!errors.name}
+                      dir="rtl"
+                    />
+                    {errors.name && <FormError>{errors.name}</FormError>}
+                  </FormField>
+
+                  <FormField>
+                    <FormLabel htmlFor="id" required>رقم الهوية</FormLabel>
+                    <Input
+                      id="id"
+                      value={formData.id}
+                      onChange={(e) => setFormData({ ...formData, id: e.target.value })}
+                      placeholder="C001"
+                      variant="enhanced"
+                      error={!!errors.id}
+                    />
+                    {errors.id && <FormError>{errors.id}</FormError>}
+                  </FormField>
+
+                  <FormField>
+                    <FormLabel htmlFor="nationalId">الرقم القومي</FormLabel>
+                    <Input
+                      id="nationalId"
+                      value={formData.nationalId}
+                      onChange={(e) => setFormData({ ...formData, nationalId: e.target.value })}
+                      placeholder="أدخل الرقم القومي"
+                      variant="enhanced"
+                      maxLength={14}
+                    />
+                  </FormField>
+
+                  <FormField>
+                    <FormLabel htmlFor="phone" required>رقم الهاتف</FormLabel>
+                    <Input
+                      id="phone"
+                      value={formData.phone}
+                      onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                      placeholder="+201234567890"
+                      variant="enhanced"
+                      error={!!errors.phone}
+                      dir="ltr"
+                    />
+                    {errors.phone && <FormError>{errors.phone}</FormError>}
+                  </FormField>
+
+                  <FormField>
+                    <FormLabel>تاريخ الميلاد</FormLabel>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          className={cn(
+                            "w-full justify-start text-right form-input-enhanced",
+                            !formData.birthDate && "text-muted-foreground"
+                          )}
+                        >
+                          <CalendarIcon className="ml-2 h-4 w-4" />
+                          {formData.birthDate ? (
+                            format(formData.birthDate, "PPP", { locale: ar })
+                          ) : (
+                            <span>اختر التاريخ</span>
+                          )}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0">
+                        <Calendar
+                          mode="single"
+                          selected={formData.birthDate}
+                          onSelect={(date) => setFormData({ ...formData, birthDate: date })}
+                          initialFocus
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  </FormField>
+
+                  <FormField>
+                    <FormLabel htmlFor="email">البريد الإلكتروني</FormLabel>
+                    <Input
+                      id="email"
+                      type="email"
+                      value={formData.email}
+                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                      placeholder="example@email.com"
+                      variant="enhanced"
+                      dir="ltr"
+                    />
+                  </FormField>
+
+                  <FormField>
+                    <FormLabel htmlFor="village" required>القرية</FormLabel>
+                    <Select
+                      value={formData.village}
+                      onValueChange={(value) => setFormData({ ...formData, village: value })}
+                    >
+                      <SelectTrigger className="form-select-enhanced">
+                        <SelectValue placeholder="اختر القرية" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {villages.map((village) => (
+                          <SelectItem key={village} value={village}>
+                            {village}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {errors.village && <FormError>{errors.village}</FormError>}
+                  </FormField>
+
+                  <FormField>
+                    <FormLabel htmlFor="status">الحالة</FormLabel>
+                    <Select
+                      value={formData.status}
+                      onValueChange={(value) => setFormData({ ...formData, status: value })}
+                    >
+                      <SelectTrigger className="form-select-enhanced">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="active">نشط</SelectItem>
+                        <SelectItem value="inactive">غير نشط</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </FormField>
+                </div>
+
+                <FormField>
+                  <FormLabel htmlFor="address">العنوان التفصيلي</FormLabel>
+                  <Textarea
+                    id="address"
+                    value={formData.address}
+                    onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                    placeholder="أدخل العنوان التفصيلي"
+                    className="form-input-enhanced"
+                    rows={2}
                   />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="id">رقم الهوية *</Label>
-                  <Input
-                    id="id"
-                    value={formData.id}
-                    onChange={(e) => setFormData({ ...formData, id: e.target.value })}
-                    required
-                    placeholder="C001"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="nationalId">الرقم القومي</Label>
-                  <Input
-                    id="nationalId"
-                    value={formData.nationalId}
-                    onChange={(e) => setFormData({ ...formData, nationalId: e.target.value })}
-                    placeholder="أدخل الرقم القومي"
-                    maxLength={14}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="phone">رقم الهاتف *</Label>
-                  <Input
-                    id="phone"
-                    value={formData.phone}
-                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                    required
-                    placeholder="+201234567890"
-                    dir="ltr"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label>تاريخ الميلاد</Label>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        className={cn(
-                          "w-full justify-start text-right",
-                          !formData.birthDate && "text-muted-foreground"
-                        )}
-                      >
-                        <CalendarIcon className="ml-2 h-4 w-4" />
-                        {formData.birthDate ? (
-                          format(formData.birthDate, "PPP", { locale: ar })
-                        ) : (
-                          <span>اختر التاريخ</span>
-                        )}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0">
-                      <Calendar
-                        mode="single"
-                        selected={formData.birthDate}
-                        onSelect={(date) => setFormData({ ...formData, birthDate: date })}
-                        initialFocus
-                      />
-                    </PopoverContent>
-                  </Popover>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="email">البريد الإلكتروني</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    value={formData.email}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    placeholder="example@email.com"
-                    dir="ltr"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="village">القرية *</Label>
-                  <Select
-                    value={formData.village}
-                    onValueChange={(value) => setFormData({ ...formData, village: value })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="اختر القرية" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {villages.map((village) => (
-                        <SelectItem key={village} value={village}>
-                          {village}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="status">الحالة</Label>
-                  <Select
-                    value={formData.status}
-                    onValueChange={(value) => setFormData({ ...formData, status: value })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="active">نشط</SelectItem>
-                      <SelectItem value="inactive">غير نشط</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="address">العنوان التفصيلي</Label>
-                <Textarea
-                  id="address"
-                  value={formData.address}
-                  onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                  placeholder="أدخل العنوان التفصيلي"
-                  rows={2}
-                />
+                </FormField>
               </div>
             </TabsContent>
 
@@ -318,11 +387,12 @@ export function ClientDialog({ open, onOpenChange, client, onSave }: ClientDialo
                 </CardHeader>
                 <CardContent>
                   <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
+                    <div className="space-y-2 bg-white">
                       <Label>نوع الحيوان</Label>
                       <Select
                         value={newAnimal.type}
                         onValueChange={(value) => setNewAnimal({ ...newAnimal, type: value })}
+                      
                       >
                         <SelectTrigger>
                           <SelectValue />
@@ -431,7 +501,7 @@ export function ClientDialog({ open, onOpenChange, client, onSave }: ClientDialo
                               {animal.type === "horse" && "خيول"}
                             </Badge>
                             <span className="text-sm">{animal.breed}</span>
-                            <Badge variant={animal.healthStatus === "healthy" ? "default" : "destructive"}>
+                            <Badge variant={animal.healthStatus === "healthy" ? "default" : "danger"}>
                               {animal.healthStatus === "healthy" && "سليم"}
                               {animal.healthStatus === "sick" && "مريض"}
                               {animal.healthStatus === "under_treatment" && "تحت العلاج"}
@@ -495,25 +565,30 @@ export function ClientDialog({ open, onOpenChange, client, onSave }: ClientDialo
                 </span>
               </div>
             </TabsContent>
-          </Tabs>
+            </Tabs>
+          </form>
+        </DialogBody>
 
-          <DialogFooter className="mt-6">
-            <Button 
-              type="button" 
-              variant="outline" 
-              onClick={() => onOpenChange(false)}
-              className="border-gray-300 hover:bg-gray-50 hover:border-gray-400 text-gray-700 hover:text-gray-800"
-            >
-              إلغاء
-            </Button>
-            <Button 
-              type="submit"
-              className="bg-cyan-600 hover:bg-cyan-700 text-white shadow-lg hover:shadow-xl transition-all duration-200"
-            >
-              {client ? "حفظ التعديلات" : "إضافة المربي"}
-            </Button>
-          </DialogFooter>
-        </form>
+        <DialogFooter>
+          <Button 
+            type="button" 
+            variant="secondary" 
+            onClick={() => onOpenChange(false)}
+            disabled={loading}
+          >
+            إلغاء
+          </Button>
+          <LoadingButton 
+            type="submit"
+            form="client-form"
+            variant="default"
+            loading={loading}
+            loadingText="جاري الحفظ..."
+            leftIcon={<User className="w-4 h-4" />}
+          >
+            {client ? "حفظ التعديلات" : "إضافة المربي"}
+          </LoadingButton>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

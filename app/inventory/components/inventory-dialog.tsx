@@ -9,7 +9,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
+import { Button, LoadingButton } from "@/components/ui/button-modern";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -31,8 +31,8 @@ import { format } from "date-fns";
 import { ar } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle, StatsCard } from "@/components/ui/card-modern";
+import { Badge, StatusBadge } from "@/components/ui/badge-modern";
 import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Switch } from "@/components/ui/switch";
@@ -213,7 +213,7 @@ export function InventoryDialog({ open, onOpenChange, item, onSave }: InventoryD
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-gradient-to-br from-orange-50 to-amber-100 border-2 border-orange-400 shadow-2xl">
         <DialogHeader>
           <DialogTitle>
             {item ? "تعديل بيانات الصنف" : "إضافة صنف جديد"}
@@ -224,12 +224,12 @@ export function InventoryDialog({ open, onOpenChange, item, onSave }: InventoryD
         </DialogHeader>
 
         <form onSubmit={handleSubmit}>
-          <Tabs defaultValue="basic" className="w-full">
-            <TabsList className="grid w-full grid-cols-4">
-              <TabsTrigger value="basic">البيانات الأساسية</TabsTrigger>
-              <TabsTrigger value="stock">المخزون</TabsTrigger>
-              <TabsTrigger value="movement">حركة المخزون</TabsTrigger>
-              <TabsTrigger value="additional">بيانات إضافية</TabsTrigger>
+          <Tabs defaultValue="basic" className="w-full" dir="rtl">
+            <TabsList className="grid w-full grid-cols-2 lg:grid-cols-4 mb-6 bg-white/80 border-2 border-gray-300 rounded-lg p-1">
+              <TabsTrigger value="basic" className="data-[state=active]:bg-orange-600 data-[state=active]:text-white font-medium text-sm">البيانات الأساسية</TabsTrigger>
+              <TabsTrigger value="stock" className="data-[state=active]:bg-orange-600 data-[state=active]:text-white font-medium text-sm">المخزون</TabsTrigger>
+              <TabsTrigger value="movement" className="data-[state=active]:bg-orange-600 data-[state=active]:text-white font-medium text-sm">حركة المخزون</TabsTrigger>
+              <TabsTrigger value="additional" className="data-[state=active]:bg-orange-600 data-[state=active]:text-white font-medium text-sm">بيانات إضافية</TabsTrigger>
             </TabsList>
 
             <TabsContent value="basic" className="space-y-4 mt-4">
@@ -653,9 +653,9 @@ export function InventoryDialog({ open, onOpenChange, item, onSave }: InventoryD
                       <div className="flex justify-between">
                         <span className="text-sm text-muted-foreground">الحالة:</span>
                         <Badge variant={
-                          formData.quantity === 0 ? "destructive" :
-                          formData.quantity < formData.minStock ? "secondary" :
-                          "default"
+                          formData.quantity === 0 ? "danger" :
+                          formData.quantity < formData.minStock ? "warning" :
+                          "success"
                         }>
                           {formData.quantity === 0 ? "نفذ المخزون" :
                            formData.quantity < formData.minStock ? "مخزون منخفض" :
@@ -669,11 +669,19 @@ export function InventoryDialog({ open, onOpenChange, item, onSave }: InventoryD
             </TabsContent>
           </Tabs>
 
-          <DialogFooter className="mt-6">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+          <DialogFooter className="mt-6 flex gap-3 pt-4 border-t border-orange-200 bg-white/50 backdrop-blur-sm rounded-lg p-4">
+            <Button 
+              type="button" 
+              variant="outline" 
+              onClick={() => onOpenChange(false)}
+              className="h-11 px-6 border-gray-300 hover:bg-gray-50 hover:border-gray-400 text-gray-700 hover:text-gray-800 transition-all duration-200 font-medium"
+            >
               إلغاء
             </Button>
-            <Button type="submit">
+            <Button 
+              type="submit"
+              className="h-11 px-6 bg-orange-600 hover:bg-orange-700 text-white shadow-lg hover:shadow-xl transition-all duration-200 font-medium"
+            >
               {item ? "حفظ التعديلات" : "إضافة الصنف"}
             </Button>
           </DialogFooter>

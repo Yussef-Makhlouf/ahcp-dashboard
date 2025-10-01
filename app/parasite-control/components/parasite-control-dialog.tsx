@@ -21,7 +21,9 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle, StatsCard } from "@/components/ui/card-modern";
+import { Badge, StatusBadge } from "@/components/ui/badge-modern";
+import { Button, LoadingButton } from "@/components/ui/button-modern";
 import {
   Select,
   SelectContent,
@@ -166,7 +168,7 @@ export function ParasiteControlDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-gradient-to-br from-green-50 to-emerald-100 border-2 border-green-400 shadow-2xl">
         <DialogHeader>
           <DialogTitle>
             {item ? "تعديل سجل مكافحة الطفيليات" : "إضافة سجل مكافحة طفيليات جديد"}
@@ -178,16 +180,16 @@ export function ParasiteControlDialog({
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            <Tabs defaultValue="basic" className="w-full">
-              <TabsList className="grid w-full grid-cols-4">
-                <TabsTrigger value="basic">البيانات الأساسية</TabsTrigger>
-                <TabsTrigger value="owner">بيانات المربي</TabsTrigger>
-                <TabsTrigger value="herd">القطيع</TabsTrigger>
-                <TabsTrigger value="treatment">المعالجة</TabsTrigger>
+            <Tabs defaultValue="basic" className="w-full" dir="rtl">
+              <TabsList className="grid w-full grid-cols-2 lg:grid-cols-4 mb-6 bg-white/80 border-2 border-gray-300 rounded-lg p-1">
+                <TabsTrigger value="basic" className="data-[state=active]:bg-green-600 data-[state=active]:text-white font-medium text-sm">البيانات الأساسية</TabsTrigger>
+                <TabsTrigger value="owner" className="data-[state=active]:bg-green-600 data-[state=active]:text-white font-medium text-sm">بيانات المربي</TabsTrigger>
+                <TabsTrigger value="herd" className="data-[state=active]:bg-green-600 data-[state=active]:text-white font-medium text-sm">القطيع</TabsTrigger>
+                <TabsTrigger value="treatment" className="data-[state=active]:bg-green-600 data-[state=active]:text-white font-medium text-sm">المعالجة</TabsTrigger>
               </TabsList>
 
-              <TabsContent value="basic" className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
+              <TabsContent value="basic" className="space-y-6">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                   <FormField
                     control={form.control as any}
                     name="date"
@@ -542,18 +544,18 @@ export function ParasiteControlDialog({
               </TabsContent>
             </Tabs>
 
-            <div className="flex justify-end gap-2">
+            <div className="flex justify-end gap-3 pt-4 border-t border-green-200 bg-white/50 backdrop-blur-sm rounded-lg p-4">
               <Button 
                 type="button" 
                 variant="outline" 
                 onClick={() => onOpenChange(false)}
-                className="border-gray-300 hover:bg-gray-50 hover:border-gray-400 text-gray-700 hover:text-gray-800"
+                className="h-11 px-6 border-gray-300 hover:bg-gray-50 hover:border-gray-400 text-gray-700 hover:text-gray-800 transition-all duration-200 font-medium"
               >
                 إلغاء
               </Button>
               <Button 
                 type="submit"
-                className="bg-green-600 hover:bg-green-700 text-white shadow-lg hover:shadow-xl transition-all duration-200"
+                className="h-11 px-6 bg-green-600 hover:bg-green-700 text-white shadow-lg hover:shadow-xl transition-all duration-200 font-medium"
               >
                 {item ? "تحديث" : "إضافة"}
               </Button>

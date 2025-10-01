@@ -11,7 +11,7 @@ interface MainLayoutProps {
 
 export function MainLayout({ children, className }: MainLayoutProps) {
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-card">
       {/* Sidebar - hidden on mobile */}
       <div className="hidden lg:block">
         <Sidebar />
@@ -20,7 +20,7 @@ export function MainLayout({ children, className }: MainLayoutProps) {
       {/* Main content */}
       <div className="lg:pr-64">
         <Navbar />
-        <main className={cn("p-6", className)}>
+        <main className={cn("p-6 bg-light", className)}>
           {children}
         </main>
       </div>

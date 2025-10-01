@@ -104,16 +104,16 @@ export function DataTable<TData, TValue>({
   return (
     <div className="space-y-4 w-full max-w-none">
       {/* Enhanced Toolbar */}
-      <div className="bg-gray-50 rounded-lg p-4 sm:p-6 border border-gray-200 shadow-sm">
+      <div className="card">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex flex-1 items-center gap-3">
             <div className="relative flex-1 max-w-md">
-              <Search className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500" />
+              <Search className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
               <Input
                 placeholder="البحث في البيانات..."
                 value={globalFilter ?? ""}
                 onChange={(event) => setGlobalFilter(event.target.value)}
-                className="pr-10 bg-white border-gray-300 focus:border-blue-500 focus:ring-blue-500/20 transition-all duration-200"
+                className="form-input pr-10"
               />
             </div>
             {globalFilter && (
@@ -121,7 +121,7 @@ export function DataTable<TData, TValue>({
                 variant="ghost"
                 size="sm"
                 onClick={() => setGlobalFilter("")}
-                className="text-gray-600 hover:text-gray-800 hidden sm:flex"
+                className="hidden sm:flex"
               >
                 مسح البحث
               </Button>
@@ -136,7 +136,6 @@ export function DataTable<TData, TValue>({
                   <Button 
                     variant="outline" 
                     size="sm"
-                    className="bg-white border-blue-300 hover:bg-blue-50 hover:border-blue-400 text-blue-700 hover:text-blue-800 transition-all duration-200 shadow-sm"
                   >
                     <Download className="ml-2 h-4 w-4" />
                     تصدير
@@ -148,7 +147,7 @@ export function DataTable<TData, TValue>({
                     className="cursor-pointer"
                   >
                     <div className="flex items-center gap-2">
-                      <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                      <div className="w-2 h-2 bg-success rounded-full"></div>
                       تصدير CSV {selectedRows.length > 0 && `(${selectedRows.length} محدد)`}
                     </div>
                   </DropdownMenuCheckboxItem>
@@ -157,7 +156,7 @@ export function DataTable<TData, TValue>({
                     className="cursor-pointer"
                   >
                     <div className="flex items-center gap-2">
-                      <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+                      <div className="w-2 h-2 bg-danger rounded-full"></div>
                       تصدير PDF {selectedRows.length > 0 && `(${selectedRows.length} محدد)`}
                     </div>
                   </DropdownMenuCheckboxItem>
@@ -169,9 +168,8 @@ export function DataTable<TData, TValue>({
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button 
-                  variant="outline" 
+                  variant="secondary" 
                   size="sm"
-                  className="bg-white border-green-300 hover:bg-green-50 hover:border-green-400 text-green-700 hover:text-green-800 transition-all duration-200 shadow-sm"
                 >
                   <Settings2 className="ml-2 h-4 w-4" />
                   الأعمدة
@@ -200,84 +198,81 @@ export function DataTable<TData, TValue>({
       </div>
 
       {/* Enhanced Table */}
-      <div className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden w-full">
+      <div className="table-container">
         <div className="overflow-x-auto min-h-[400px]">
-          <Table className="w-full min-w-full">
-            <TableHeader>
+          <table className="table">
+            <thead>
               {table.getHeaderGroups().map((headerGroup) => (
-                <TableRow 
-                  key={headerGroup.id}
-                  className="bg-blue-50 border-b border-blue-200"
-                >
+                <tr key={headerGroup.id}>
                   {headerGroup.headers.map((header) => {
                     return (
-                      <TableHead 
-                        key={header.id}
-                        className="h-14 px-6 text-right font-semibold text-blue-800 min-w-[120px]"
-                      >
+                      <th key={header.id}>
                         {header.isPlaceholder
                           ? null
                           : flexRender(header.column.columnDef.header, header.getContext())}
-                      </TableHead>
+                      </th>
                     );
                   })}
-                </TableRow>
+                </tr>
               ))}
-            </TableHeader>
-            <TableBody>
+            </thead>
+            <tbody>
               {isLoading ? (
                 <>
                   {Array.from({ length: 5 }).map((_, index) => (
-                    <SkeletonRow key={index} />
+                    <tr key={index}>
+                      {columns.map((_, colIndex) => (
+                        <td key={colIndex}>
+                          <div className="animate-pulse">
+                            <div className="h-4 bg-secondary rounded w-3/4"></div>
+                          </div>
+                        </td>
+                      ))}
+                    </tr>
                   ))}
                 </>
               ) : table.getRowModel().rows?.length ? (
-                table.getRowModel().rows.map((row, index) => (
-                  <TableRow
+                table.getRowModel().rows.map((row) => (
+                  <tr
                     key={row.id}
                     data-state={row.getIsSelected() && "selected"}
                     className={cn(
-                      "border-b border-gray-100 transition-all duration-200 hover:bg-blue-50",
-                      row.getIsSelected() && "bg-blue-100 border-blue-300",
-                      index % 2 === 0 ? "bg-white" : "bg-gray-50"
+                      row.getIsSelected() && "bg-hover"
                     )}
                   >
                     {row.getVisibleCells().map((cell) => (
-                      <TableCell 
-                        key={cell.id} 
-                        className="px-6 py-4 text-right align-middle text-gray-700 min-w-[120px]"
-                      >
+                      <td key={cell.id}>
                         {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                      </TableCell>
+                      </td>
                     ))}
-                  </TableRow>
+                  </tr>
                 ))
               ) : (
-                <TableRow>
-                  <TableCell colSpan={columns.length} className="h-32 text-center">
+                <tr>
+                  <td colSpan={columns.length} className="h-32 text-center">
                     <div className="flex flex-col items-center justify-center gap-3">
-                      <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center">
-                        <Eye className="h-8 w-8 text-gray-400" />
+                      <div className="w-16 h-16 bg-secondary rounded-full flex items-center justify-center">
+                        <Eye className="h-8 w-8 text-muted" />
                       </div>
-                      <span className="text-gray-600 text-lg">لا توجد نتائج</span>
-                      <span className="text-gray-500 text-sm">جرب تغيير معايير البحث</span>
+                      <span className="text-secondary text-lg">لا توجد نتائج</span>
+                      <span className="text-muted text-sm">جرب تغيير معايير البحث</span>
                     </div>
-                  </TableCell>
-                </TableRow>
+                  </td>
+                </tr>
               )}
-            </TableBody>
-          </Table>
+            </tbody>
+          </table>
         </div>
       </div>
 
       {/* Enhanced Pagination */}
-      <div className="bg-gray-50 rounded-lg p-4 border border-gray-200 shadow-sm">
+      <div className="card">
         <div className="flex flex-col lg:flex-row items-center justify-between gap-4">
-          <div className="text-sm text-gray-600 bg-white px-3 py-2 rounded-lg border border-gray-300 order-2 lg:order-1">
-            <span className="font-medium text-gray-800">
+          <div className="text-sm text-secondary bg-card px-3 py-2 rounded-md border order-2 lg:order-1">
+            <span className="font-medium text-primary">
               {table.getFilteredSelectedRowModel().rows.length}
             </span> من{" "}
-            <span className="font-medium text-gray-800">
+            <span className="font-medium text-primary">
               {table.getFilteredRowModel().rows.length}
             </span> صف محدد
           </div>
@@ -288,7 +283,7 @@ export function DataTable<TData, TValue>({
               size="sm"
               onClick={() => table.setPageIndex(0)}
               disabled={!table.getCanPreviousPage()}
-              className="bg-white border-purple-300 hover:bg-purple-50 hover:border-purple-400 text-purple-700 hover:text-purple-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-sm hidden sm:flex"
+              className="hidden sm:flex"
             >
               <ChevronsRight className="h-4 w-4" />
             </Button>
@@ -297,13 +292,12 @@ export function DataTable<TData, TValue>({
               size="sm"
               onClick={() => table.previousPage()}
               disabled={!table.getCanPreviousPage()}
-              className="bg-white border-blue-300 hover:bg-blue-50 hover:border-blue-400 text-blue-700 hover:text-blue-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-sm"
             >
               <ChevronRight className="h-4 w-4" />
             </Button>
             
-            <div className="flex items-center gap-2 bg-white px-3 sm:px-4 py-2 rounded-lg border border-gray-300 shadow-sm">
-              <span className="text-sm font-medium text-gray-800 whitespace-nowrap">
+            <div className="flex items-center gap-2 bg-card px-3 sm:px-4 py-2 rounded-md border shadow-sm">
+              <span className="text-sm font-medium text-primary whitespace-nowrap">
                 صفحة {table.getState().pagination.pageIndex + 1} من{" "}
                 {table.getPageCount()}
               </span>
@@ -314,7 +308,6 @@ export function DataTable<TData, TValue>({
               size="sm"
               onClick={() => table.nextPage()}
               disabled={!table.getCanNextPage()}
-              className="bg-white border-blue-300 hover:bg-blue-50 hover:border-blue-400 text-blue-700 hover:text-blue-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-sm"
             >
               <ChevronLeft className="h-4 w-4" />
             </Button>
@@ -323,7 +316,7 @@ export function DataTable<TData, TValue>({
               size="sm"
               onClick={() => table.setPageIndex(table.getPageCount() - 1)}
               disabled={!table.getCanNextPage()}
-              className="bg-white border-purple-300 hover:bg-purple-50 hover:border-purple-400 text-purple-700 hover:text-purple-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-sm hidden sm:flex"
+              className="hidden sm:flex"
             >
               <ChevronsLeft className="h-4 w-4" />
             </Button>
