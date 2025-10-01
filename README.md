@@ -1,36 +1,90 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# AHCP Dashboard - مشروع صحة الحيوان
 
-## Getting Started
+نظام إدارة متكامل لخدمات الصحة الحيوانية يشمل مكافحة الطفيليات، التحصينات، العيادات المتنقلة، والمختبرات.
 
-First, run the development server:
+## المميزات
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+- **واجهة عربية كاملة** مع دعم RTL
+- **لوحة تحكم تفاعلية** مع إحصائيات ورسوم بيانية
+- **إدارة شاملة** لجميع أقسام الصحة الحيوانية
+- **جداول بيانات متقدمة** مع البحث والفلترة والترتيب
+- **تصدير البيانات** إلى CSV و PDF
+- **استيراد البيانات** من ملفات CSV
+- **نماذج ديناميكية** مع التحقق من صحة البيانات
+- **تصميم متجاوب** يعمل على جميع الأجهزة
+
+### متغيرات البيئة (Environment Variables)
+
+قم بإنشاء ملف `.env.local` في جذر المشروع وضع فيه المتغيرات التالية:
+
+```env
+# API Configuration
+NEXT_PUBLIC_API_URL=http://localhost:3001/api
+
+# Database Configuration (for future backend integration)
+# DATABASE_URL=postgresql://username:password@localhost:5432/ahcp_db
+
+# Authentication (for future backend integration)
+# NEXTAUTH_URL=http://localhost:3000
+# NEXTAUTH_SECRET=your-secret-key
+
+# Email Configuration (for notifications)
+# SMTP_HOST=smtp.gmail.com
+# SMTP_PORT=587
+# SMTP_USER=your-email@gmail.com
+# SMTP_PASS=your-app-password
+
+# File Upload (for images and documents)
+# MAX_FILE_SIZE=5242880
+# UPLOAD_DIR=./uploads
+
+# Development Settings
+NODE_ENV=development
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## التثبيت
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+1. استنساخ المشروع:
+```bash
+git clone https://github.com/your-repo/ahcp-dashboard.git
+cd ahcp-dashboard
+```
+2. تثبيت الحزم:
+```bash
+npm install
+```
+3. تشغيل بيئة التطوير:
+```bash
+npm run dev
+```
+4. فتح المتصفح على:
+```
+http://localhost:3000
+```
+## هيكل المشروع
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```
+ahcp-dashboard/
+├── app/                      # صفحات التطبيق (App Router)
+│   ├── page.tsx             # الصفحة الرئيسية (Dashboard)
+│   ├── parasite-control/    # صفحة مكافحة الطفيليات
+│   ├── vaccination/         # صفحة التحصينات
+│   ├── mobile-clinics/      # صفحة العيادات المتنقلة
+│   ├── equine-health/       # صفحة صحة الخيول
+│   ├── laboratories/        # صفحة المختبرات
+│   ├── clients/            # صفحة المربيين
+│   ├── reports/            # صفحة التقارير
+│   ├── profile/            # الملف الشخصي
+│   └── settings/           # الإعدادات
+├── components/              # المكونات القابلة لإعادة الاستخدام
+│   ├── layout/             # مكونات Layout (Sidebar, Navbar)
+│   ├── data-table/         # مكون الجدول العام
+│   ├── ui/                 # مكونات Shadcn UI
+│   └── providers.tsx       # موفرو السياق (Context Providers)
+├── lib/                    # المكتبات والوظائف المساعدة
+│   ├── api/               # خدمات API
+│   ├── mock/              # بيانات تجريبية
+│   ├── store/             # إدارة الحالة (Zustand)
+│   └── utils.ts           # وظائف مساعدة
+├── types/                  # تعريفات TypeScript
+└── public/                 # الملفات الثابتة

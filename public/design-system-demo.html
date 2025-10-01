@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>نظام تصميم AHCP - عرض تجريبي</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
+    
+    <!-- Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="../app/globals-rtl.css">
+    
+    <style>
+        body {
+            padding: 20px;
+            background: var(--ahcp-bg-main);
+        }
+        .demo-section {
+            margin-bottom: 40px;
+        }
+        .demo-title {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--ahcp-text-primary);
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid var(--ahcp-primary);
+        }
+        .demo-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        .demo-flex {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            margin-bottom: 30px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- العنوان الرئيسي -->
+        <div class="demo-section">
+            <h1 style="text-align: center; color: var(--ahcp-primary); font-size: 36px; margin-bottom: 10px;">
+                نظام تصميم AHCP
+            </h1>
+            <p style="text-align: center; color: var(--ahcp-text); font-size: 16px;">
+                نظام إدارة صحة الحيوان - Animal Health Care Program
+            </p>
+        </div>
+
+        <!-- بطاقات الإحصائيات -->
+        <div class="demo-section">
+            <h2 class="demo-title">بطاقات الإحصائيات</h2>
+            <div class="demo-grid">
+                <!-- بطاقة 1 -->
+                <div class="ahcp-stats-card">
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; width: 100%;">
+                        <div style="background: rgba(0, 195, 23, 0.1); padding: 12px; border-radius: 12px;">
+                            <i class="fas fa-users" style="color: var(--ahcp-success); font-size: 24px;"></i>
+                        </div>
+                        <div style="text-align: left;">
+                            <div class="ahcp-stats-value">1,234</div>
+                            <div class="ahcp-stats-label">إجمالي المربيين</div>
+                        </div>
+                    </div>
+                    <div class="ahcp-stats-change">
+                        <i class="fas fa-arrow-up" style="font-size: 10px;"></i>
+                        +12.5%
+                    </div>
+                </div>
+
+                <!-- بطاقة 2 -->
+                <div class="ahcp-stats-card">
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; width: 100%;">
+                        <div style="background: rgba(59, 130, 246, 0.1); padding: 12px; border-radius: 12px;">
+                            <i class="fas fa-syringe" style="color: var(--ahcp-info); font-size: 24px;"></i>
+                        </div>
+                        <div style="text-align: left;">
+                            <div class="ahcp-stats-value">456</div>
+                            <div class="ahcp-stats-label">التحصينات هذا الشهر</div>
+                        </div>
+                    </div>
+                    <div class="ahcp-stats-change">
+                        <i class="fas fa-arrow-up" style="font-size: 10px;"></i>
+                        +8.2%
+                    </div>
+                </div>
+
+                <!-- بطاقة 3 -->
+                <div class="ahcp-stats-card">
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; width: 100%;">
+                        <div style="background: rgba(255, 115, 93, 0.1); padding: 12px; border-radius: 12px;">
+                            <i class="fas fa-bug" style="color: var(--ahcp-warning); font-size: 24px;"></i>
+                        </div>
+                        <div style="text-align: left;">
+                            <div class="ahcp-stats-value">789</div>
+                            <div class="ahcp-stats-label">مكافحة الطفيليات</div>
+                        </div>
+                    </div>
+                    <div class="ahcp-stats-change negative">
+                        <i class="fas fa-arrow-down" style="font-size: 10px;"></i>
+                        -3.1%
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- الأزرار -->
+        <div class="demo-section">
+            <h2 class="demo-title">الأزرار</h2>
+            <div class="demo-flex">
+                <button class="ahcp-button ahcp-button-primary">
+                    <i class="fas fa-plus" style="margin-left: 8px;"></i>
+                    إضافة جديد
+                </button>
+                <button class="ahcp-button" style="background: var(--ahcp-success); color: white;">
+                    <i class="fas fa-check" style="margin-left: 8px;"></i>
+                    حفظ التغييرات
+                </button>
+                <button class="ahcp-button" style="background: var(--ahcp-warning); color: white;">
+                    <i class="fas fa-edit" style="margin-left: 8px;"></i>
+                    تعديل
+                </button>
+                <button class="ahcp-button" style="background: var(--ahcp-bg-secondary); color: var(--ahcp-text);">
+                    <i class="fas fa-times" style="margin-left: 8px;"></i>
+                    إلغاء
+                </button>
+            </div>
+        </div>
+
+        <!-- حقول الإدخال -->
+        <div class="demo-section">
+            <h2 class="demo-title">حقول الإدخال</h2>
+            <div class="demo-grid">
+                <div>
+                    <label style="display: block; margin-bottom: 8px; font-weight: 600;">الاسم الكامل</label>
+                    <input type="text" class="ahcp-input" placeholder="أدخل الاسم الكامل" style="width: 100%;">
+                </div>
+                <div>
+                    <label style="display: block; margin-bottom: 8px; font-weight: 600;">رقم الهاتف</label>
+                    <input type="tel" class="ahcp-input" placeholder="+20 123 456 7890" style="width: 100%;" dir="ltr">
+                </div>
+                <div>
+                    <label style="display: block; margin-bottom: 8px; font-weight: 600;">البريد الإلكتروني</label>
+                    <input type="email" class="ahcp-input" placeholder="example@ahcp.gov" style="width: 100%;" dir="ltr">
+                </div>
+            </div>
+        </div>
+
+        <!-- الشارات -->
+        <div class="demo-section">
+            <h2 class="demo-title">الشارات والحالات</h2>
+            <div class="demo-flex">
+                <span class="ahcp-badge ahcp-badge-success">
+                    <span class="status-dot active" style="margin-left: 6px;"></span>
+                    نشط
+                </span>
+                <span class="ahcp-badge ahcp-badge-warning">
+                    <span class="status-dot warning" style="margin-left: 6px;"></span>
+                    قيد المعالجة
+                </span>
+                <span class="ahcp-badge ahcp-badge-info">
+                    <span class="status-dot" style="background: var(--ahcp-info); margin-left: 6px;"></span>
+                    مكتمل
+                </span>
+                <span class="ahcp-badge" style="background: var(--ahcp-bg-secondary); color: var(--ahcp-disabled);">
+                    <span class="status-dot inactive" style="margin-left: 6px;"></span>
+                    غير نشط
+                </span>
+            </div>
+        </div>
+
+        <!-- الجدول -->
+        <div class="demo-section">
+            <h2 class="demo-title">جدول البيانات</h2>
+            <div class="ahcp-card" style="padding: 0; overflow: hidden;">
+                <table class="ahcp-table" style="width: 100%;">
+                    <thead>
+                        <tr>
+                            <th>رقم الهوية</th>
+                            <th>الاسم</th>
+                            <th>القرية</th>
+                            <th>عدد الحيوانات</th>
+                            <th>الحالة</th>
+                            <th>الإجراءات</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>C001</td>
+                            <td>إبراهيم محمد</td>
+                            <td>قرية النور</td>
+                            <td>90</td>
+                            <td>
+                                <span class="status-indicator">
+                                    <span class="status-dot active"></span>
+                                    نشط
+                                </span>
+                            </td>
+                            <td>
+                                <button style="background: none; border: none; color: var(--ahcp-info); cursor: pointer;">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                                <button style="background: none; border: none; color: var(--ahcp-warning); cursor: pointer; margin-right: 10px;">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>C002</td>
+                            <td>أحمد عبدالله</td>
+                            <td>قرية السلام</td>
+                            <td>93</td>
+                            <td>
+                                <span class="status-indicator">
+                                    <span class="status-dot active"></span>
+                                    نشط
+                                </span>
+                            </td>
+                            <td>
+                                <button style="background: none; border: none; color: var(--ahcp-info); cursor: pointer;">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                                <button style="background: none; border: none; color: var(--ahcp-warning); cursor: pointer; margin-right: 10px;">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>C003</td>
+                            <td>محمود سيد</td>
+                            <td>قرية الأمل</td>
+                            <td>57</td>
+                            <td>
+                                <span class="status-indicator">
+                                    <span class="status-dot inactive"></span>
+                                    غير نشط
+                                </span>
+                            </td>
+                            <td>
+                                <button style="background: none; border: none; color: var(--ahcp-info); cursor: pointer;">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                                <button style="background: none; border: none; color: var(--ahcp-warning); cursor: pointer; margin-right: 10px;">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- البطاقات -->
+        <div class="demo-section">
+            <h2 class="demo-title">البطاقات</h2>
+            <div class="demo-grid">
+                <div class="ahcp-card">
+                    <div class="ahcp-card-header">
+                        <div>
+                            <h3 class="ahcp-card-title">معلومات المربي</h3>
+                            <p class="ahcp-card-subtitle">البيانات الأساسية والتواصل</p>
+                        </div>
+                        <button class="ahcp-button" style="padding: 8px 16px; font-size: 12px; background: var(--ahcp-bg-secondary); color: var(--ahcp-text);">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                    </div>
+                    <div style="display: flex; flex-direction: column; gap: 12px;">
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <i class="fas fa-user" style="color: var(--ahcp-primary); width: 20px;"></i>
+                            <span>إبراهيم محمد عبدالله</span>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <i class="fas fa-phone" style="color: var(--ahcp-primary); width: 20px;"></i>
+                            <span dir="ltr">+20 123 456 7890</span>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <i class="fas fa-map-marker-alt" style="color: var(--ahcp-primary); width: 20px;"></i>
+                            <span>قرية النور، محافظة الجيزة</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="ahcp-card">
+                    <div class="ahcp-card-header">
+                        <div>
+                            <h3 class="ahcp-card-title">إحصائيات سريعة</h3>
+                            <p class="ahcp-card-subtitle">ملخص النشاط الشهري</p>
+                        </div>
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                        <div style="text-align: center; padding: 12px; background: var(--ahcp-bg-light); border-radius: 8px;">
+                            <div style="font-size: 24px; font-weight: 700; color: var(--ahcp-success);">342</div>
+                            <div style="font-size: 12px; color: var(--ahcp-text); margin-top: 4px;">نشاط مكتمل</div>
+                        </div>
+                        <div style="text-align: center; padding: 12px; background: var(--ahcp-bg-light); border-radius: 8px;">
+                            <div style="font-size: 24px; font-weight: 700; color: var(--ahcp-info);">2,847</div>
+                            <div style="font-size: 12px; color: var(--ahcp-text); margin-top: 4px;">حيوان معالج</div>
+                        </div>
+                        <div style="text-align: center; padding: 12px; background: var(--ahcp-bg-light); border-radius: 8px;">
+                            <div style="font-size: 24px; font-weight: 700; color: var(--ahcp-warning);">18</div>
+                            <div style="font-size: 12px; color: var(--ahcp-text); margin-top: 4px;">قرية مغطاة</div>
+                        </div>
+                        <div style="text-align: center; padding: 12px; background: var(--ahcp-bg-light); border-radius: 8px;">
+                            <div style="font-size: 24px; font-weight: 700; color: var(--ahcp-primary);">94%</div>
+                            <div style="font-size: 12px; color: var(--ahcp-text); margin-top: 4px;">معدل النجاح</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- الشريط الجانبي -->
+        <div class="demo-section">
+            <h2 class="demo-title">قائمة التنقل</h2>
+            <div style="max-width: 300px; background: white; border-radius: 20px; padding: 20px;">
+                <nav class="sidebar-nav">
+                    <div class="sidebar-nav-item active" style="padding: 12px 20px; margin-bottom: 8px; border-radius: 12px; cursor: pointer;">
+                        <i class="fas fa-home" style="margin-left: 12px; width: 20px;"></i>
+                        الرئيسية
+                    </div>
+                    <div class="sidebar-nav-item" style="padding: 12px 20px; margin-bottom: 8px; border-radius: 12px; cursor: pointer;">
+                        <i class="fas fa-syringe" style="margin-left: 12px; width: 20px;"></i>
+                        التحصين
+                    </div>
+                    <div class="sidebar-nav-item" style="padding: 12px 20px; margin-bottom: 8px; border-radius: 12px; cursor: pointer;">
+                        <i class="fas fa-bug" style="margin-left: 12px; width: 20px;"></i>
+                        مكافحة الطفيليات
+                    </div>
+                    <div class="sidebar-nav-item" style="padding: 12px 20px; margin-bottom: 8px; border-radius: 12px; cursor: pointer;">
+                        <i class="fas fa-truck" style="margin-left: 12px; width: 20px;"></i>
+                        العيادات المتنقلة
+                    </div>
+                    <div class="sidebar-nav-item" style="padding: 12px 20px; margin-bottom: 8px; border-radius: 12px; cursor: pointer;">
+                        <i class="fas fa-flask" style="margin-left: 12px; width: 20px;"></i>
+                        المختبرات
+                    </div>
+                    <div class="sidebar-nav-item" style="padding: 12px 20px; margin-bottom: 8px; border-radius: 12px; cursor: pointer;">
+                        <i class="fas fa-users" style="margin-left: 12px; width: 20px;"></i>
+                        المربيين
+                    </div>
+                    <div class="sidebar-nav-item" style="padding: 12px 20px; margin-bottom: 8px; border-radius: 12px; cursor: pointer;">
+                        <i class="fas fa-chart-bar" style="margin-left: 12px; width: 20px;"></i>
+                        التقارير
+                    </div>
+                    <div class="sidebar-nav-item" style="padding: 12px 20px; border-radius: 12px; cursor: pointer;">
+                        <i class="fas fa-cog" style="margin-left: 12px; width: 20px;"></i>
+                        الإعدادات
+                    </div>
+                </nav>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // إضافة تفاعلات بسيطة
+        document.querySelectorAll('.sidebar-nav-item').forEach(item => {
+            item.addEventListener('click', function() {
+                document.querySelectorAll('.sidebar-nav-item').forEach(i => i.classList.remove('active'));
+                this.classList.add('active');
+            });
+        });
+
+        // تأثير موجة على الأزرار
+        document.querySelectorAll('.ahcp-button').forEach(button => {
+            button.addEventListener('click', function(e) {
+                const ripple = document.createElement('span');
+                const rect = this.getBoundingClientRect();
+                const size = Math.max(rect.width, rect.height);
+                const x = e.clientX - rect.left - size / 2;
+                const y = e.clientY - rect.top - size / 2;
+                
+                ripple.style.width = ripple.style.height = size + 'px';
+                ripple.style.left = x + 'px';
+                ripple.style.top = y + 'px';
+                ripple.classList.add('ripple');
+                
+                this.appendChild(ripple);
+                
+                setTimeout(() => {
+                    ripple.remove();
+                }, 600);
+            });
+        });
+    </script>
+</body>
+</html>
