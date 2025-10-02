@@ -8,6 +8,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter,
+  DialogBody,
 } from "@/components/ui/dialog";
 import { Button, LoadingButton } from "@/components/ui/button-modern";
 import { Input } from "@/components/ui/input";

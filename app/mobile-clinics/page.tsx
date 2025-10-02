@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { MainLayout } from "@/components/layout/main-layout";
 import { DataTable } from "@/components/data-table/data-table";
 import { Button } from "@/components/ui/button";
@@ -109,9 +109,19 @@ const mockMobileClinicData: MobileClinic[] = [
 ];
 
 export default function MobileClinicsPage() {
-  const [data, setData] = useState(mockMobileClinicData);
+  const [data, setData] = useState<MobileClinic[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedClinic, setSelectedClinic] = useState<MobileClinic | undefined>(undefined);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // محاكاة تحميل البيانات
+  useEffect(() => {
+    setIsLoading(true);
+    setTimeout(() => {
+      setData(mockMobileClinicData);
+      setIsLoading(false);
+    }, 1500);
+  }, []);
 
   const columns: ColumnDef<MobileClinic>[] = [
     {
@@ -155,17 +165,39 @@ export default function MobileClinicsPage() {
     {
       accessorKey: "diagnosis",
       header: "التشخيص",
-      cell: ({ row }) => (
-        <Badge variant="outline">{row.getValue("diagnosis")}</Badge>
-      ),
+      cell: ({ row }) => {
+        const diagnosis = row.getValue("diagnosis") as string;
+        const diagnosisColors: Record<string, string> = {
+          "التهاب رئوي": "bg-red-500 text-white border-red-600",
+          "طفيليات معوية": "bg-yellow-500 text-white border-yellow-600",
+          "جروح وإصابات": "bg-orange-500 text-white border-orange-600",
+          "حمى": "bg-purple-500 text-white border-purple-600",
+          "إسهال": "bg-blue-500 text-white border-blue-600",
+        };
+        return (
+          <Badge className={diagnosisColors[diagnosis] || "bg-gray-500 text-white border-gray-600"}>
+            {diagnosis}
+          </Badge>
+        );
+      },
     },
     {
       accessorKey: "interventionCategory",
       header: "نوع التدخل",
       cell: ({ row }) => {
         const category = row.getValue("interventionCategory") as string;
-        const variant = category.includes("طارئ") ? "destructive" : "secondary";
-        return <Badge variant={variant}>{category}</Badge>;
+        const categoryColors: Record<string, string> = {
+          "علاج": "bg-blue-500 text-white border-blue-600",
+          "وقاية": "bg-green-500 text-white border-green-600",
+          "علاج طارئ": "bg-red-500 text-white border-red-600",
+          "فحص": "bg-purple-500 text-white border-purple-600",
+          "جراحة": "bg-orange-500 text-white border-orange-600",
+        };
+        return (
+          <Badge className={categoryColors[category] || "bg-gray-500 text-white border-gray-600"}>
+            {category}
+          </Badge>
+        );
       },
     },
     {
@@ -187,10 +219,10 @@ export default function MobileClinicsPage() {
       header: "حالة الطلب",
       cell: ({ row }) => {
         const situation = row.original.request.situation;
-        const variants: Record<string, "default" | "secondary" | "destructive"> = {
-          Closed: "default",
-          Open: "destructive",
-          Pending: "secondary",
+        const statusColors: Record<string, string> = {
+          Closed: "bg-green-500 text-white border-green-600",
+          Open: "bg-red-500 text-white border-red-600",
+          Pending: "bg-yellow-500 text-white border-yellow-600",
         };
         const labels: Record<string, string> = {
           Closed: "مغلق",
@@ -198,7 +230,7 @@ export default function MobileClinicsPage() {
           Pending: "معلق",
         };
         return (
-          <Badge variant={variants[situation] || "default"}>
+          <Badge className={statusColors[situation] || "bg-gray-500 text-white border-gray-600"}>
             {labels[situation] || situation}
           </Badge>
         );
@@ -206,6 +238,7 @@ export default function MobileClinicsPage() {
     },
     {
       id: "actions",
+      header: "الإجراءات",
       cell: ({ row }) => {
         return (
           <DropdownMenu>
@@ -333,6 +366,7 @@ export default function MobileClinicsPage() {
         <DataTable
           columns={columns}
           data={data}
+          isLoading={isLoading}
           onExport={handleExport}
         />
 

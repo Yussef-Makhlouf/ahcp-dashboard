@@ -68,15 +68,15 @@ export function getColumns({
       cell: ({ row }) => {
         const category = row.getValue("interventionCategory") as string;
         const categoryColors: Record<string, string> = {
-          "Clinical Examination": "bg-blue-100 text-blue-800",
-          "Surgical Operation": "bg-red-100 text-red-800",
-          "Ultrasonography": "bg-green-100 text-green-800",
-          "Lab Analysis": "bg-purple-100 text-purple-800",
-          "Farriery": "bg-orange-100 text-orange-800",
+          "Clinical Examination": "bg-blue-500 text-white border-blue-600",
+          "Surgical Operation": "bg-red-500 text-white border-red-600",
+          "Ultrasonography": "bg-green-500 text-white border-green-600",
+          "Lab Analysis": "bg-purple-500 text-white border-purple-600",
+          "Farriery": "bg-orange-500 text-white border-orange-600",
         };
 
         return (
-          <Badge className={categoryColors[category] || "bg-gray-100 text-gray-800"}>
+          <Badge className={categoryColors[category] || "bg-gray-500 text-white border-gray-600"}>
             {category === "Clinical Examination" && "فحص سريري"}
             {category === "Surgical Operation" && "عملية جراحية"}
             {category === "Ultrasonography" && "موجات فوق صوتية"}
@@ -92,13 +92,13 @@ export function getColumns({
       cell: ({ row }) => {
         const status = row.original.request.situation;
         const statusColors = {
-          "Open": "bg-green-100 text-green-800",
-          "Closed": "bg-blue-100 text-blue-800",
-          "Pending": "bg-yellow-100 text-yellow-800",
+          "Open": "bg-green-500 text-white border-green-600",
+          "Closed": "bg-blue-500 text-white border-blue-600",
+          "Pending": "bg-yellow-500 text-white border-yellow-600",
         };
 
         return (
-          <Badge className={statusColors[status as keyof typeof statusColors] || "bg-gray-100 text-gray-800"}>
+          <Badge className={statusColors[status as keyof typeof statusColors] || "bg-gray-500 text-white border-gray-600"}>
             {status === "Open" && "مفتوح"}
             {status === "Closed" && "مغلق"}
             {status === "Pending" && "معلق"}

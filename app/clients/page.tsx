@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { MainLayout } from "@/components/layout/main-layout";
 import { DataTable } from "@/components/data-table/data-table";
 import { Button } from "@/components/ui/button";
@@ -103,11 +103,21 @@ const mockClientsData: Client[] = [
 ];
 
 export default function ClientsPage() {
-  const [data, setData] = useState(mockClientsData);
+  const [data, setData] = useState<Client[]>([]);
   const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
   const [csvFile, setCsvFile] = useState<File | null>(null);
   const [isClientDialogOpen, setIsClientDialogOpen] = useState(false);
   const [selectedClient, setSelectedClient] = useState<Client | undefined>(undefined);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // محاكاة تحميل البيانات
+  useEffect(() => {
+    setIsLoading(true);
+    setTimeout(() => {
+      setData(mockClientsData);
+      setIsLoading(false);
+    }, 1500);
+  }, []);
 
   const columns: ColumnDef<Client>[] = [
     {
@@ -199,8 +209,12 @@ export default function ClientsPage() {
       header: "الحالة",
       cell: ({ row }) => {
         const status = row.getValue<string>("status");
+        const statusColors = {
+          active: "bg-green-500 text-white border-green-600",
+          inactive: "bg-gray-500 text-white border-gray-600",
+        };
         return (
-          <Badge variant={status === "active" ? "default" : "secondary"}>
+          <Badge className={statusColors[status as keyof typeof statusColors] || "bg-gray-500 text-white border-gray-600"}>
             {status === "active" ? "نشط" : "غير نشط"}
           </Badge>
         );
@@ -208,6 +222,7 @@ export default function ClientsPage() {
     },
     {
       id: "actions",
+      header: "الإجراءات",
       cell: ({ row }) => {
         return (
           <DropdownMenu>
@@ -444,6 +459,7 @@ export default function ClientsPage() {
         <DataTable
           columns={columns}
           data={data}
+          isLoading={isLoading}
           onExport={handleExport}
         />
 

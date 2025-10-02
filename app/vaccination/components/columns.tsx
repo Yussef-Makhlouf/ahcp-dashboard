@@ -59,13 +59,13 @@ export function getColumns({
       cell: ({ row }) => {
         const status = row.getValue("herdHealth") as string;
         const statusColors = {
-          "Healthy": "bg-green-100 text-green-800",
-          "Sick": "bg-red-100 text-red-800",
-          "Under Treatment": "bg-yellow-100 text-yellow-800",
+          "Healthy": "bg-green-500 text-white border-green-600",
+          "Sick": "bg-red-500 text-white border-red-600",
+          "Under Treatment": "bg-yellow-500 text-white border-yellow-600",
         };
 
         return (
-          <Badge className={statusColors[status as keyof typeof statusColors] || "bg-gray-100 text-gray-800"}>
+          <Badge className={statusColors[status as keyof typeof statusColors] || "bg-gray-500 text-white border-gray-600"}>
             {status === "Healthy" && "صحي"}
             {status === "Sick" && "مريض"}
             {status === "Under Treatment" && "قيد العلاج"}
@@ -79,13 +79,13 @@ export function getColumns({
       cell: ({ row }) => {
         const status = row.original.request.situation;
         const statusColors = {
-          "Open": "bg-blue-100 text-blue-800",
-          "Closed": "bg-green-100 text-green-800",
-          "Pending": "bg-yellow-100 text-yellow-800",
+          "Open": "bg-blue-500 text-white border-blue-600",
+          "Closed": "bg-green-500 text-white border-green-600",
+          "Pending": "bg-yellow-500 text-white border-yellow-600",
         };
 
         return (
-          <Badge className={statusColors[status as keyof typeof statusColors] || "bg-gray-100 text-gray-800"}>
+          <Badge className={statusColors[status as keyof typeof statusColors] || "bg-gray-500 text-white border-gray-600"}>
             {status === "Open" && "مفتوح"}
             {status === "Closed" && "مغلق"}
             {status === "Pending" && "معلق"}

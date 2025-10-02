@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { MainLayout } from "@/components/layout/main-layout";
 import { DataTable } from "@/components/data-table/data-table";
 import { Button } from "@/components/ui/button";
@@ -10,165 +10,23 @@ import { Badge } from "@/components/ui/badge";
 import { mockVaccinationData } from "@/lib/mock/vaccination-data";
 import type { Vaccination } from "@/types";
 import { formatDate, formatPhoneNumber } from "@/lib/utils";
-import { ColumnDef } from "@tanstack/react-table";
-import { Checkbox } from "@/components/ui/checkbox";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { MoreHorizontal, Edit, Trash } from "lucide-react";
 import { VaccinationDialog } from "./components/vaccination-dialog";
+import { getColumns } from "./components/columns";
 
 export default function VaccinationPage() {
-  const [data, setData] = useState(mockVaccinationData);
+  const [data, setData] = useState<Vaccination[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState<Vaccination | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const columns: ColumnDef<Vaccination>[] = [
-    {
-      id: "select",
-      header: ({ table }) => (
-        <Checkbox
-          checked={table.getIsAllPageRowsSelected()}
-          onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
-          aria-label="Select all"
-        />
-      ),
-      cell: ({ row }) => (
-        <Checkbox
-          checked={row.getIsSelected()}
-          onCheckedChange={(value) => row.toggleSelected(!!value)}
-          aria-label="Select row"
-        />
-      ),
-    },
-    {
-      accessorKey: "serialNo",
-      header: "الرقم المسلسل",
-    },
-    {
-      accessorKey: "date",
-      header: "التاريخ",
-      cell: ({ row }) => formatDate(row.getValue("date")),
-    },
-    {
-      accessorKey: "owner.name",
-      header: "اسم المربي",
-    },
-    {
-      accessorKey: "owner.phone",
-      header: "رقم الهاتف",
-      cell: ({ row }) => {
-        const phone = row.original.owner.phone;
-        return <span dir="ltr">{formatPhoneNumber(phone)}</span>;
-      },
-    },
-    {
-      accessorKey: "vaccineType",
-      header: "نوع اللقاح",
-      cell: ({ row }) => (
-        <Badge variant="secondary">{row.getValue("vaccineType")}</Badge>
-      ),
-    },
-    {
-      id: "vaccinated",
-      header: "الحيوانات المحصنة",
-      cell: ({ row }) => {
-        const herd = row.original.herd;
-        const total = 
-          (herd.sheep.vaccinated || 0) + 
-          (herd.goats.vaccinated || 0) + 
-          (herd.camel.vaccinated || 0) + 
-          (herd.cattle.vaccinated || 0);
-        return (
-          <div className="text-sm">
-            <span className="font-medium text-green-600">{total}</span>
-            <span className="text-muted-foreground"> حيوان</span>
-          </div>
-        );
-      },
-    },
-    {
-      accessorKey: "herdHealth",
-      header: "صحة القطيع",
-      cell: ({ row }) => {
-        const status = row.getValue("herdHealth") as string;
-        const variants: Record<string, "default" | "secondary" | "destructive"> = {
-          Healthy: "default",
-          Sick: "destructive",
-          "Under Treatment": "secondary",
-        };
-        const labels: Record<string, string> = {
-          Healthy: "صحي",
-          Sick: "مريض",
-          "Under Treatment": "تحت العلاج",
-        };
-        return (
-          <Badge variant={variants[status] || "default"}>
-            {labels[status] || status}
-          </Badge>
-        );
-      },
-    },
-    {
-      accessorKey: "request.situation",
-      header: "حالة الطلب",
-      cell: ({ row }) => {
-        const situation = row.original.request.situation;
-        const variants: Record<string, "default" | "secondary" | "destructive"> = {
-          Closed: "default",
-          Open: "destructive",
-          Pending: "secondary",
-        };
-        const labels: Record<string, string> = {
-          Closed: "مغلق",
-          Open: "مفتوح",
-          Pending: "معلق",
-        };
-        return (
-          <Badge variant={variants[situation] || "default"}>
-            {labels[situation] || situation}
-          </Badge>
-        );
-      },
-    },
-    {
-      id: "actions",
-      cell: ({ row }) => {
-        const item = row.original;
-        return (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="h-8 w-8 p-0">
-                <span className="sr-only">فتح القائمة</span>
-                <MoreHorizontal className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuLabel>الإجراءات</DropdownMenuLabel>
-              <DropdownMenuItem onClick={() => {
-                setSelectedItem(item);
-                setIsDialogOpen(true);
-              }}>
-                <Edit className="ml-2 h-4 w-4" />
-                تعديل
-              </DropdownMenuItem>
-              <DropdownMenuItem 
-                onClick={() => handleDelete(item.serialNo)}
-                className="text-red-600"
-              >
-                <Trash className="ml-2 h-4 w-4" />
-                حذف
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        );
-      },
-    },
-  ];
+  // محاكاة تحميل البيانات
+  useEffect(() => {
+    setIsLoading(true);
+    setTimeout(() => {
+      setData(mockVaccinationData);
+      setIsLoading(false);
+    }, 1500);
+  }, []);
 
   const handleExport = async (type: "csv" | "pdf") => {
     if (type === "csv") {
@@ -200,9 +58,14 @@ export default function VaccinationPage() {
     }
   };
 
-  const handleDelete = async (serialNo: number) => {
+  const handleDelete = async (item: Vaccination) => {
     if (confirm("هل أنت متأكد من حذف هذا السجل؟")) {
-      setData(data.filter(item => item.serialNo !== serialNo));
+      setIsLoading(true);
+      // محاكاة عملية الحذف
+      setTimeout(() => {
+        setData(data.filter(dataItem => dataItem.serialNo !== item.serialNo));
+        setIsLoading(false);
+      }, 1000);
     }
   };
 
@@ -299,8 +162,9 @@ export default function VaccinationPage() {
 
         {/* Data Table */}
         <DataTable
-          columns={columns}
+          columns={getColumns({ onEdit: handleEdit, onDelete: handleDelete })}
           data={data}
+          isLoading={isLoading}
           onExport={handleExport}
         />
 

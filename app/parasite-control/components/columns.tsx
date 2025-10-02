@@ -98,8 +98,7 @@ export const columns = ({ onEdit, onDelete }: ColumnsProps): ColumnDef<ParasiteC
       const status = row.original.insecticide.status;
       return (
         <Badge
-          variant={status === "Sprayed" ? "default" : "destructive"}
-          className={status === "Sprayed" ? "bg-green-600" : ""}
+          className={status === "Sprayed" ? "bg-green-500 text-white border-green-600" : "bg-red-500 text-white border-red-600"}
         >
           {status === "Sprayed" ? "تم الرش" : "لم يتم الرش"}
         </Badge>
@@ -111,10 +110,10 @@ export const columns = ({ onEdit, onDelete }: ColumnsProps): ColumnDef<ParasiteC
     header: "الحالة الصحية",
     cell: ({ row }) => {
       const status = row.getValue("herdHealthStatus") as string;
-      const variants: Record<string, "default" | "secondary" | "destructive"> = {
-        Healthy: "default",
-        Sick: "destructive",
-        "Under Treatment": "secondary",
+      const statusColors: Record<string, string> = {
+        Healthy: "bg-green-500 text-white border-green-600",
+        Sick: "bg-red-500 text-white border-red-600",
+        "Under Treatment": "bg-yellow-500 text-white border-yellow-600",
       };
       const labels: Record<string, string> = {
         Healthy: "صحي",
@@ -122,7 +121,7 @@ export const columns = ({ onEdit, onDelete }: ColumnsProps): ColumnDef<ParasiteC
         "Under Treatment": "تحت العلاج",
       };
       return (
-        <Badge variant={variants[status] || "default"}>
+        <Badge className={statusColors[status] || "bg-gray-500 text-white border-gray-600"}>
           {labels[status] || status}
         </Badge>
       );
@@ -133,10 +132,10 @@ export const columns = ({ onEdit, onDelete }: ColumnsProps): ColumnDef<ParasiteC
     header: "حالة الطلب",
     cell: ({ row }) => {
       const situation = row.original.request.situation;
-      const variants: Record<string, "default" | "secondary" | "destructive"> = {
-        Closed: "default",
-        Open: "destructive",
-        Pending: "secondary",
+      const statusColors: Record<string, string> = {
+        Closed: "bg-green-500 text-white border-green-600",
+        Open: "bg-red-500 text-white border-red-600",
+        Pending: "bg-yellow-500 text-white border-yellow-600",
       };
       const labels: Record<string, string> = {
         Closed: "مغلق",
@@ -144,7 +143,7 @@ export const columns = ({ onEdit, onDelete }: ColumnsProps): ColumnDef<ParasiteC
         Pending: "معلق",
       };
       return (
-        <Badge variant={variants[situation] || "default"}>
+        <Badge className={statusColors[situation] || "bg-gray-500 text-white border-gray-600"}>
           {labels[situation] || situation}
         </Badge>
       );
@@ -152,6 +151,7 @@ export const columns = ({ onEdit, onDelete }: ColumnsProps): ColumnDef<ParasiteC
   },
   {
     id: "actions",
+    header: "الإجراءات",
     enableHiding: false,
     cell: ({ row }) => {
       const item = row.original;

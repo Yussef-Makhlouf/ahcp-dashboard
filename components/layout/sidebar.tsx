@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useState } from "react";
 import { cn } from "@/lib/utils";
 import {
   Home,
@@ -14,6 +15,10 @@ import {
   Settings,
   User,
   HomeIcon,
+  Menu,
+  X,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 
 const menuItems = [
@@ -33,7 +38,7 @@ const menuItems = [
     icon: Syringe,
   },
   {
-    title: "العيادات المتنقلة",
+    title: " المراقبه و العلاج",
     href: "/mobile-clinics",
     icon: Truck,
   },
@@ -69,53 +74,92 @@ const menuItems = [
   },
 ];
 
-export function Sidebar() {
+interface SidebarProps {
+  isOpen: boolean;
+  onToggle: () => void;
+  isCollapsed?: boolean;
+  onCollapse?: () => void;
+}
+
+export function Sidebar({ isOpen, onToggle, isCollapsed = false, onCollapse }: SidebarProps) {
   const pathname = usePathname();
 
   return (
-    <aside className="fixed right-0 top-0 z-40 h-screen w-64 border-l border-border bg-card sidebar">
-      <div className="flex h-full flex-col">
-        {/* Logo */}
-        <div className="sidebar-header">
-          <h1 className="text-xl font-bold text-white">
-            AHCP Dashboard
-          </h1>
-          <p className="text-sm text-white/80 mt-1">مشروع صحة الحيوان</p>
-        </div>
+    <>
+      {/* Mobile backdrop */}
+      {isOpen && (
+        <div 
+          className="fixed inset-0 z-40 bg-black/50 sidebar-backdrop transition-opacity duration-300 lg:hidden"
+          onClick={onToggle}
+        />
+      )}
 
-        {/* Navigation */}
-        <nav className="flex-1 overflow-y-auto sidebar-nav">
-          <ul className="space-y-1">
-            {menuItems.map((item) => {
-              const Icon = item.icon;
-              const isActive = pathname === item.href || 
-                (item.href !== "/" && pathname.startsWith(item.href));
-              
-              return (
-                <li key={item.href}>
-                  <Link
-                    href={item.href}
-                    className={cn(
-                      "nav-link",
-                      isActive && "active"
-                    )}
-                  >
-                    <Icon className="h-5 w-5" />
-                    <span>{item.title}</span>
-                  </Link>
-                </li>
-              );
-            })}
-          </ul>
-        </nav>
+      {/* Sidebar */}
+      <aside className={cn(
+        "sidebar fixed right-0 top-0 z-50 h-screen text-white transition-all duration-300 ease-in-out",
+        isCollapsed ? "w-16 collapsed" : "w-64",
+        isOpen ? "translate-x-0 open" : "translate-x-full lg:translate-x-0"
+      )}>
+        <div className="flex h-full flex-col">
+          {/* Header */}
+          <div className="sidebar-header">
+            {!isCollapsed && (
+              <div className="flex flex-col">
+                <h1 className=" font-bold text-white">
+                  AHCP Dashboard
+                </h1>
+              </div>
+            )}
+            
+ 
+          </div>
 
-        {/* Footer */}
-        <div className="border-t border-border p-4">
-          <p className="text-center text-xs text-muted-foreground">
-            © 2025 AHCP - مشروع صحة الحيوان
-          </p>
+          {/* Navigation */}
+          <nav className="sidebar-nav">
+            <ul className="space-y-1">
+              {menuItems.map((item) => {
+                const Icon = item.icon;
+                const isActive = pathname === item.href || 
+                  (item.href !== "/" && pathname.startsWith(item.href));
+                
+                return (
+                  <li key={item.href}>
+                    <Link
+                      href={item.href}
+                      onClick={() => {
+                        // Close mobile sidebar when navigating
+                        if (window.innerWidth < 1024) {
+                          onToggle();
+                        }
+                      }}
+                      className={cn(
+                        "nav-link",
+                        isActive && "active",
+                        isCollapsed && "justify-center"
+                      )}
+                      title={isCollapsed ? item.title : undefined}
+                    >
+                      <Icon className={cn("h-5 w-5 flex-shrink-0", !isCollapsed && "ml-3")} />
+                      {!isCollapsed && (
+                        <span className="nav-text truncate">{item.title}</span>
+                      )}
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+          </nav>
+
+          {/* Footer */}
+          {!isCollapsed && (
+            <div className="border-t border-white/10 p-4">
+              <p className="text-center text-xs text-white/60">
+                © 2025 AHCP - مشروع صحة الحيوان
+              </p>
+            </div>
+          )}
         </div>
-      </div>
-    </aside>
+      </aside>
+    </>
   );
 }

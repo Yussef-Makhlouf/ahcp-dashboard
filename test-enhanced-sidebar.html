@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enhanced Sidebar Test - AHCP Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Enhanced Sidebar Styles from globals-clean.css */
+        :root {
+          --ahcp-primary: #2C3E50;
+          --ahcp-primary-light: #34495E;
+          --ahcp-bg-card: #FFFFFF;
+          --ahcp-bg-secondary: #F1F3F4;
+          --ahcp-bg-light: #FAFBFC;
+          --ahcp-text: #495057;
+          --ahcp-text-primary: #2C3E50;
+          --ahcp-text-secondary: #6C757D;
+          --ahcp-border: #E5E7EB;
+          --space-lg: 1rem;
+          --space-2xl: 1.5rem;
+          --radius-md: 0.5rem;
+          --radius-lg: 0.75rem;
+        }
+
+        .sidebar {
+          height: 100%;
+          border-right: 1px solid var(--ahcp-border);
+          background: linear-gradient(135deg, var(--ahcp-primary) 0%, var(--ahcp-primary-light) 100%);
+          box-shadow: 2px 0 8px rgba(0, 0, 0, 0.1);
+          position: relative;
+          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .sidebar-header {
+          background: rgba(255, 255, 255, 0.1);
+          color: #ffffff;
+          padding: var(--space-2xl) var(--space-lg);
+          border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+          backdrop-filter: blur(10px);
+        }
+
+        .sidebar-nav {
+          padding: var(--space-lg);
+        }
+
+        .nav-link {
+          display: flex;
+          align-items: center;
+          padding: var(--space-lg) var(--space-lg);
+          font-size: 0.875rem;
+          font-weight: 500;
+          border-radius: var(--radius-lg);
+          text-decoration: none;
+          position: relative;
+          color: rgba(255, 255, 255, 0.9) !important;
+          background: transparent;
+          margin-bottom: 0.25rem;
+          overflow: hidden;
+          transition: all 0.3s ease;
+        }
+
+        .nav-link::before {
+          content: '';
+          position: absolute;
+          top: 0;
+          right: 0;
+          width: 0;
+          height: 100%;
+          background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1));
+          transition: width 0.3s ease;
+        }
+
+        .nav-link:hover::before {
+          width: 100%;
+        }
+
+        .nav-link:hover {
+          background: rgba(255, 255, 255, 0.1);
+          color: #ffffff !important;
+          transform: translateX(-4px);
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .nav-link.active {
+          background: rgba(255, 255, 255, 0.2);
+          color: #ffffff !important;
+          font-weight: 600;
+          border-left: 4px solid #3B82F6;
+          box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+        }
+
+        .nav-link svg {
+          color: rgba(255, 255, 255, 0.9) !important;
+          transition: all 0.2s ease;
+        }
+
+        .nav-link:hover svg {
+          color: #ffffff !important;
+          transform: scale(1.1);
+        }
+
+        .nav-link.active svg {
+          color: #ffffff !important;
+        }
+
+        .navbar {
+          background: linear-gradient(135deg, var(--ahcp-primary) 0%, var(--ahcp-primary-light) 100%);
+          border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+          backdrop-filter: blur(10px);
+          position: sticky;
+          top: 0;
+          z-index: 40;
+        }
+
+        .navbar-toggle {
+          background: rgba(255, 255, 255, 0.1);
+          border: 1px solid rgba(255, 255, 255, 0.2);
+          color: #ffffff;
+          border-radius: var(--radius-md);
+          padding: var(--space-lg);
+          transition: all 0.3s ease;
+          backdrop-filter: blur(10px);
+        }
+
+        .navbar-toggle:hover {
+          background: rgba(255, 255, 255, 0.2);
+          border-color: rgba(255, 255, 255, 0.3);
+          transform: scale(1.05);
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .mobile-menu-btn {
+          background: rgba(255, 255, 255, 0.1);
+          border: 1px solid rgba(255, 255, 255, 0.2);
+          color: #ffffff;
+          border-radius: var(--radius-lg);
+          padding: var(--space-lg);
+          transition: all 0.3s ease;
+          backdrop-filter: blur(10px);
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+          position: fixed;
+          top: 1rem;
+          right: 1rem;
+          z-index: 50;
+        }
+
+        .mobile-menu-btn:hover {
+          background: rgba(255, 255, 255, 0.2);
+          border-color: rgba(255, 255, 255, 0.3);
+          transform: scale(1.05);
+          box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+        }
+
+        .sidebar-backdrop {
+          background: rgba(0, 0, 0, 0.5);
+          backdrop-filter: blur(8px);
+          -webkit-backdrop-filter: blur(8px);
+          transition: opacity 0.3s ease;
+        }
+
+        .content-transition {
+          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        @media (max-width: 1023px) {
+          .sidebar {
+            transform: translateX(100%);
+            width: 280px;
+          }
+          
+          .sidebar.open {
+            transform: translateX(0);
+          }
+        }
+
+        @media (min-width: 1024px) {
+          .sidebar.collapsed {
+            width: 4rem;
+          }
+          
+          .sidebar.collapsed .nav-text {
+            opacity: 0;
+            transform: translateX(10px);
+            transition: opacity 0.3s ease, transform 0.3s ease;
+          }
+          
+          .sidebar.collapsed .nav-link {
+            justify-content: center;
+          }
+          
+          .sidebar.collapsed .nav-link:hover .nav-text {
+            opacity: 1;
+            transform: translateX(0);
+          }
+        }
+    </style>
+</head>
+<body class="bg-gray-50 font-sans">
+    <div class="min-h-screen bg-card">
+        <!-- Sidebar -->
+        <aside id="sidebar" class="sidebar fixed right-0 top-0 z-50 h-screen text-white transition-all duration-300 ease-in-out w-64">
+            <div class="flex h-full flex-col">
+                <!-- Header -->
+                <div class="sidebar-header">
+                    <div class="flex flex-col">
+                        <h1 class="text-xl font-bold text-white">AHCP Dashboard</h1>
+                        <p class="text-sm text-white/80 mt-1">مشروع صحة الحيوان</p>
+                    </div>
+                    
+                    <!-- Desktop collapse button -->
+                    <button id="collapseBtn" class="navbar-toggle hidden lg:block">
+                        <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                        </svg>
+                    </button>
+                </div>
+
+                <!-- Navigation -->
+                <nav class="sidebar-nav">
+                    <ul class="space-y-1">
+                        <li>
+                            <a href="#" class="nav-link active">
+                                <svg class="h-5 w-5 flex-shrink-0 ml-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a2 2 0 001 2h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path>
+                                </svg>
+                                <span class="nav-text truncate">الرئيسية</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="#" class="nav-link">
+                                <svg class="h-5 w-5 flex-shrink-0 ml-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                </svg>
+                                <span class="nav-text truncate">مكافحة الطفيليات</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="#" class="nav-link">
+                                <svg class="h-5 w-5 flex-shrink-0 ml-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                </svg>
+                                <span class="nav-text truncate">التحصين</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="#" class="nav-link">
+                                <svg class="h-5 w-5 flex-shrink-0 ml-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2"></path>
+                                </svg>
+                                <span class="nav-text truncate">العيادات المتنقلة</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="#" class="nav-link">
+                                <svg class="h-5 w-5 flex-shrink-0 ml-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path>
+                                </svg>
+                                <span class="nav-text truncate">صحة الخيول</span>
+                            </a>
+                        </li>
+                    </ul>
+                </nav>
+
+                <!-- Footer -->
+                <div class="border-t border-white/10 p-4">
+                    <p class="text-center text-xs text-white/60">© 2025 AHCP - مشروع صحة الحيوان</p>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main content -->
+        <div id="mainContent" class="content-transition transition-all duration-300 ease-in-out lg:pr-64">
+            <!-- Mobile menu button -->
+            <div class="lg:hidden fixed top-4 right-4 z-50">
+                <button id="mobileMenuBtn" class="mobile-menu-btn">
+                    <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+                    </svg>
+                </button>
+            </div>
+
+            <!-- Header -->
+            <header class="navbar flex h-16 items-center justify-between px-6">
+                <div class="flex items-center gap-4">
+                    <!-- Desktop sidebar toggle -->
+                    <button id="desktopToggleBtn" class="navbar-toggle hidden lg:flex">
+                        <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                        </svg>
+                    </button>
+                    <h2 class="text-lg font-semibold text-white">لوحة التحكم</h2>
+                </div>
+            </header>
+
+            <!-- Content -->
+            <main class="p-6 bg-gray-50">
+                <div class="max-w-4xl mx-auto">
+                    <h1 class="text-3xl font-bold text-gray-900 mb-6">Enhanced Sidebar Demo</h1>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        <div class="bg-white rounded-lg shadow-md p-6">
+                            <h3 class="text-lg font-semibold text-gray-900 mb-2">ألوان محسنة</h3>
+                            <p class="text-gray-600">النصوص والأيقونات تظهر باللون الأبيض المناسب للخلفية الداكنة.</p>
+                        </div>
+                        
+                        <div class="bg-white rounded-lg shadow-md p-6">
+                            <h3 class="text-lg font-semibold text-gray-900 mb-2">أيقونة واحدة</h3>
+                            <p class="text-gray-600">تم حل مشكلة الأيقونات المكررة - تظهر أيقونة واحدة فقط في كل مكان.</p>
+                        </div>
+                        
+                        <div class="bg-white rounded-lg shadow-md p-6">
+                            <h3 class="text-lg font-semibold text-gray-900 mb-2">تحسينات CSS</h3>
+                            <p class="text-gray-600">جميع التحسينات تمت في ملف globals-clean.css كما طلبت.</p>
+                        </div>
+                    </div>
+
+                    <div class="mt-8 bg-blue-50 border border-blue-200 rounded-lg p-6">
+                        <h3 class="text-lg font-semibold text-blue-900 mb-2">التحسينات المطبقة</h3>
+                        <ul class="text-blue-800 space-y-2">
+                            <li>• <strong>ألوان النصوص:</strong> جميع النصوص والأيقونات باللون الأبيض المناسب</li>
+                            <li>• <strong>إصلاح الأيقونات:</strong> تظهر أيقونة واحدة فقط في كل مكان</li>
+                            <li>• <strong>تحسينات CSS:</strong> جميع التحسينات في globals-clean.css</li>
+                            <li>• <strong>تأثيرات محسنة:</strong> hover effects و transitions سلسة</li>
+                            <li>• <strong>استجابة محسنة:</strong> يعمل بشكل مثالي على جميع الأحجام</li>
+                        </ul>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script>
+        let sidebarOpen = false;
+        let sidebarCollapsed = false;
+
+        const sidebar = document.getElementById('sidebar');
+        const mainContent = document.getElementById('mainContent');
+        const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+        const desktopToggleBtn = document.getElementById('desktopToggleBtn');
+        const collapseBtn = document.getElementById('collapseBtn');
+
+        // Mobile menu toggle
+        mobileMenuBtn.addEventListener('click', () => {
+            sidebarOpen = !sidebarOpen;
+            if (sidebarOpen) {
+                sidebar.classList.remove('translate-x-full');
+                sidebar.classList.add('translate-x-0', 'open');
+            } else {
+                sidebar.classList.remove('translate-x-0', 'open');
+                sidebar.classList.add('translate-x-full');
+            }
+        });
+
+        // Desktop collapse toggle
+        function toggleCollapse() {
+            sidebarCollapsed = !sidebarCollapsed;
+            if (sidebarCollapsed) {
+                sidebar.classList.add('collapsed');
+                mainContent.classList.remove('lg:pr-64');
+                mainContent.classList.add('lg:pr-16');
+            } else {
+                sidebar.classList.remove('collapsed');
+                mainContent.classList.remove('lg:pr-16');
+                mainContent.classList.add('lg:pr-64');
+            }
+        }
+
+        collapseBtn.addEventListener('click', toggleCollapse);
+        desktopToggleBtn.addEventListener('click', toggleCollapse);
+
+        // Close mobile sidebar on desktop resize
+        window.addEventListener('resize', () => {
+            if (window.innerWidth >= 1024) {
+                sidebarOpen = false;
+                sidebar.classList.remove('translate-x-0', 'open');
+                sidebar.classList.add('translate-x-full');
+            }
+        });
+    </script>
+</body>
+</html>

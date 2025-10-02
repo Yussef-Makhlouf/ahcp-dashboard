@@ -35,33 +35,63 @@ const DialogContent = React.forwardRef<
   React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content> & {
     hideTitle?: boolean;
   }
->(({ className, children, hideTitle = false, ...props }, ref) => (
-  <DialogPortal>
-    <DialogOverlay />
-    <DialogPrimitive.Content
-      ref={ref}
-      className={cn(
-        "fixed left-[50%] top-[50%] z-50 w-full max-w-lg translate-x-[-50%] translate-y-[-50%] bg-card border border-border rounded-xl shadow-xl p-0 overflow-hidden",
-        className
-      )}
-      {...props}
-    >
-      {hideTitle && (
-        <VisuallyHidden>
-          <DialogPrimitive.Title>Dialog</DialogPrimitive.Title>
-        </VisuallyHidden>
-      )}
-      
-      {/* Modern Close Button */}
-      <DialogPrimitive.Close className="absolute left-4 top-4 z-10 inline-flex h-8 w-8 items-center justify-center rounded-full bg-secondary/80 text-secondary-foreground hover:bg-secondary focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 disabled:pointer-events-none">
-        <X className="h-4 w-4" />
-        <span className="sr-only">إغلاق</span>
-      </DialogPrimitive.Close>
-      
-      {children}
-    </DialogPrimitive.Content>
-  </DialogPortal>
-))
+>(({ className, children, hideTitle = false, ...props }, ref) => {
+  // Check if children contains a DialogTitle component
+  const hasTitle = React.Children.toArray(children).some((child) => {
+    if (React.isValidElement(child)) {
+      // Check if it's a DialogHeader which typically contains DialogTitle
+      if (child.type === DialogHeader) {
+        const headerProps = child.props as { children?: React.ReactNode }
+        return React.Children.toArray(headerProps.children).some((headerChild) => {
+          return React.isValidElement(headerChild) && 
+                 (headerChild.type === DialogTitle || 
+                  headerChild.type === DialogPrimitive.Title)
+        })
+      }
+      // Check if it's a DialogTitle directly
+      return child.type === DialogTitle || child.type === DialogPrimitive.Title
+    }
+    return false
+  })
+
+  // If hideTitle is true, always add hidden title
+  // If hideTitle is false and no title found, add hidden title
+  const shouldAddHiddenTitle = hideTitle || !hasTitle
+
+  // Debug: Log the detection result for troubleshooting
+  if (process.env.NODE_ENV === 'development') {
+    console.log('DialogContent: hasTitle =', hasTitle, 'hideTitle =', hideTitle, 'shouldAddHiddenTitle =', shouldAddHiddenTitle)
+  }
+
+  return (
+    <DialogPortal>
+      <DialogOverlay />
+      <DialogPrimitive.Content
+        ref={ref}
+        className={cn(
+          "fixed left-[50%] top-[50%] z-50 w-full max-w-lg translate-x-[-50%] translate-y-[-50%] bg-card border border-border rounded-xl shadow-xl p-0 overflow-hidden",
+          className
+        )}
+        {...props}
+      >
+        {/* Add hidden title if no title is found or hideTitle is true */}
+        {shouldAddHiddenTitle && (
+          <VisuallyHidden>
+            <DialogPrimitive.Title>Dialog</DialogPrimitive.Title>
+          </VisuallyHidden>
+        )}
+        
+        {/* Modern Close Button */}
+        <DialogPrimitive.Close className="absolute left-4 top-4 z-10 inline-flex h-8 w-8 items-center justify-center rounded-full bg-secondary/80 text-secondary-foreground hover:bg-secondary focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 disabled:pointer-events-none">
+          <X className="h-4 w-4" />
+          <span className="sr-only">إغلاق</span>
+        </DialogPrimitive.Close>
+        
+        {children}
+      </DialogPrimitive.Content>
+    </DialogPortal>
+  )
+})
 DialogContent.displayName = DialogPrimitive.Content.displayName
 
 const DialogHeader = ({

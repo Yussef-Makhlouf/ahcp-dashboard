@@ -11,6 +11,10 @@
   --ahcp-info: #3B82F6;
   --ahcp-danger: #EF4444;
   
+  /* Sidebar animations */
+  --sidebar-transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  --sidebar-backdrop-blur: blur(8px);
+  
   /* خلفيات مخصصة */
   --ahcp-bg-main: #F0F0F0;
   --ahcp-bg-card: #FFFFFF;
@@ -499,5 +503,112 @@
     break-inside: avoid;
   }
 }
+
+/* Enhanced Sidebar Styles */
+.sidebar-enhanced {
+  transition: var(--sidebar-transition);
+  backdrop-filter: var(--sidebar-backdrop-blur);
+  -webkit-backdrop-filter: var(--sidebar-backdrop-blur);
+}
+
+.sidebar-enhanced .nav-item {
+  position: relative;
+  overflow: hidden;
+}
+
+.sidebar-enhanced .nav-item::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 0;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1));
+  transition: width 0.3s ease;
+}
+
+.sidebar-enhanced .nav-item:hover::before {
+  width: 100%;
+}
+
+/* Mobile sidebar backdrop enhancement */
+.sidebar-backdrop {
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+/* Smooth content transition */
+.content-transition {
+  transition: var(--sidebar-transition);
+}
+
+/* Mobile menu button enhancement */
+.mobile-menu-btn {
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+}
+
+/* Responsive sidebar behavior */
+@media (max-width: 1023px) {
+  .sidebar-mobile {
+    transform: translateX(100%);
+  }
+  
+  .sidebar-mobile.open {
+    transform: translateX(0);
+  }
+}
+
+@media (min-width: 1024px) {
+  .sidebar-desktop {
+    transform: translateX(0);
+  }
+  
+  .sidebar-desktop.collapsed {
+    width: 4rem;
+  }
+}
+
+/* Enhanced hover effects */
+.sidebar-enhanced .nav-item:hover {
+  transform: translateX(-4px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* Active state enhancement */
+.sidebar-enhanced .nav-item.active {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.1));
+  border-left: 4px solid #3B82F6;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+/* Smooth icon transitions */
+.sidebar-enhanced .nav-icon {
+  transition: transform 0.2s ease;
+}
+
+.sidebar-enhanced .nav-item:hover .nav-icon {
+  transform: scale(1.1);
+}
+
+/* Collapsed sidebar styles */
+.sidebar-collapsed .nav-text {
+  opacity: 0;
+  transform: translateX(10px);
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.sidebar-collapsed .nav-item {
+  justify-content: center;
+}
+
+.sidebar-collapsed .nav-item:hover .nav-text {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+
+
 
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { MainLayout } from "@/components/layout/main-layout";
 import { DataTable } from "@/components/data-table/data-table";
 import { Button } from "@/components/ui/button";
@@ -137,9 +137,19 @@ const sampleTypesData = [
 ];
 
 export default function LaboratoriesPage() {
-  const [data, setData] = useState(mockLaboratoryData);
+  const [data, setData] = useState<Laboratory[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedLab, setSelectedLab] = useState<Laboratory | undefined>(undefined);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // محاكاة تحميل البيانات
+  useEffect(() => {
+    setIsLoading(true);
+    setTimeout(() => {
+      setData(mockLaboratoryData);
+      setIsLoading(false);
+    }, 1500);
+  }, []);
 
   const columns: ColumnDef<Laboratory>[] = [
     {
@@ -169,9 +179,21 @@ export default function LaboratoriesPage() {
     {
       accessorKey: "sampleType",
       header: "نوع العينة",
-      cell: ({ row }) => (
-        <Badge variant="outline">{row.getValue("sampleType")}</Badge>
-      ),
+      cell: ({ row }) => {
+        const sampleType = row.getValue("sampleType") as string;
+        const typeColors: Record<string, string> = {
+          "دم": "bg-red-500 text-white border-red-600",
+          "براز": "bg-yellow-500 text-white border-yellow-600",
+          "بول": "bg-blue-500 text-white border-blue-600",
+          "مسحة": "bg-purple-500 text-white border-purple-600",
+          "أنسجة": "bg-green-500 text-white border-green-600",
+        };
+        return (
+          <Badge className={typeColors[sampleType] || "bg-gray-500 text-white border-gray-600"}>
+            {sampleType}
+          </Badge>
+        );
+      },
     },
     {
       accessorKey: "collector",
@@ -208,10 +230,10 @@ export default function LaboratoriesPage() {
         return (
           <div className="space-y-1">
             <div className="flex items-center gap-2">
-              <Badge variant="destructive" className="text-xs">
+              <Badge className="bg-red-500 text-white border-red-600 text-xs">
                 إيجابي: {positive}
               </Badge>
-              <Badge variant="default" className="text-xs">
+              <Badge className="bg-green-500 text-white border-green-600 text-xs">
                 سلبي: {negative}
               </Badge>
             </div>
@@ -231,6 +253,7 @@ export default function LaboratoriesPage() {
     },
     {
       id: "actions",
+      header: "الإجراءات",
       cell: ({ row }) => {
         return (
           <DropdownMenu>
@@ -456,6 +479,7 @@ export default function LaboratoriesPage() {
         <DataTable
           columns={columns}
           data={data}
+          isLoading={isLoading}
           onExport={handleExport}
         />
 

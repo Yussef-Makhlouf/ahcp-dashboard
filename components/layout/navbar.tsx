@@ -11,35 +11,41 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Moon, Sun, User, LogOut, Bell, Menu } from "lucide-react";
+import { Moon, Sun, User, LogOut, Menu, ChevronLeft, ChevronRight } from "lucide-react";
 import { useAuthStore } from "@/lib/store/auth-store";
-import { useState } from "react";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { Sidebar } from "./sidebar";
 
-export function Navbar() {
+interface NavbarProps {
+  onToggleSidebar?: () => void;
+  onToggleCollapse?: () => void;
+  isCollapsed?: boolean;
+}
+
+export function Navbar({ onToggleSidebar, onToggleCollapse, isCollapsed = false }: NavbarProps) {
   const { theme, setTheme } = useTheme();
   const { user, logout } = useAuthStore();
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   return (
-    <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b bg-primary px-6 shadow-md">
+    <header className="navbar flex h-16 items-center justify-between px-6">
       <div className="flex items-center gap-4">
+        {/* Desktop sidebar toggle */}
+        {onToggleCollapse && (
+          <button
+            onClick={onToggleCollapse}
+            className="navbar-toggle hidden lg:flex"
+          >
+            {isCollapsed ? <ChevronRight className="h-5 w-5" /> : <ChevronLeft className="h-5 w-5" />}
+          </button>
+        )}
+
         {/* Mobile menu trigger */}
-        <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
-          <SheetTrigger asChild>
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              className="lg:hidden text-white hover:bg-white/10"
-            >
-              <Menu className="h-5 w-5" />
-            </Button>
-          </SheetTrigger>
-          <SheetContent side="right" className="w-64 p-0">
-            <Sidebar />
-          </SheetContent>
-        </Sheet>
+        {onToggleSidebar && (
+          <button
+            onClick={onToggleSidebar}
+            className="navbar-toggle lg:hidden"
+          >
+            <Menu className="h-5 w-5" />
+          </button>
+        )}
 
         {/* Page title */}
         <h2 className="text-lg font-semibold text-white">لوحة التحكم</h2>
@@ -47,16 +53,7 @@ export function Navbar() {
 
       <div className="flex items-center gap-4">
         {/* Notifications */}
-        <Button 
-          variant="ghost" 
-          size="icon" 
-          className="relative text-white hover:bg-white/10"
-        >
-          <Bell className="h-5 w-5" />
-          <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-danger text-[10px] font-bold text-white flex items-center justify-center">
-            3
-          </span>
-        </Button>
+    
 
         {/* Theme toggle */}
         <Button
