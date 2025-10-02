@@ -18,75 +18,90 @@ import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
-import { Slider } from "@/components/ui/slider";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
   Settings,
-  Globe,
-  Bell,
-  Shield,
-  Database,
-  HardDrive,
   Users,
-  Building,
-  Download,
-  Upload,
-  RefreshCw,
-  AlertTriangle,
-  CheckCircle,
-  Info,
+  MapPin,
+  Moon,
+  Sun,
+  Globe,
   Save,
-  RotateCcw,
+  Plus,
+  UserPlus,
+  Building,
 } from "lucide-react";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { useTheme } from "next-themes";
-import { Progress } from "@/components/ui/progress";
+import { toast } from "sonner";
 
 export default function SettingsPage() {
   const { theme, setTheme } = useTheme();
-  const [activeTab, setActiveTab] = useState("general");
-  const [isSaving, setIsSaving] = useState(false);
-  const [showResetDialog, setShowResetDialog] = useState(false);
+  const [activeTab, setActiveTab] = useState("users");
+  const [isLoading, setIsLoading] = useState(false);
   
-  const [settings, setSettings] = useState({
-    language: "ar",
-    timezone: "Africa/Cairo",
-    dateFormat: "DD/MM/YYYY",
-    currency: "EGP",
-    autoSave: true,
-    autoSaveInterval: 5,
-    notifications: {
-      desktop: true,
-      sound: true,
-      email: false,
-    },
-    backup: {
-      automatic: true,
-      frequency: "daily",
-      retention: 30,
-    },
+  // User Management State
+  const [newUser, setNewUser] = useState({
+    name: "",
+    email: "",
+    role: "supervisor",
+    password: "",
   });
 
-  const handleSaveSettings = async () => {
-    setIsSaving(true);
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    setIsSaving(false);
+  // Village Management State
+  const [newVillage, setNewVillage] = useState({
+    name: "",
+    governorate: "",
+    description: "",
+  });
+
+  // Language State
+  const [language, setLanguage] = useState("ar");
+
+  const handleAddUser = async () => {
+    if (!newUser.name || !newUser.email || !newUser.password) {
+      toast.error("يرجى ملء جميع الحقول المطلوبة");
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      toast.success("تم إضافة المستخدم بنجاح");
+      setNewUser({ name: "", email: "", role: "supervisor", password: "" });
+    } catch (error) {
+      toast.error("حدث خطأ أثناء إضافة المستخدم");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const handleExportSettings = () => {
-    const blob = new Blob([JSON.stringify(settings, null, 2)], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `settings-${new Date().toISOString().split("T")[0]}.json`;
-    a.click();
+  const handleAddVillage = async () => {
+    if (!newVillage.name || !newVillage.governorate) {
+      toast.error("يرجى ملء جميع الحقول المطلوبة");
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      toast.success("تم إضافة القرية بنجاح");
+      setNewVillage({ name: "", governorate: "", description: "" });
+    } catch (error) {
+      toast.error("حدث خطأ أثناء إضافة القرية");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleLanguageChange = (newLanguage: string) => {
+    setLanguage(newLanguage);
+    toast.success(`تم تغيير اللغة إلى ${newLanguage === "ar" ? "العربية" : "English"}`);
+  };
+
+  const handleThemeChange = (newTheme: string) => {
+    setTheme(newTheme);
+    toast.success(`تم تغيير السمة إلى ${newTheme === "dark" ? "الوضع الداكن" : "الوضع الفاتح"}`);
   };
 
   return (
@@ -95,58 +110,245 @@ export default function SettingsPage() {
         {/* Header */}
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-3xl font-bold">الإعدادات</h1>
-            <p className="text-muted-foreground mt-2">
-              إدارة إعدادات النظام والتطبيق
+            <h1 className="text-3xl font-bold text-right">الإعدادات</h1>
+            <p className="text-muted-foreground mt-2 text-right">
+              إدارة النظام والإعدادات الأساسية
             </p>
-          </div>
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={handleExportSettings}>
-              <Download className="ml-2 h-4 w-4" />
-              تصدير
-            </Button>
-            <Button onClick={handleSaveSettings} disabled={isSaving}>
-              {isSaving ? (
-                <>
-                  <RefreshCw className="ml-2 h-4 w-4 animate-spin" />
-                  جاري الحفظ...
-                </>
-              ) : (
-                <>
-                  <Save className="ml-2 h-4 w-4" />
-                  حفظ التغييرات
-                </>
-              )}
-            </Button>
           </div>
         </div>
 
         {/* Settings Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-5">
-            <TabsTrigger value="general">عام</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-4">
+            <TabsTrigger value="users">المستخدمين</TabsTrigger>
+            <TabsTrigger value="villages">القرى</TabsTrigger>
             <TabsTrigger value="appearance">المظهر</TabsTrigger>
-            <TabsTrigger value="notifications">الإشعارات</TabsTrigger>
-            <TabsTrigger value="security">الأمان</TabsTrigger>
-            <TabsTrigger value="data">البيانات</TabsTrigger>
+            <TabsTrigger value="language">اللغة</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="general" className="space-y-4">
+          {/* Users Management */}
+          <TabsContent value="users" className="space-y-6">
             <Card>
               <CardHeader>
-                <CardTitle>الإعدادات العامة</CardTitle>
-                <CardDescription>
-                  تخصيص الإعدادات الأساسية للنظام
+                <CardTitle className="flex items-center gap-2 text-right">
+                  <Users className="h-5 w-5" />
+                  إدارة المستخدمين
+                </CardTitle>
+                <CardDescription className="text-right">
+                  إضافة مستخدمين جدد وتعيين الأدوار
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
                 <div className="grid gap-4 md:grid-cols-2">
                   <div className="space-y-2">
-                    <Label>اللغة</Label>
-                    <Select value={settings.language} onValueChange={(value) => 
-                      setSettings({ ...settings, language: value })
+                    <Label htmlFor="userName" className="text-right">اسم المستخدم</Label>
+                    <Input
+                      id="userName"
+                      value={newUser.name}
+                      onChange={(e) => setNewUser({ ...newUser, name: e.target.value })}
+                      placeholder="أدخل اسم المستخدم"
+                      className="text-right"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="userEmail" className="text-right">البريد الإلكتروني</Label>
+                    <Input
+                      id="userEmail"
+                      type="email"
+                      value={newUser.email}
+                      onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
+                      placeholder="أدخل البريد الإلكتروني"
+                      className="text-right"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="userRole" className="text-right">الدور</Label>
+                    <Select value={newUser.role} onValueChange={(value) => 
+                      setNewUser({ ...newUser, role: value })
                     }>
-                      <SelectTrigger>
+                      <SelectTrigger className="text-right">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="admin">مدير</SelectItem>
+                        <SelectItem value="supervisor">مشرف</SelectItem>
+                        <SelectItem value="user">مستخدم</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="userPassword" className="text-right">كلمة المرور</Label>
+                    <Input
+                      id="userPassword"
+                      type="password"
+                      value={newUser.password}
+                      onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
+                      placeholder="أدخل كلمة المرور"
+                      className="text-right"
+                    />
+                  </div>
+                </div>
+
+                <Button 
+                  onClick={handleAddUser} 
+                  disabled={isLoading}
+                  className="w-full"
+                >
+                  {isLoading ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                      جاري الإضافة...
+                    </>
+                  ) : (
+                    <>
+                      <UserPlus className="mr-2 h-4 w-4" />
+                      إضافة مستخدم
+                    </>
+                  )}
+                </Button>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Villages Management */}
+          <TabsContent value="villages" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-right">
+                  <MapPin className="h-5 w-5" />
+                  إدارة القرى
+                </CardTitle>
+                <CardDescription className="text-right">
+                  إضافة قرى جديدة إلى النظام
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="villageName" className="text-right">اسم القرية</Label>
+                    <Input
+                      id="villageName"
+                      value={newVillage.name}
+                      onChange={(e) => setNewVillage({ ...newVillage, name: e.target.value })}
+                      placeholder="أدخل اسم القرية"
+                      className="text-right"
+                    />
+                    </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="villageGovernorate" className="text-right">المحافظة</Label>
+                    <Select value={newVillage.governorate} onValueChange={(value) => 
+                      setNewVillage({ ...newVillage, governorate: value })
+                    }>
+                      <SelectTrigger className="text-right">
+                        <SelectValue placeholder="اختر المحافظة" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="cairo">القاهرة</SelectItem>
+                        <SelectItem value="giza">الجيزة</SelectItem>
+                        <SelectItem value="alexandria">الإسكندرية</SelectItem>
+                        <SelectItem value="sharqia">الشرقية</SelectItem>
+                        <SelectItem value="dakahlia">الدقهلية</SelectItem>
+                        <SelectItem value="kafr_el_sheikh">كفر الشيخ</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    </div>
+                    </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="villageDescription" className="text-right">وصف القرية (اختياري)</Label>
+                  <Input
+                    id="villageDescription"
+                    value={newVillage.description}
+                    onChange={(e) => setNewVillage({ ...newVillage, description: e.target.value })}
+                    placeholder="أدخل وصف للقرية"
+                    className="text-right"
+                  />
+                </div>
+
+                <Button 
+                  onClick={handleAddVillage} 
+                  disabled={isLoading}
+                  className="w-full"
+                >
+                  {isLoading ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                      جاري الإضافة...
+                    </>
+                  ) : (
+                    <>
+                      <Plus className="mr-2 h-4 w-4" />
+                      إضافة قرية
+                    </>
+                  )}
+                </Button>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Appearance Settings */}
+          <TabsContent value="appearance" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-right">
+                  <Sun className="h-5 w-5" />
+                  إعدادات المظهر
+                </CardTitle>
+                <CardDescription className="text-right">
+                  تخصيص مظهر التطبيق
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between p-4 rounded-lg border bg-card">
+                    <div className="space-y-0.5 text-right">
+                      <Label className="flex items-center gap-2">
+                        {theme === "dark" ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
+                        الوضع الداكن
+                      </Label>
+                      <div className="text-sm text-muted-foreground">
+                        تبديل بين الوضع الفاتح والداكن
+                      </div>
+                    </div>
+                    <Switch 
+                      checked={theme === "dark"} 
+                      onCheckedChange={(checked) => handleThemeChange(checked ? "dark" : "light")}
+                    />
+                  </div>
+
+                  <Alert>
+                    <Settings className="h-4 w-4" />
+                    <AlertDescription className="text-right">
+                      تغيير السمة سيؤثر على جميع صفحات التطبيق
+                    </AlertDescription>
+                  </Alert>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Language Settings */}
+          <TabsContent value="language" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-right">
+                  <Globe className="h-5 w-5" />
+                  إعدادات اللغة
+                </CardTitle>
+                <CardDescription className="text-right">
+                  تغيير لغة واجهة التطبيق
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label className="text-right">اللغة</Label>
+                    <Select value={language} onValueChange={handleLanguageChange}>
+                      <SelectTrigger className="text-right">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -156,282 +358,17 @@ export default function SettingsPage() {
                     </Select>
                   </div>
 
-                  <div className="space-y-2">
-                    <Label>المنطقة الزمنية</Label>
-                    <Select value={settings.timezone} onValueChange={(value) => 
-                      setSettings({ ...settings, timezone: value })
-                    }>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Africa/Cairo">القاهرة (GMT+2)</SelectItem>
-                        <SelectItem value="Asia/Riyadh">الرياض (GMT+3)</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label>تنسيق التاريخ</Label>
-                    <Select value={settings.dateFormat} onValueChange={(value) => 
-                      setSettings({ ...settings, dateFormat: value })
-                    }>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="DD/MM/YYYY">DD/MM/YYYY</SelectItem>
-                        <SelectItem value="MM/DD/YYYY">MM/DD/YYYY</SelectItem>
-                        <SelectItem value="YYYY-MM-DD">YYYY-MM-DD</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label>العملة</Label>
-                    <Select value={settings.currency} onValueChange={(value) => 
-                      setSettings({ ...settings, currency: value })
-                    }>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="EGP">جنيه مصري (EGP)</SelectItem>
-                        <SelectItem value="SAR">ريال سعودي (SAR)</SelectItem>
-                        <SelectItem value="USD">دولار أمريكي (USD)</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-
-                <Separator />
-
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label>الحفظ التلقائي</Label>
-                    <div className="text-sm text-muted-foreground">
-                      حفظ التغييرات تلقائياً أثناء العمل
-                    </div>
-                  </div>
-                  <Switch checked={settings.autoSave} onCheckedChange={(checked) => 
-                    setSettings({ ...settings, autoSave: checked })
-                  } />
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="appearance" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>المظهر والواجهة</CardTitle>
-                <CardDescription>
-                  تخصيص مظهر التطبيق
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="space-y-4">
-                  <Label>السمة</Label>
-                  <RadioGroup value={theme} onValueChange={setTheme}>
-                    <div className="flex items-center space-x-2 space-x-reverse">
-                      <RadioGroupItem value="light" id="light" />
-                      <Label htmlFor="light">فاتح</Label>
-                    </div>
-                    <div className="flex items-center space-x-2 space-x-reverse">
-                      <RadioGroupItem value="dark" id="dark" />
-                      <Label htmlFor="dark">داكن</Label>
-                    </div>
-                    <div className="flex items-center space-x-2 space-x-reverse">
-                      <RadioGroupItem value="system" id="system" />
-                      <Label htmlFor="system">تلقائي (حسب النظام)</Label>
-                    </div>
-                  </RadioGroup>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="notifications" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>إعدادات الإشعارات</CardTitle>
-                <CardDescription>
-                  تحكم في كيفية تلقي الإشعارات
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label>إشعارات سطح المكتب</Label>
-                      <div className="text-sm text-muted-foreground">
-                        عرض إشعارات النظام على سطح المكتب
-                      </div>
-                    </div>
-                    <Switch checked={settings.notifications.desktop} onCheckedChange={(checked) => 
-                      setSettings({
-                        ...settings,
-                        notifications: { ...settings.notifications, desktop: checked }
-                      })
-                    } />
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label>الأصوات</Label>
-                      <div className="text-sm text-muted-foreground">
-                        تشغيل أصوات للإشعارات المهمة
-                      </div>
-                    </div>
-                    <Switch checked={settings.notifications.sound} onCheckedChange={(checked) => 
-                      setSettings({
-                        ...settings,
-                        notifications: { ...settings.notifications, sound: checked }
-                      })
-                    } />
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label>إشعارات البريد الإلكتروني</Label>
-                      <div className="text-sm text-muted-foreground">
-                        إرسال إشعارات مهمة عبر البريد الإلكتروني
-                      </div>
-                    </div>
-                    <Switch checked={settings.notifications.email} onCheckedChange={(checked) => 
-                      setSettings({
-                        ...settings,
-                        notifications: { ...settings.notifications, email: checked }
-                      })
-                    } />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="security" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>إعدادات الأمان</CardTitle>
-                <CardDescription>
-                  حماية حسابك وبياناتك
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <Alert>
-                  <Shield className="h-4 w-4" />
-                  <AlertDescription>
-                    آخر فحص أمني: اليوم الساعة 10:30 صباحاً - لم يتم العثور على مشاكل
-                  </AlertDescription>
-                </Alert>
-
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label>المصادقة الثنائية</Label>
-                      <div className="text-sm text-muted-foreground">
-                        طبقة حماية إضافية لحسابك
-                      </div>
-                    </div>
-                    <Badge variant="outline">مفعل</Badge>
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label>تسجيل الخروج التلقائي</Label>
-                      <div className="text-sm text-muted-foreground">
-                        تسجيل الخروج بعد فترة من عدم النشاط
-                      </div>
-                    </div>
-                    <Select defaultValue="30">
-                      <SelectTrigger className="w-32">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="15">15 دقيقة</SelectItem>
-                        <SelectItem value="30">30 دقيقة</SelectItem>
-                        <SelectItem value="60">ساعة</SelectItem>
-                        <SelectItem value="never">أبداً</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="data" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>إدارة البيانات</CardTitle>
-                <CardDescription>
-                  النسخ الاحتياطي والتخزين
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="space-y-4">
-                  <div>
-                    <div className="flex justify-between mb-2">
-                      <Label>استخدام التخزين</Label>
-                      <span className="text-sm font-medium">2.8 GB / 5 GB</span>
-                    </div>
-                    <Progress value={56} className="h-2" />
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label>النسخ الاحتياطي التلقائي</Label>
-                      <div className="text-sm text-muted-foreground">
-                        إنشاء نسخ احتياطية تلقائياً
-                      </div>
-                    </div>
-                    <Switch checked={settings.backup.automatic} onCheckedChange={(checked) => 
-                      setSettings({
-                        ...settings,
-                        backup: { ...settings.backup, automatic: checked }
-                      })
-                    } />
-                  </div>
-
-                  <div className="flex gap-2">
-                    <Button variant="outline">
-                      <Database className="ml-2 h-4 w-4" />
-                      نسخ احتياطي الآن
-                    </Button>
-                    <Button variant="outline">
-                      <Upload className="ml-2 h-4 w-4" />
-                      استعادة
-                    </Button>
-                  </div>
+                  <Alert>
+                    <Globe className="h-4 w-4" />
+                    <AlertDescription className="text-right">
+                      تغيير اللغة سيؤثر على جميع نصوص التطبيق
+                    </AlertDescription>
+                  </Alert>
                 </div>
               </CardContent>
             </Card>
           </TabsContent>
         </Tabs>
-
-        {/* Reset Dialog */}
-        <Dialog open={showResetDialog} onOpenChange={setShowResetDialog}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>إعادة تعيين الإعدادات</DialogTitle>
-              <DialogDescription>
-                هل أنت متأكد من إعادة جميع الإعدادات إلى القيم الافتراضية؟
-              </DialogDescription>
-            </DialogHeader>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setShowResetDialog(false)}>
-                إلغاء
-              </Button>
-              <Button variant="destructive" onClick={() => {
-                setShowResetDialog(false);
-              }}>
-                <RotateCcw className="ml-2 h-4 w-4" />
-                إعادة تعيين
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
       </div>
     </MainLayout>
   );
