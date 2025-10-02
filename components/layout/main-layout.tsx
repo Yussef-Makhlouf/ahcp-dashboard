@@ -5,6 +5,7 @@ import { Sidebar } from "./sidebar";
 import { Navbar } from "./navbar";
 import { cn } from "@/lib/utils";
 import { Menu } from "lucide-react";
+import { useLanguage } from "@/lib/language-context";
 
 interface MainLayoutProps {
   children: React.ReactNode;
@@ -12,6 +13,7 @@ interface MainLayoutProps {
 }
 
 export function MainLayout({ children, className }: MainLayoutProps) {
+  const { isRTL } = useLanguage();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
@@ -48,14 +50,16 @@ export function MainLayout({ children, className }: MainLayoutProps) {
       {/* Main content */}
       <div className={cn(
         "content-transition transition-all duration-300 ease-in-out",
-        sidebarCollapsed ? "lg:pr-16" : "lg:pr-64"
+        isRTL 
+          ? sidebarCollapsed ? "lg:pr-16" : "lg:pr-64"
+          : sidebarCollapsed ? "lg:pl-16" : "lg:pl-64"
       )}>
         <Navbar 
           onToggleSidebar={toggleSidebar}
           onToggleCollapse={toggleCollapse}
           isCollapsed={sidebarCollapsed}
         />
-        <main className={cn("p-6 bg-light", className)}>
+        <main className={cn("p-6 bg-light min-h-screen", className)}>
           {children}
         </main>
       </div>

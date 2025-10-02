@@ -11,6 +11,8 @@ import type { Owner } from "@/types";
 import { formatDate, formatPhoneNumber } from "@/lib/utils";
 import { ColumnDef } from "@tanstack/react-table";
 import { Checkbox } from "@/components/ui/checkbox";
+import { useTranslation } from "@/lib/use-translation";
+import { PageHeader } from "@/components/layout/page-header";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -103,6 +105,7 @@ const mockClientsData: Client[] = [
 ];
 
 export default function ClientsPage() {
+  const { t } = useTranslation();
   const [data, setData] = useState<Client[]>([]);
   const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
   const [csvFile, setCsvFile] = useState<File | null>(null);
@@ -139,11 +142,11 @@ export default function ClientsPage() {
     },
     {
       accessorKey: "id",
-      header: "رقم الهوية",
+      header: t('tables.id'),
     },
     {
       accessorKey: "name",
-      header: "الاسم",
+      header: t('tables.name'),
       cell: ({ row }) => (
         <div className="flex items-center gap-2">
           <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center">
@@ -351,9 +354,9 @@ export default function ClientsPage() {
         {/* Header */}
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-3xl font-bold">المربيين</h1>
+            <h1 className="text-3xl font-bold">{t('clients.title')}</h1>
             <p className="text-muted-foreground mt-2">
-              إدارة بيانات المربيين والعملاء
+              {t('clients.subtitle')}
             </p>
           </div>
           <div className="flex gap-2">
@@ -361,7 +364,7 @@ export default function ClientsPage() {
               <DialogTrigger asChild>
                 <Button variant="outline" size="sm" className="border-cyan-300 hover:bg-cyan-50 hover:border-cyan-400 text-cyan-700 hover:text-cyan-800">
                   <Upload className="ml-2 h-4 w-4" />
-                  استيراد CSV
+                  {t('common.import')} CSV
                 </Button>
               </DialogTrigger>
               <DialogContent>
@@ -397,7 +400,7 @@ export default function ClientsPage() {
               className="bg-cyan-600 hover:bg-cyan-700 text-white shadow-lg hover:shadow-xl transition-all duration-200"
             >
               <Plus className="ml-2 h-4 w-4" />
-              إضافة مربي جديد
+              {t('clients.addClient')}
             </Button>
           </div>
         </div>
@@ -407,7 +410,7 @@ export default function ClientsPage() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
-                إجمالي المربيين
+                {t('dashboard.totalClients')}
               </CardTitle>
               <Users className="h-4 w-4 text-muted-foreground" />
             </CardHeader>

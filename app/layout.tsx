@@ -2,10 +2,11 @@ import type { Metadata } from "next";
 import { Providers } from "@/components/providers";
 import "./globals-clean.css";
 import "./globals-mobile.css";
+import "./globals-rtl.css";
 
 export const metadata: Metadata = {
-  title: "AHCP Dashboard - مشروع صحة الحيوان",
-  description: "لوحة تحكم إدارة تقارير خدمات الصحة الحيوانية",
+  title: "AHCP Dashboard - Animal Health Care Program",
+  description: "Animal Health Care Program Management Dashboard",
 };
 
 export default function RootLayout({
@@ -14,7 +15,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="ar" dir="rtl" suppressHydrationWarning>
+    <html suppressHydrationWarning>
       <body className="antialiased">
         <Providers>{children}</Providers>
       </body>

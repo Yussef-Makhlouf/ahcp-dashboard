@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Eye, EyeOff, Shield, Building2, AlertCircle, CheckCircle } from 'lucide-react';
+import { useTranslation } from '@/lib/use-translation';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -24,6 +25,7 @@ export default function LoginPage() {
   const { login, isAuthenticated } = useAuthStore();
   const router = useRouter();
   const [returnUrl, setReturnUrl] = useState('/');
+  const { t } = useTranslation();
 
   // الحصول على returnUrl من URL
   useEffect(() => {
@@ -197,7 +199,7 @@ export default function LoginPage() {
         }, 500);
       }, 1500);
     } else {
-      setError('البريد الإلكتروني أو كلمة المرور غير صحيحة');
+      setError(t('login.invalidCredentials'));
     }
     
     setIsLoading(false);
@@ -219,7 +221,7 @@ export default function LoginPage() {
             <Building2 className="w-12 h-12 text-white" />
           </div>
           <h1 className="text-4xl font-bold text-slate-800 mb-3">AHCP</h1>
-          <p className="text-slate-600 text-xl font-medium">مشروع صحة الحيوان</p>
+          <p className="text-slate-600 text-xl font-medium">{t('login.title')}</p>
           <p className="text-sm text-slate-500 mt-2">Animal Health Care Project</p>
         </div>
 
@@ -231,9 +233,9 @@ export default function LoginPage() {
                 <Shield className="w-8 h-8 text-white" />
               </div>
             </div>
-            <CardTitle className="text-3xl font-bold text-slate-800 mb-2">تسجيل الدخول</CardTitle>
+            <CardTitle className="text-3xl font-bold text-slate-800 mb-2">{t('login.title')}</CardTitle>
             <CardDescription className="text-slate-600 text-lg">
-              أدخل بياناتك للوصول إلى لوحة التحكم
+              {t('login.subtitle')}
             </CardDescription>
           </CardHeader>
           
@@ -261,7 +263,7 @@ export default function LoginPage() {
 
               <div className="space-y-3">
                 <Label htmlFor="email" className="text-sm font-semibold text-slate-700">
-                  البريد الإلكتروني
+                  {t('login.email')}
                 </Label>
                 <Input
                   id="email"
@@ -287,7 +289,7 @@ export default function LoginPage() {
 
               <div className="space-y-3">
                 <Label htmlFor="password" className="text-sm font-semibold text-slate-700">
-                  كلمة المرور
+                  {t('login.password')}
                 </Label>
                 <div className="relative">
                   <Input
@@ -334,10 +336,10 @@ export default function LoginPage() {
                 {isLoading ? (
                   <div className="flex items-center space-x-3 space-x-reverse">
                     <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                    <span>جاري تسجيل الدخول...</span>
+                    <span>{t('login.signingIn')}</span>
                   </div>
                 ) : (
-                  'تسجيل الدخول'
+                  t('login.signIn')
                 )}
               </Button>
             </form>
@@ -346,15 +348,15 @@ export default function LoginPage() {
             <div className="mt-8 p-6 bg-slate-50 rounded-2xl border border-slate-200">
               <h4 className="text-sm font-semibold text-slate-800 mb-4 flex items-center">
                 <Shield className="w-4 h-4 ml-2 text-slate-600" />
-                بيانات تسجيل الدخول:
+                {t('login.title')}:
               </h4>
               <div className="text-sm text-slate-700 space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="font-medium text-slate-600">البريد الإلكتروني:</span>
+                  <span className="font-medium text-slate-600">{t('login.email')}:</span>
                   <span className="bg-slate-100 px-3 py-2 rounded-lg text-slate-800 font-mono text-sm">admin@ahcp.gov.eg</span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="font-medium text-slate-600">كلمة المرور:</span>
+                  <span className="font-medium text-slate-600">{t('login.password')}:</span>
                   <span className="bg-slate-100 px-3 py-2 rounded-lg text-slate-800 font-mono text-sm">AHCP2024!</span>
                 </div>
               </div>

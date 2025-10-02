@@ -22,6 +22,7 @@ import {
   X,
 } from "lucide-react";
 import { useAuthStore } from "@/lib/store/auth-store";
+import { useTranslation } from "@/lib/use-translation";
 
 interface UserProfile {
   id: string;
@@ -85,6 +86,7 @@ const getMockProfile = (role: string, section?: string): UserProfile => {
 
 export default function ProfilePage() {
   const { user, updateUser } = useAuthStore();
+  const { t } = useTranslation();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [editedProfile, setEditedProfile] = useState<UserProfile | null>(null);
@@ -200,9 +202,9 @@ export default function ProfilePage() {
         {/* Header */}
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-3xl font-bold">الملف الشخصي</h1>
+            <h1 className="text-3xl font-bold">{t('profile.title')}</h1>
             <p className="text-muted-foreground mt-2">
-              {canEdit ? "إدارة معلوماتك الشخصية" : "عرض معلوماتك الشخصية"}
+              {canEdit ? t('profile.subtitle') : t('profile.subtitle')}
             </p>
           </div>
           {canEdit && (
@@ -210,16 +212,16 @@ export default function ProfilePage() {
               {isEditing ? (
                 <>
                   <Button variant="outline" onClick={handleCancelEdit}>
-                    إلغاء
+                    {t('common.cancel')}
                   </Button>
                   <Button onClick={handleSaveProfile}>
                     <Save className="ml-2 h-4 w-4" />
-                    حفظ التغييرات
+                    {t('profile.updateProfile')}
                   </Button>
                 </>
               ) : (
                 <Button onClick={() => setIsEditing(true)}>
-                  تعديل الملف الشخصي
+                  {t('profile.updateProfile')}
                 </Button>
               )}
             </div>
@@ -231,7 +233,7 @@ export default function ProfilePage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <User className="h-5 w-5" />
-              المعلومات الشخصية
+              {t('profile.personalInfo')}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">

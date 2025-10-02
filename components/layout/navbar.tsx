@@ -14,6 +14,8 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Moon, Sun, User, LogOut, Menu, ChevronLeft, ChevronRight } from "lucide-react";
 import { useAuthStore } from "@/lib/store/auth-store";
+import { useTranslation } from "@/lib/use-translation";
+import { LanguageSwitcher } from "@/components/ui/language-switcher";
 
 interface NavbarProps {
   onToggleSidebar?: () => void;
@@ -25,6 +27,7 @@ export function Navbar({ onToggleSidebar, onToggleCollapse, isCollapsed = false 
   const { theme, setTheme } = useTheme();
   const { user, logout } = useAuthStore();
   const router = useRouter();
+  const { t } = useTranslation();
 
   const handleLogout = () => {
     logout();
@@ -55,12 +58,12 @@ export function Navbar({ onToggleSidebar, onToggleCollapse, isCollapsed = false 
         )}
 
         {/* Page title */}
-        <h2 className="text-lg font-semibold text-white">لوحة التحكم</h2>
+        <h2 className="text-lg font-semibold text-white">{t('navbar.title')}</h2>
       </div>
 
       <div className="flex items-center gap-4">
-        {/* Notifications */}
-    
+        {/* Language Switcher */}
+        <LanguageSwitcher />
 
         {/* Theme toggle */}
         <Button
@@ -71,7 +74,7 @@ export function Navbar({ onToggleSidebar, onToggleCollapse, isCollapsed = false 
         >
           <Sun className="h-5 w-5 dark:hidden" />
           <Moon className="h-5 w-5 hidden dark:block" />
-          <span className="sr-only">تبديل الوضع</span>
+          <span className="sr-only">{t('navbar.toggleTheme')}</span>
         </Button>
 
         {/* User menu */}
@@ -92,7 +95,7 @@ export function Navbar({ onToggleSidebar, onToggleCollapse, isCollapsed = false 
           <DropdownMenuContent className="w-56" align="end">
             <DropdownMenuLabel className="font-normal">
               <div className="flex flex-col space-y-1">
-                <p className="text-sm font-medium leading-none">{user?.name || "المستخدم"}</p>
+                <p className="text-sm font-medium leading-none">{user?.name || t('navbar.profile')}</p>
                 <p className="text-xs leading-none text-muted-foreground">
                   {user?.email || "user@ahcp.gov.eg"}
                 </p>
@@ -101,14 +104,14 @@ export function Navbar({ onToggleSidebar, onToggleCollapse, isCollapsed = false 
             <DropdownMenuSeparator />
             <DropdownMenuItem>
               <User className="ml-2 h-4 w-4" />
-              <span>الملف الشخصي</span>
+              <span>{t('navbar.profile')}</span>
             </DropdownMenuItem>
             <DropdownMenuItem 
               onClick={handleLogout}
               className="text-red-600 focus:text-red-600"
             >
               <LogOut className="ml-2 h-4 w-4" />
-              <span>تسجيل الخروج</span>
+              <span>{t('navbar.logout')}</span>
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { mockLogin } from "@/lib/store/auth-store";
+import { useTranslation } from "@/lib/use-translation";
 import {
   BarChart,
   Bar,
@@ -33,9 +34,9 @@ import {
   Line,
 } from "recharts";
 
-const stats = [
+const getStats = (t: (key: string) => string) => [
   {
-    title: "إجمالي المربيين",
+    title: t('dashboard.totalClients'),
     value: "1,234",
     change: "+12%",
     trend: "up",
@@ -44,7 +45,7 @@ const stats = [
     bgColor: "bg-light",
   },
   {
-    title: "التحصينات هذا الشهر",
+    title: t('dashboard.totalVaccinations'),
     value: "456",
     change: "+8%",
     trend: "up",
@@ -53,7 +54,7 @@ const stats = [
     bgColor: "bg-light",
   },
   {
-    title: "مكافحة الطفيليات",
+    title: t('dashboard.totalParasiteControl'),
     value: "789",
     change: "-3%",
     trend: "down",
@@ -62,7 +63,7 @@ const stats = [
     bgColor: "bg-light",
   },
   {
-    title: "العيادات المتنقلة",
+    title: t('dashboard.totalMobileClinics'),
     value: "321",
     change: "+15%",
     trend: "up",
@@ -91,6 +92,7 @@ const animalDistribution = [
 
 export default function Home() {
   const [mounted, setMounted] = useState(false);
+  const { t } = useTranslation();
 
   useEffect(() => {
     setMounted(true);
@@ -102,14 +104,16 @@ export default function Home() {
     return null;
   }
 
+  const stats = getStats(t);
+
   return (
     <MainLayout>
       <div className="space-y-6">
         {/* Header */}
         <div>
-          <h1 className="text-3xl font-bold">لوحة التحكم</h1>
+          <h1 className="text-3xl font-bold">{t('dashboard.title')}</h1>
           <p className="text-muted-foreground mt-2">
-            مرحباً بك في نظام إدارة صحة الحيوان AHCP
+            {t('dashboard.subtitle')}
           </p>
         </div>
 
@@ -126,7 +130,7 @@ export default function Home() {
                 change={stat.change}
                 trend={stat.trend as "up" | "down"}
                 icon={<Icon className="h-5 w-5" />}
-                description="مقارنة بالشهر الماضي"
+                description={t('dashboard.statistics')}
               />
             );
           })}
@@ -137,7 +141,7 @@ export default function Home() {
           {/* Monthly Activity Chart */}
           <Card>
             <CardHeader>
-              <CardTitle>النشاط الشهري</CardTitle>
+              <CardTitle>{t('dashboard.recentActivity')}</CardTitle>
             </CardHeader>
             <CardContent>
               <ResponsiveContainer width="100%" height={300}>
@@ -158,7 +162,7 @@ export default function Home() {
           {/* Animal Distribution */}
           <Card>
             <CardHeader>
-              <CardTitle>توزيع الحيوانات</CardTitle>
+              <CardTitle>{t('dashboard.statistics')}</CardTitle>
             </CardHeader>
             <CardContent>
               <ResponsiveContainer width="100%" height={300}>
@@ -191,7 +195,7 @@ export default function Home() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Activity className="h-5 w-5" />
-              النشاط الأخير
+              {t('dashboard.recentActivity')}
             </CardTitle>
           </CardHeader>
           <CardContent>

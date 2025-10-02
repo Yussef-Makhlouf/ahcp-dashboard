@@ -16,6 +16,7 @@ import {
   Filter,
   ChevronRight,
 } from "lucide-react";
+import { useTranslation } from "@/lib/use-translation";
 import {
   Select,
   SelectContent,
@@ -125,6 +126,7 @@ const reportTypes = [
 ];
 
 export default function ReportsPage() {
+  const { t } = useTranslation();
   const [selectedReportType, setSelectedReportType] = useState("monthly");
   const [selectedPeriod, setSelectedPeriod] = useState("month");
   const [selectedVillage, setSelectedVillage] = useState("all");
@@ -149,19 +151,19 @@ export default function ReportsPage() {
         {/* Header */}
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-3xl font-bold">التقارير</h1>
+            <h1 className="text-3xl font-bold">{t('reports.title')}</h1>
             <p className="text-muted-foreground mt-2">
-              إنشاء وتصدير التقارير التفصيلية والإحصائية
+              {t('reports.subtitle')}
             </p>
           </div>
           <div className="flex gap-2">
             <Button variant="outline" size="sm">
               <Filter className="ml-2 h-4 w-4" />
-              تصفية
+              {t('common.filter')}
             </Button>
             <Button variant="outline" size="sm">
               <Printer className="ml-2 h-4 w-4" />
-              طباعة
+              {t('reports.print')}
             </Button>
           </div>
         </div>

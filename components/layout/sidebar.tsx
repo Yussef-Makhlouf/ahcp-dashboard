@@ -20,55 +20,57 @@ import {
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
+import { useTranslation } from "@/lib/use-translation";
+import { useLanguage } from "@/lib/language-context";
 
-const menuItems = [
+const getMenuItems = (t: (key: string) => string) => [
   {
-    title: "الرئيسية",
+    title: t('navigation.dashboard'),
     href: "/",
     icon: Home,
   },
   {
-    title: "مكافحة الطفيليات",
+    title: t('navigation.parasiteControl'),
     href: "/parasite-control",
     icon: Bug,
   },
   {
-    title: "التحصين",
+    title: t('navigation.vaccination'),
     href: "/vaccination",
     icon: Syringe,
   },
   {
-    title: " المراقبه و العلاج",
+    title: t('navigation.mobileClinics'),
     href: "/mobile-clinics",
     icon: Truck,
   },
   {
-    title: "صحة الخيول",
+    title: t('navigation.equineHealth'),
     href: "/equine-health",
     icon: HomeIcon,
   },
   {
-    title: "المختبرات",
+    title: t('navigation.laboratories'),
     href: "/laboratories",
     icon: FlaskConical,
   },
   {
-    title: "المربيين",
+    title: t('navigation.clients'),
     href: "/clients",
     icon: Users,
   },
   {
-    title: "التقارير",
+    title: t('navigation.reports'),
     href: "/reports",
     icon: FileText,
   },
   {
-    title: "الملف الشخصي",
+    title: t('navigation.profile'),
     href: "/profile",
     icon: User,
   },
   {
-    title: "الإعدادات",
+    title: t('navigation.settings'),
     href: "/settings",
     icon: Settings,
   },
@@ -83,6 +85,9 @@ interface SidebarProps {
 
 export function Sidebar({ isOpen, onToggle, isCollapsed = false, onCollapse }: SidebarProps) {
   const pathname = usePathname();
+  const { t } = useTranslation();
+  const { isRTL } = useLanguage();
+  const menuItems = getMenuItems(t);
 
   return (
     <>
@@ -96,9 +101,10 @@ export function Sidebar({ isOpen, onToggle, isCollapsed = false, onCollapse }: S
 
       {/* Sidebar */}
       <aside className={cn(
-        "sidebar fixed right-0 top-0 z-50 h-screen text-white transition-all duration-300 ease-in-out",
+        "sidebar fixed top-0 z-50 h-screen text-white transition-all duration-300 ease-in-out",
         isCollapsed ? "w-16 collapsed" : "w-64",
-        isOpen ? "translate-x-0 open" : "translate-x-full lg:translate-x-0"
+        isOpen ? "translate-x-0 open" : "translate-x-full lg:translate-x-0",
+        isRTL ? "right-0" : "left-0"
       )}>
         <div className="flex h-full flex-col">
           {/* Header */}
@@ -106,7 +112,7 @@ export function Sidebar({ isOpen, onToggle, isCollapsed = false, onCollapse }: S
             {!isCollapsed && (
               <div className="flex flex-col">
                 <h1 className=" font-bold text-white">
-                  AHCP Dashboard
+                  {t('sidebar.title')}
                 </h1>
               </div>
             )}
@@ -139,7 +145,7 @@ export function Sidebar({ isOpen, onToggle, isCollapsed = false, onCollapse }: S
                       )}
                       title={isCollapsed ? item.title : undefined}
                     >
-                      <Icon className={cn("h-5 w-5 flex-shrink-0", !isCollapsed && "ml-3")} />
+                      <Icon className={cn("h-5 w-5 flex-shrink-0", !isCollapsed && (isRTL ? "ml-3" : "mr-3"))} />
                       {!isCollapsed && (
                         <span className="nav-text truncate">{item.title}</span>
                       )}
@@ -154,7 +160,7 @@ export function Sidebar({ isOpen, onToggle, isCollapsed = false, onCollapse }: S
           {!isCollapsed && (
             <div className="border-t border-white/10 p-4">
               <p className="text-center text-xs text-white/60">
-                © 2025 AHCP - مشروع صحة الحيوان
+                {t('sidebar.copyright')}
               </p>
             </div>
           )}
