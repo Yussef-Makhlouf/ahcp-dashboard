@@ -35,55 +35,57 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { EnhancedMobileTabs } from "@/components/ui/mobile-tabs";
 import { parasiteControlApi } from "@/lib/api/parasite-control";
 import type { ParasiteControl } from "@/types";
-import { validateEgyptianPhone } from "@/lib/utils";
+import { validateEgyptianPhone, validateSaudiPhone } from "@/lib/utils";
 import { User, Heart, Shield, Activity } from "lucide-react";
+import { useState } from "react";
 
 const formSchema = z.object({
   date: z.string().min(1, "التاريخ مطلوب"),
   owner: z.object({
     name: z.string().min(2, "الاسم يجب أن يكون أكثر من حرفين"),
-    id: z.string().min(1, "رقم الهوية مطلوب"),
+    id: z.string().min(3, "رقم الهوية يجب أن يكون أكثر من 3 أحرف"),
     birthDate: z.string().min(1, "تاريخ الميلاد مطلوب"),
-    phone: z.string().refine(validateEgyptianPhone, "رقم الهاتف غير صحيح"),
+    phone: z.string().refine(validateSaudiPhone, "رقم الهاتف غير صحيح. يجب أن يبدأ بـ +966 أو 05"),
   }),
   location: z.object({
     e: z.number().nullable(),
     n: z.number().nullable(),
   }),
-  supervisor: z.string().min(1, "اسم المشرف مطلوب"),
+  supervisor: z.string().min(2, "اسم المشرف يجب أن يكون أكثر من حرفين"),
   vehicleNo: z.string().min(1, "رقم المركبة مطلوب"),
   herd: z.object({
     sheep: z.object({
-      total: z.number().min(0),
-      young: z.number().min(0),
-      female: z.number().min(0),
-      treated: z.number().min(0),
+      total: z.number().min(0, "يجب أن يكون الرقم أكبر من أو يساوي 0"),
+      young: z.number().min(0, "يجب أن يكون الرقم أكبر من أو يساوي 0"),
+      female: z.number().min(0, "يجب أن يكون الرقم أكبر من أو يساوي 0"),
+      treated: z.number().min(0, "يجب أن يكون الرقم أكبر من أو يساوي 0"),
     }),
     goats: z.object({
-      total: z.number().min(0),
-      young: z.number().min(0),
-      female: z.number().min(0),
-      treated: z.number().min(0),
+      total: z.number().min(0, "يجب أن يكون الرقم أكبر من أو يساوي 0"),
+      young: z.number().min(0, "يجب أن يكون الرقم أكبر من أو يساوي 0"),
+      female: z.number().min(0, "يجب أن يكون الرقم أكبر من أو يساوي 0"),
+      treated: z.number().min(0, "يجب أن يكون الرقم أكبر من أو يساوي 0"),
     }),
     camel: z.object({
-      total: z.number().min(0),
-      young: z.number().min(0),
-      female: z.number().min(0),
-      treated: z.number().min(0),
+      total: z.number().min(0, "يجب أن يكون الرقم أكبر من أو يساوي 0"),
+      young: z.number().min(0, "يجب أن يكون الرقم أكبر من أو يساوي 0"),
+      female: z.number().min(0, "يجب أن يكون الرقم أكبر من أو يساوي 0"),
+      treated: z.number().min(0, "يجب أن يكون الرقم أكبر من أو يساوي 0"),
     }),
     cattle: z.object({
-      total: z.number().min(0),
-      young: z.number().min(0),
-      female: z.number().min(0),
-      treated: z.number().min(0),
+      total: z.number().min(0, "يجب أن يكون الرقم أكبر من أو يساوي 0"),
+      young: z.number().min(0, "يجب أن يكون الرقم أكبر من أو يساوي 0"),
+      female: z.number().min(0, "يجب أن يكون الرقم أكبر من أو يساوي 0"),
+      treated: z.number().min(0, "يجب أن يكون الرقم أكبر من أو يساوي 0"),
     }),
   }),
   insecticide: z.object({
     type: z.string().min(1, "نوع المبيد مطلوب"),
     method: z.string().min(1, "طريقة الرش مطلوبة"),
-    volume_ml: z.number().min(0),
+    volume_ml: z.number().min(0, "يجب أن تكون الكمية أكبر من أو تساوي 0"),
     status: z.enum(["Sprayed", "Not Sprayed"]),
   }),
   herdHealthStatus: z.enum(["Healthy", "Sick", "Under Treatment"]),
@@ -112,6 +114,7 @@ export function ParasiteControlDialog({
   item,
   onSuccess,
 }: ParasiteControlDialogProps) {
+  const [activeTab, setActiveTab] = useState("basic");
   const form = useForm({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -171,7 +174,7 @@ export function ParasiteControlDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto p-2">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto p-2 sm:p-4 lg:p-6">
         <DialogHeader>
           <DialogTitle>
             {item ? "تعديل سجل مكافحة الطفيليات" : "إضافة سجل مكافحة طفيليات جديد"}
@@ -184,28 +187,40 @@ export function ParasiteControlDialog({
         <DialogBody>
           <Form {...form}>
             <form id="parasite-control-form" onSubmit={form.handleSubmit(onSubmit)}>
-              <Tabs defaultValue="basic" className="tabs-modern" dir="rtl">
-                <TabsList className="tabs-list-modern">
-                  <TabsTrigger value="basic" className="tabs-trigger-modern">
-                    <User className="w-4 h-4 ml-2" />
-                    البيانات الأساسية
-                  </TabsTrigger>
-                  <TabsTrigger value="owner" className="tabs-trigger-modern">
-                    <Heart className="w-4 h-4 ml-2" />
-                    بيانات المربي
-                  </TabsTrigger>
-                  <TabsTrigger value="herd" className="tabs-trigger-modern">
-                    <Shield className="w-4 h-4 ml-2" />
-                    القطيع
-                  </TabsTrigger>
-                  <TabsTrigger value="treatment" className="tabs-trigger-modern">
-                    <Activity className="w-4 h-4 ml-2" />
-                    المعالجة
-                  </TabsTrigger>
-                </TabsList>
+              <Tabs value={activeTab} onValueChange={setActiveTab} className="tabs-modern" dir="rtl">
+                <EnhancedMobileTabs
+                  value={activeTab}
+                  onValueChange={setActiveTab}
+                  tabs={[
+                    {
+                      value: "basic",
+                      label: "البيانات الأساسية",
+                      shortLabel: "أساسية",
+                      icon: <User className="w-4 h-4" />
+                    },
+                    {
+                      value: "owner",
+                      label: "بيانات المربي",
+                      shortLabel: "مربي",
+                      icon: <Heart className="w-4 h-4" />
+                    },
+                    {
+                      value: "herd",
+                      label: "القطيع",
+                      shortLabel: "قطيع",
+                      icon: <Shield className="w-4 h-4" />
+                    },
+                    {
+                      value: "treatment",
+                      label: "المعالجة",
+                      shortLabel: "معالجة",
+                      icon: <Activity className="w-4 h-4" />
+                    }
+                  ]}
+                />
 
-              <TabsContent value="basic" className="space-y-6">
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <TabsContent value="basic" className="tabs-content-modern">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-4 lg:gap-6">
                   <FormField
                     control={form.control as any}
                     name="date"
@@ -261,8 +276,8 @@ export function ParasiteControlDialog({
                 </div>
               </TabsContent>
 
-              <TabsContent value="owner" className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
+              <TabsContent value="owner" className="tabs-content-modern">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <FormField
                     control={form.control as any}
                     name="owner.name"
@@ -319,7 +334,7 @@ export function ParasiteControlDialog({
                     )}
                   />
                 </div>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <FormField
                     control={form.control as any}
                     name="location.e"
@@ -367,7 +382,7 @@ export function ParasiteControlDialog({
                 </div>
               </TabsContent>
 
-              <TabsContent value="herd" className="space-y-4">
+              <TabsContent value="herd" className="tabs-content-modern">
                 {["sheep", "goats", "camel", "cattle"].map((animal) => (
                   <div key={animal} className="space-y-2">
                     <h4 className="font-medium">
@@ -409,8 +424,8 @@ export function ParasiteControlDialog({
                 ))}
               </TabsContent>
 
-              <TabsContent value="treatment" className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
+              <TabsContent value="treatment" className="tabs-content-modern">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <FormField
                     control={form.control as any}
                     name="insecticide.type"
@@ -495,7 +510,7 @@ export function ParasiteControlDialog({
                     )}
                   />
                 </div>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <FormField
                     control={form.control as any}
                     name="herdHealthStatus"

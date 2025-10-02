@@ -35,27 +35,29 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { EnhancedMobileTabs } from "@/components/ui/mobile-tabs";
 import { equineHealthApi } from "@/lib/api/equine-health";
 import type { EquineHealth } from "@/types";
-import { validateEgyptianPhone } from "@/lib/utils";
+import { validateEgyptianPhone, validateSaudiPhone } from "@/lib/utils";
 import { User, Heart, Shield, Activity } from "lucide-react";
+import { useState } from "react";
 
 const formSchema = z.object({
   date: z.string().min(1, "التاريخ مطلوب"),
   owner: z.object({
     name: z.string().min(2, "الاسم يجب أن يكون أكثر من حرفين"),
-    id: z.string().min(1, "رقم الهوية مطلوب"),
+    id: z.string().min(3, "رقم الهوية يجب أن يكون أكثر من 3 أحرف"),
     birthDate: z.string().min(1, "تاريخ الميلاد مطلوب"),
-    phone: z.string().refine(validateEgyptianPhone, "رقم الهاتف غير صحيح"),
+    phone: z.string().refine(validateSaudiPhone, "رقم الهاتف غير صحيح. يجب أن يبدأ بـ +966 أو 05"),
   }),
   location: z.object({
     e: z.number().nullable(),
     n: z.number().nullable(),
   }),
-  supervisor: z.string().min(1, "اسم المشرف مطلوب"),
+  supervisor: z.string().min(2, "اسم المشرف يجب أن يكون أكثر من حرفين"),
   vehicleNo: z.string().min(1, "رقم المركبة مطلوب"),
   horseCount: z.number().min(1, "عدد الخيول يجب أن يكون أكبر من صفر"),
-  diagnosis: z.string().min(1, "التشخيص مطلوب"),
+  diagnosis: z.string().min(3, "التشخيص يجب أن يكون أكثر من 3 أحرف"),
   interventionCategory: z.enum([
     "Clinical Examination",
     "Surgical Operation",
@@ -63,7 +65,7 @@ const formSchema = z.object({
     "Lab Analysis",
     "Farriery"
   ]),
-  treatment: z.string().min(1, "العلاج مطلوب"),
+  treatment: z.string().min(3, "العلاج يجب أن يكون أكثر من 3 أحرف"),
   request: z.object({
     date: z.string().min(1, "تاريخ الطلب مطلوب"),
     situation: z.enum(["Open", "Closed", "Pending"]),
@@ -88,6 +90,7 @@ export function EquineHealthDialog({
   item,
   onSuccess,
 }: EquineHealthDialogProps) {
+  const [activeTab, setActiveTab] = useState("basic");
   const form = useForm({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -137,7 +140,7 @@ export function EquineHealthDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto p-2">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto p-2 sm:p-4 lg:p-6">
         <DialogHeader>
           <DialogTitle>
             {item ? "تعديل سجل صحة الخيول" : "إضافة سجل صحة خيول جديد"}
@@ -150,28 +153,40 @@ export function EquineHealthDialog({
         <DialogBody>
           <Form {...form}>
             <form id="equine-health-form" onSubmit={form.handleSubmit(onSubmit)}>
-              <Tabs defaultValue="basic" className="tabs-modern" dir="rtl">
-                <TabsList className="tabs-list-modern">
-                  <TabsTrigger value="basic" className="tabs-trigger-modern">
-                    <User className="w-4 h-4 ml-2" />
-                    البيانات الأساسية
-                  </TabsTrigger>
-                  <TabsTrigger value="owner" className="tabs-trigger-modern">
-                    <Heart className="w-4 h-4 ml-2" />
-                    بيانات المالك
-                  </TabsTrigger>
-                  <TabsTrigger value="medical" className="tabs-trigger-modern">
-                    <Shield className="w-4 h-4 ml-2" />
-                    المعلومات الطبية
-                  </TabsTrigger>
-                  <TabsTrigger value="request" className="tabs-trigger-modern">
-                    <Activity className="w-4 h-4 ml-2" />
-                    الطلب والمتابعة
-                  </TabsTrigger>
-                </TabsList>
+              <Tabs value={activeTab} onValueChange={setActiveTab} className="tabs-modern" dir="rtl">
+                <EnhancedMobileTabs
+                  value={activeTab}
+                  onValueChange={setActiveTab}
+                  tabs={[
+                    {
+                      value: "basic",
+                      label: "البيانات الأساسية",
+                      shortLabel: "أساسية",
+                      icon: <User className="w-4 h-4" />
+                    },
+                    {
+                      value: "owner",
+                      label: "بيانات المالك",
+                      shortLabel: "مالك",
+                      icon: <Heart className="w-4 h-4" />
+                    },
+                    {
+                      value: "medical",
+                      label: "المعلومات الطبية",
+                      shortLabel: "طبية",
+                      icon: <Shield className="w-4 h-4" />
+                    },
+                    {
+                      value: "request",
+                      label: "الطلب والمتابعة",
+                      shortLabel: "طلب",
+                      icon: <Activity className="w-4 h-4" />
+                    }
+                  ]}
+                />
 
-              <TabsContent value="basic" className="space-y-6 p-2">
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <TabsContent value="basic" className="tabs-content-modern">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-4 lg:gap-6">
                   <FormField
                     control={form.control as any}
                     name="date"
@@ -232,8 +247,8 @@ export function EquineHealthDialog({
                 </div>
               </TabsContent>
 
-              <TabsContent value="owner" className="space-y-4 p-2">
-                <div className="grid grid-cols-2 gap-4">
+              <TabsContent value="owner" className="tabs-content-modern">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <FormField
                     control={form.control as any}
                     name="owner.name"
@@ -290,7 +305,7 @@ export function EquineHealthDialog({
                     )}
                   />
                 </div>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <FormField
                     control={form.control as any}
                     name="location.e"
@@ -338,8 +353,8 @@ export function EquineHealthDialog({
                 </div>
               </TabsContent>
 
-              <TabsContent value="medical" className="space-y-4 p-2">
-                <div className="grid grid-cols-2 gap-4">
+              <TabsContent value="medical" className="tabs-content-modern">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <FormField
                     control={form.control as any}
                     name="diagnosis"
@@ -397,8 +412,8 @@ export function EquineHealthDialog({
                 />
               </TabsContent>
 
-              <TabsContent value="request" className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
+              <TabsContent value="request" className="tabs-content-modern">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <FormField
                     control={form.control as any}
                     name="request.date"

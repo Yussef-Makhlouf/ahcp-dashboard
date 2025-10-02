@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Providers } from "@/components/providers";
 import "./globals-clean.css";
+import "./globals-mobile.css";
 
 export const metadata: Metadata = {
   title: "AHCP Dashboard - مشروع صحة الحيوان",

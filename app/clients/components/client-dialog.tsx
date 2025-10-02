@@ -45,7 +45,9 @@ import {
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
 import { cn } from "@/lib/utils";
+import { validateSaudiPhone } from "@/lib/utils";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { EnhancedMobileTabs } from "@/components/ui/mobile-tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface ClientDialogProps {
@@ -96,6 +98,7 @@ export function ClientDialog({ open, onOpenChange, client, onSave }: ClientDialo
 
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [activeTab, setActiveTab] = useState("basic");
 
   const [newAnimal, setNewAnimal] = useState<Animal>({
     id: "",
@@ -137,10 +140,48 @@ export function ClientDialog({ open, onOpenChange, client, onSave }: ClientDialo
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
     
-    if (!formData.name.trim()) newErrors.name = "الاسم مطلوب";
-    if (!formData.id.trim()) newErrors.id = "رقم الهوية مطلوب";
-    if (!formData.phone.trim()) newErrors.phone = "رقم الهاتف مطلوب";
-    if (!formData.village) newErrors.village = "القرية مطلوبة";
+    // Required fields validation
+    if (!formData.name.trim()) {
+      newErrors.name = "الاسم الكامل مطلوب";
+    } else if (formData.name.trim().length < 2) {
+      newErrors.name = "الاسم يجب أن يكون أكثر من حرفين";
+    }
+    
+    if (!formData.id.trim()) {
+      newErrors.id = "رقم الهوية مطلوب";
+    } else if (formData.id.trim().length < 3) {
+      newErrors.id = "رقم الهوية يجب أن يكون أكثر من 3 أحرف";
+    }
+    
+    if (!formData.phone.trim()) {
+      newErrors.phone = "رقم الهاتف مطلوب";
+    } else if (!validateSaudiPhone(formData.phone)) {
+      newErrors.phone = "رقم الهاتف غير صحيح. يجب أن يبدأ بـ +966 أو 05";
+    }
+    
+    if (!formData.village) {
+      newErrors.village = "القرية مطلوبة";
+    }
+    
+    // Email validation (if provided)
+    if (formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      newErrors.email = "البريد الإلكتروني غير صحيح";
+    }
+    
+    // National ID validation (if provided)
+    if (formData.nationalId && !/^\d{14}$/.test(formData.nationalId)) {
+      newErrors.nationalId = "الرقم القومي يجب أن يكون 14 رقم";
+    }
+    
+    // Birth date validation
+    if (formData.birthDate && formData.birthDate > new Date()) {
+      newErrors.birthDate = "تاريخ الميلاد لا يمكن أن يكون في المستقبل";
+    }
+    
+    // Emergency contact validation (if provided)
+    if (formData.emergencyContact && !validateSaudiPhone(formData.emergencyContact)) {
+      newErrors.emergencyContact = "رقم الطوارئ غير صحيح. يجب أن يبدأ بـ +966 أو 05";
+    }
     
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -170,22 +211,40 @@ export function ClientDialog({ open, onOpenChange, client, onSave }: ClientDialo
   };
 
   const addAnimal = () => {
-    if (newAnimal.id && newAnimal.breed) {
-      setFormData({
-        ...formData,
-        animals: [...formData.animals, { ...newAnimal, id: Date.now().toString() }],
-      });
-      setNewAnimal({
-        id: "",
-        type: "sheep",
-        breed: "",
-        age: "",
-        gender: "male",
-        healthStatus: "healthy",
-        vaccinated: false,
-        notes: "",
-      });
+    // Validate animal data
+    if (!newAnimal.id.trim()) {
+      alert("رقم التعريف مطلوب");
+      return;
     }
+    if (!newAnimal.breed.trim()) {
+      alert("السلالة مطلوبة");
+      return;
+    }
+    if (!newAnimal.age.trim()) {
+      alert("العمر مطلوب");
+      return;
+    }
+    
+    // Check if animal ID already exists
+    if (formData.animals.some(animal => animal.id === newAnimal.id)) {
+      alert("رقم التعريف موجود بالفعل");
+      return;
+    }
+    
+    setFormData({
+      ...formData,
+      animals: [...formData.animals, { ...newAnimal, id: Date.now().toString() }],
+    });
+    setNewAnimal({
+      id: "",
+      type: "sheep",
+      breed: "",
+      age: "",
+      gender: "male",
+      healthStatus: "healthy",
+      vaccinated: false,
+      notes: "",
+    });
   };
 
   const removeAnimal = (id: string) => {
@@ -197,7 +256,7 @@ export function ClientDialog({ open, onOpenChange, client, onSave }: ClientDialo
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto p-2">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto p-2 sm:p-4 lg:p-6">
         <DialogHeader>
           <DialogTitle>
             {client ? "تعديل بيانات المربي" : "إضافة مربي جديد"}
@@ -209,30 +268,40 @@ export function ClientDialog({ open, onOpenChange, client, onSave }: ClientDialo
 
         <DialogBody>
           <form id="client-form" onSubmit={handleSubmit}>
-            <Tabs defaultValue="basic" className="tabs-modern" dir="rtl">
-              <TabsList className="tabs-list-modern">
-                <TabsTrigger value="basic" className="tabs-trigger-modern">
-                  <User className="w-4 h-4 ml-2" />
-                  البيانات الأساسية
-                </TabsTrigger>
-                <TabsTrigger value="animals" className="tabs-trigger-modern">
-                  <Heart className="w-4 h-4 ml-2" />
-                  الحيوانات
-                </TabsTrigger>
-                <TabsTrigger value="additional" className="tabs-trigger-modern">
-                  <Shield className="w-4 h-4 ml-2" />
-                  بيانات إضافية
-                </TabsTrigger>
-              </TabsList>
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="tabs-modern" dir="rtl">
+              <EnhancedMobileTabs
+                value={activeTab}
+                onValueChange={setActiveTab}
+                tabs={[
+                  {
+                    value: "basic",
+                    label: "البيانات الأساسية",
+                    shortLabel: "أساسية",
+                    icon: <User className="w-4 h-4" />
+                  },
+                  {
+                    value: "animals",
+                    label: "الحيوانات",
+                    shortLabel: "حيوانات",
+                    icon: <Heart className="w-4 h-4" />
+                  },
+                  {
+                    value: "additional",
+                    label: "بيانات إضافية",
+                    shortLabel: "إضافية",
+                    icon: <Shield className="w-4 h-4" />
+                  }
+                ]}
+              />
 
-            <TabsContent value="basic" className="space-y-6 mt-4 p-2">
+            <TabsContent value="basic" className="tabs-content-modern">
               <div className="section-modern">
                 <div className="section-header-modern">
                   <h3 className="section-title-modern">المعلومات الشخصية</h3>
                   <p className="section-description-modern">أدخل البيانات الأساسية للمربي</p>
                 </div>
                 
-                <div className="grid-modern grid-cols-2-modern">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 lg:gap-6">
                   <FormField>
                     <FormLabel htmlFor="name" required>الاسم الكامل</FormLabel>
                     <Input
@@ -244,7 +313,7 @@ export function ClientDialog({ open, onOpenChange, client, onSave }: ClientDialo
                       error={!!errors.name}
                       dir="rtl"
                     />
-                    {errors.name && <FormError>{errors.name}</FormError>}
+                    {errors.name && <p className="error-message">{errors.name}</p>}
                   </FormField>
 
                   <FormField>
@@ -257,7 +326,7 @@ export function ClientDialog({ open, onOpenChange, client, onSave }: ClientDialo
                       variant="enhanced"
                       error={!!errors.id}
                     />
-                    {errors.id && <FormError>{errors.id}</FormError>}
+                    {errors.id && <p className="error-message">{errors.id}</p>}
                   </FormField>
 
                   <FormField>
@@ -269,7 +338,10 @@ export function ClientDialog({ open, onOpenChange, client, onSave }: ClientDialo
                       placeholder="أدخل الرقم القومي"
                       variant="enhanced"
                       maxLength={14}
+                      error={!!errors.nationalId}
+                      dir="ltr"
                     />
+                    {errors.nationalId && <p className="error-message">{errors.nationalId}</p>}
                   </FormField>
 
                   <FormField>
@@ -283,7 +355,7 @@ export function ClientDialog({ open, onOpenChange, client, onSave }: ClientDialo
                       error={!!errors.phone}
                       dir="ltr"
                     />
-                    {errors.phone && <FormError>{errors.phone}</FormError>}
+                    {errors.phone && <p className="error-message">{errors.phone}</p>}
                   </FormField>
 
                   <FormField>
@@ -294,7 +366,8 @@ export function ClientDialog({ open, onOpenChange, client, onSave }: ClientDialo
                           variant="outline"
                           className={cn(
                             "w-full justify-start text-right form-input-enhanced",
-                            !formData.birthDate && "text-muted-foreground"
+                            !formData.birthDate && "text-muted-foreground",
+                            errors.birthDate && "border-red-500"
                           )}
                         >
                           <CalendarIcon className="ml-2 h-4 w-4" />
@@ -314,6 +387,7 @@ export function ClientDialog({ open, onOpenChange, client, onSave }: ClientDialo
                         />
                       </PopoverContent>
                     </Popover>
+                    {errors.birthDate && <p className="error-message">{errors.birthDate}</p>}
                   </FormField>
 
                   <FormField>
@@ -325,8 +399,10 @@ export function ClientDialog({ open, onOpenChange, client, onSave }: ClientDialo
                       onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                       placeholder="example@email.com"
                       variant="enhanced"
+                      error={!!errors.email}
                       dir="ltr"
                     />
+                    {errors.email && <p className="error-message">{errors.email}</p>}
                   </FormField>
 
                   <FormField>
@@ -346,7 +422,7 @@ export function ClientDialog({ open, onOpenChange, client, onSave }: ClientDialo
                         ))}
                       </SelectContent>
                     </Select>
-                    {errors.village && <FormError>{errors.village}</FormError>}
+                    {errors.village && <p className="error-message">{errors.village}</p>}
                   </FormField>
 
                   <FormField>
@@ -380,13 +456,13 @@ export function ClientDialog({ open, onOpenChange, client, onSave }: ClientDialo
               </div>
             </TabsContent>
 
-            <TabsContent value="animals" className="space-y-4 mt-4">
+            <TabsContent value="animals" className="tabs-content-modern">
               <Card>
                 <CardHeader>
                   <CardTitle className="text-lg">إضافة حيوان جديد</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-2 bg-white">
                       <Label>نوع الحيوان</Label>
                       <Select
@@ -523,8 +599,8 @@ export function ClientDialog({ open, onOpenChange, client, onSave }: ClientDialo
               </div>
             </TabsContent>
 
-            <TabsContent value="additional" className="space-y-4 mt-4">
-              <div className="grid grid-cols-2 gap-4">
+            <TabsContent value="additional" className="tabs-content-modern">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="emergencyContact">رقم الطوارئ</Label>
                   <Input
@@ -533,7 +609,11 @@ export function ClientDialog({ open, onOpenChange, client, onSave }: ClientDialo
                     onChange={(e) => setFormData({ ...formData, emergencyContact: e.target.value })}
                     placeholder="+201234567890"
                     dir="ltr"
+                    className={errors.emergencyContact ? "border-red-500" : ""}
                   />
+                  {errors.emergencyContact && (
+                    <p className="error-message">{errors.emergencyContact}</p>
+                  )}
                 </div>
 
                 <div className="space-y-2">

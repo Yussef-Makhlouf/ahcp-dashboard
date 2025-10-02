@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -41,10 +41,13 @@ import {
   Shield,
   Activity
 } from "lucide-react";
+import { useState } from "react";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
 import { cn } from "@/lib/utils";
+import { validateSaudiPhone } from "@/lib/utils";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { EnhancedMobileTabs } from "@/components/ui/mobile-tabs";
 import { Card, CardContent, CardHeader, CardTitle, StatsCard } from "@/components/ui/card-modern";
 import { Badge, StatusBadge } from "@/components/ui/badge-modern";
 import { Switch } from "@/components/ui/switch";
@@ -94,6 +97,7 @@ const timeSlots = [
 ];
 
 export function ScheduleDialog({ open, onOpenChange, event, onSave }: ScheduleDialogProps) {
+  const [activeTab, setActiveTab] = useState("basic");
   const [formData, setFormData] = useState({
     title: "",
     type: "vaccination",
@@ -165,8 +169,66 @@ export function ScheduleDialog({ open, onOpenChange, event, onSave }: ScheduleDi
     }
   }, [event]);
 
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
+  const validateForm = () => {
+    const newErrors: Record<string, string> = {};
+    
+    // Required fields validation
+    if (!formData.title.trim()) {
+      newErrors.title = "عنوان الموعد مطلوب";
+    } else if (formData.title.trim().length < 3) {
+      newErrors.title = "عنوان الموعد يجب أن يكون أكثر من 3 أحرف";
+    }
+    
+    if (!formData.date) {
+      newErrors.date = "التاريخ مطلوب";
+    } else if (formData.date < new Date()) {
+      newErrors.date = "التاريخ لا يمكن أن يكون في الماضي";
+    }
+    
+    if (!formData.time) {
+      newErrors.time = "الوقت مطلوب";
+    }
+    
+    if (!formData.location.trim()) {
+      newErrors.location = "الموقع مطلوب";
+    } else if (formData.location.trim().length < 3) {
+      newErrors.location = "الموقع يجب أن يكون أكثر من 3 أحرف";
+    }
+    
+    if (selectedMembers.length === 0) {
+      newErrors.assignedTo = "يجب اختيار عضو واحد على الأقل";
+    }
+    
+    // Validate client info for certain event types
+    if ((formData.type === "vaccination" || formData.type === "parasite_control" || formData.type === "clinic")) {
+      if (formData.clientName && formData.clientName.trim().length < 2) {
+        newErrors.clientName = "اسم العميل يجب أن يكون أكثر من حرفين";
+      }
+      
+      if (formData.clientPhone && !validateSaudiPhone(formData.clientPhone)) {
+        newErrors.clientPhone = "رقم الهاتف غير صحيح. يجب أن يبدأ بـ +966 أو 05";
+      }
+      
+      if (formData.animalCount && formData.animalCount < 0) {
+        newErrors.animalCount = "عدد الحيوانات لا يمكن أن يكون سالب";
+      }
+      
+      if (formData.expectedCost && formData.expectedCost < 0) {
+        newErrors.expectedCost = "التكلفة المتوقعة لا يمكن أن تكون سالبة";
+      }
+    }
+    
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!validateForm()) return;
+    
     onSave({
       ...formData,
       assignedTo: selectedMembers,
@@ -194,7 +256,7 @@ export function ScheduleDialog({ open, onOpenChange, event, onSave }: ScheduleDi
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto p-2">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto p-2 sm:p-4 lg:p-6">
         <DialogHeader>
           <DialogTitle>
             {event ? "تعديل الموعد" : "إضافة موعد جديد"}
@@ -206,27 +268,39 @@ export function ScheduleDialog({ open, onOpenChange, event, onSave }: ScheduleDi
 
         <DialogBody>
           <form id="schedule-form" onSubmit={handleSubmit}>
-            <Tabs defaultValue="basic" className="tabs-modern" dir="rtl">
-              <TabsList className="tabs-list-modern">
-                <TabsTrigger value="basic" className="tabs-trigger-modern">
-                  <User className="w-4 h-4 ml-2" />
-                  البيانات الأساسية
-                </TabsTrigger>
-                <TabsTrigger value="team" className="tabs-trigger-modern">
-                  <Heart className="w-4 h-4 ml-2" />
-                  الفريق
-                </TabsTrigger>
-                <TabsTrigger value="details" className="tabs-trigger-modern">
-                  <Shield className="w-4 h-4 ml-2" />
-                  التفاصيل
-                </TabsTrigger>
-                <TabsTrigger value="reminders" className="tabs-trigger-modern">
-                  <Activity className="w-4 h-4 ml-2" />
-                  التذكيرات
-                </TabsTrigger>
-              </TabsList>
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="tabs-modern" dir="rtl">
+              <EnhancedMobileTabs
+                value={activeTab}
+                onValueChange={setActiveTab}
+                tabs={[
+                  {
+                    value: "basic",
+                    label: "البيانات الأساسية",
+                    shortLabel: "أساسية",
+                    icon: <User className="w-4 h-4" />
+                  },
+                  {
+                    value: "team",
+                    label: "الفريق",
+                    shortLabel: "فريق",
+                    icon: <Heart className="w-4 h-4" />
+                  },
+                  {
+                    value: "details",
+                    label: "التفاصيل",
+                    shortLabel: "تفاصيل",
+                    icon: <Shield className="w-4 h-4" />
+                  },
+                  {
+                    value: "reminders",
+                    label: "التذكيرات",
+                    shortLabel: "تذكيرات",
+                    icon: <Activity className="w-4 h-4" />
+                  }
+                ]}
+              />
 
-            <TabsContent value="basic" className="space-y-4 mt-4">
+            <TabsContent value="basic" className="tabs-content-modern">
               <div className="space-y-2">
                 <Label>عنوان الموعد *</Label>
                 <Input
@@ -234,10 +308,14 @@ export function ScheduleDialog({ open, onOpenChange, event, onSave }: ScheduleDi
                   onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                   required
                   placeholder="أدخل عنوان الموعد"
+                  className={errors.title ? "border-red-500" : ""}
                 />
+                {errors.title && (
+                  <p className="text-sm text-red-500">{errors.title}</p>
+                )}
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>نوع الموعد *</Label>
                   <Select
@@ -366,7 +444,7 @@ export function ScheduleDialog({ open, onOpenChange, event, onSave }: ScheduleDi
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>الموقع *</Label>
                   <Input
@@ -374,7 +452,11 @@ export function ScheduleDialog({ open, onOpenChange, event, onSave }: ScheduleDi
                     onChange={(e) => setFormData({ ...formData, location: e.target.value })}
                     required
                     placeholder="أدخل الموقع"
+                    className={errors.location ? "border-red-500" : ""}
                   />
+                  {errors.location && (
+                    <p className="text-sm text-red-500">{errors.location}</p>
+                  )}
                 </div>
 
                 <div className="space-y-2">
@@ -398,13 +480,13 @@ export function ScheduleDialog({ open, onOpenChange, event, onSave }: ScheduleDi
               </div>
             </TabsContent>
 
-            <TabsContent value="team" className="space-y-4 mt-4">
+            <TabsContent value="team" className="tabs-content-modern">
               <Card>
                 <CardHeader>
                   <CardTitle className="text-lg">أعضاء الفريق المكلفين</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     {teamMembers.map((member) => (
                       <div
                         key={member}
@@ -439,6 +521,9 @@ export function ScheduleDialog({ open, onOpenChange, event, onSave }: ScheduleDi
                       </div>
                     </div>
                   )}
+                  {errors.assignedTo && (
+                    <p className="text-sm text-red-500 mt-2">{errors.assignedTo}</p>
+                  )}
                 </CardContent>
               </Card>
 
@@ -450,10 +535,10 @@ export function ScheduleDialog({ open, onOpenChange, event, onSave }: ScheduleDi
               </Alert>
             </TabsContent>
 
-            <TabsContent value="details" className="space-y-4 mt-4">
+            <TabsContent value="details" className="tabs-content-modern">
               {(formData.type === "vaccination" || formData.type === "parasite_control" || formData.type === "clinic") && (
                 <>
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label>اسم العميل</Label>
                       <Input
@@ -513,7 +598,7 @@ export function ScheduleDialog({ open, onOpenChange, event, onSave }: ScheduleDi
               </div>
             </TabsContent>
 
-            <TabsContent value="reminders" className="space-y-4 mt-4">
+            <TabsContent value="reminders" className="tabs-content-modern">
               <Card>
                 <CardHeader>
                   <CardTitle className="text-lg">إعدادات التذكير</CardTitle>

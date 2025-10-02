@@ -38,6 +38,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { EnhancedMobileTabs } from "@/components/ui/mobile-tabs";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Calendar } from "@/components/ui/calendar";
 import {
@@ -47,6 +48,7 @@ import {
 } from "@/components/ui/popover";
 import { CalendarIcon, Loader2, User, Heart, Shield } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { validateSaudiPhone } from "@/lib/utils";
 import { toast } from "sonner";
 import { vaccinationApi } from "@/lib/api/vaccination";
 import type { Vaccination } from "@/types";
@@ -54,16 +56,19 @@ import type { Vaccination } from "@/types";
 const formSchema = z.object({
   date: z.string().min(1, { message: "يجب إدخال التاريخ" }),
   owner: z.object({
-    name: z.string().min(2, { message: "يجب إدخال اسم المالك" }),
-    id: z.string().min(1, { message: "يجب إدخال رقم الهوية" }),
+    name: z.string().min(2, { message: "يجب إدخال اسم المالك (أكثر من حرفين)" }),
+    id: z.string().min(3, { message: "يجب إدخال رقم الهوية (أكثر من 3 أحرف)" }),
     birthDate: z.string().optional(),
-    phone: z.string().min(1, { message: "يجب إدخال رقم الهاتف" }),
+    phone: z.string().min(1, { message: "يجب إدخال رقم الهاتف" }).refine(
+      (phone) => validateSaudiPhone(phone),
+      { message: "رقم الهاتف غير صحيح. يجب أن يبدأ بـ +966 أو 05" }
+    ),
   }),
   location: z.object({
     e: z.union([z.number(), z.null()]).optional(),
     n: z.union([z.number(), z.null()]).optional(),
   }),
-  supervisor: z.string().min(1, { message: "يجب إدخال اسم المشرف" }),
+  supervisor: z.string().min(2, { message: "يجب إدخال اسم المشرف (أكثر من حرفين)" }),
   vehicleNo: z.string().min(1, { message: "يجب إدخال رقم المركبة" }),
   vaccineType: z.string().min(1, { message: "يجب اختيار نوع المصل" }),
   herd: z.object({
@@ -94,7 +99,7 @@ const formSchema = z.object({
   }),
   herdHealth: z.string().min(1, { message: "يجب اختيار حالة القطيع" }),
   animalsHandling: z.string().min(1, { message: "يجب اختيار معاملة الحيوانات" }),
-  labours: z.number().min(0, { message: "يجب إدخال عدد العمال" }),
+  labours: z.number().min(1, { message: "يجب إدخال عدد العمال (أكثر من 0)" }),
   reachableLocation: z.boolean().default(true),
   request: z.object({
     date: z.string().min(1, { message: "يجب إدخال تاريخ الطلب" }),
@@ -366,7 +371,7 @@ export function VaccinationDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto p-2">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto p-2 sm:p-4 lg:p-6">
         <DialogHeader>
           <DialogTitle>
             {item ? "تعديل سجل التحصين" : "إضافة سجل تحصين جديد"}
@@ -385,23 +390,33 @@ export function VaccinationDialog({
                 className="tabs-modern"
                 dir="rtl"
               >
-                <TabsList className="tabs-list-modern">
-                  <TabsTrigger value="info" className="tabs-trigger-modern">
-                    <User className="w-4 h-4 ml-2" />
-                    المعلومات الأساسية
-                  </TabsTrigger>
-                  <TabsTrigger value="herd" className="tabs-trigger-modern">
-                    <Heart className="w-4 h-4 ml-2" />
-                    تفاصيل القطيع
-                  </TabsTrigger>
-                  <TabsTrigger value="request" className="tabs-trigger-modern">
-                    <Shield className="w-4 h-4 ml-2" />
-                    معلومات الطلب
-                  </TabsTrigger>
-                </TabsList>
+                <EnhancedMobileTabs
+                  value={activeTab}
+                  onValueChange={setActiveTab}
+                  tabs={[
+                    {
+                      value: "info",
+                      label: "المعلومات الأساسية",
+                      shortLabel: "أساسية",
+                      icon: <User className="w-4 h-4" />
+                    },
+                    {
+                      value: "herd",
+                      label: "تفاصيل القطيع",
+                      shortLabel: "قطيع",
+                      icon: <Heart className="w-4 h-4" />
+                    },
+                    {
+                      value: "request",
+                      label: "معلومات الطلب",
+                      shortLabel: "طلب",
+                      icon: <Shield className="w-4 h-4" />
+                    }
+                  ]}
+                />
 
-              <TabsContent value="info" className="space-y-6">
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              <TabsContent value="info" className="tabs-content-modern">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-8">
                   <div className="space-y-6">
                     <h3 className="text-xl font-semibold text-blue-700 border-b-2 border-blue-400 pb-3">
                       معلومات المالك
@@ -461,11 +476,11 @@ export function VaccinationDialog({
                 </div>
               </TabsContent>
 
-              <TabsContent value="herd" className="space-y-8">
+              <TabsContent value="herd" className="tabs-content-modern">
                 <h3 className="text-xl font-semibold text-blue-700 border-b-2 border-blue-400 pb-3">
                   تفاصيل القطيع
                 </h3>
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-8">
                   {renderHerdInputs("sheep")}
                   {renderHerdInputs("goats")}
                   {renderHerdInputs("camel")}
@@ -473,11 +488,11 @@ export function VaccinationDialog({
                 </div>
               </TabsContent>
 
-              <TabsContent value="request" className="space-y-6">
+              <TabsContent value="request" className="tabs-content-modern">
                 <h3 className="text-xl font-semibold text-blue-700 border-b-2 border-blue-400 pb-3">
                   معلومات الطلب
                 </h3>
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-8">
                   <div className="space-y-4">
                     {renderFormField("request.date", "تاريخ الطلب", "date")}
                     {renderFormField(

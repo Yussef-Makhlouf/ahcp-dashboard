@@ -32,3 +32,26 @@ export function validateEgyptianPhone(phone: string): boolean {
   const regex = /^(?:\+20|0)?1[0125]\d{8}$/;
   return regex.test(phone.replace(/\D/g, ''));
 }
+
+export function validateSaudiPhone(phone: string): boolean {
+  // Saudi phone number validation
+  // Format: +966XXXXXXXXX or 05XXXXXXXX or 5XXXXXXXX
+  const cleaned = phone.replace(/\D/g, '');
+  
+  // Check if it starts with 966 (country code)
+  if (cleaned.startsWith('966')) {
+    return cleaned.length === 12 && /^9665[0-9]{8}$/.test(cleaned);
+  }
+  
+  // Check if it starts with 05 (local format)
+  if (cleaned.startsWith('05')) {
+    return cleaned.length === 10 && /^05[0-9]{8}$/.test(cleaned);
+  }
+  
+  // Check if it starts with 5 (without leading zero)
+  if (cleaned.startsWith('5')) {
+    return cleaned.length === 9 && /^5[0-9]{8}$/.test(cleaned);
+  }
+  
+  return false;
+}

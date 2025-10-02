@@ -31,7 +31,9 @@ import { CalendarIcon, MapPin, Stethoscope, Plus, Trash2, User, Heart, Shield, A
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
 import { cn } from "@/lib/utils";
+import { validateSaudiPhone } from "@/lib/utils";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { EnhancedMobileTabs } from "@/components/ui/mobile-tabs";
 import { Card, CardContent, CardHeader, CardTitle, StatsCard } from "@/components/ui/card-modern";
 import { Badge, StatusBadge } from "@/components/ui/badge-modern";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -90,6 +92,7 @@ interface Treatment {
 }
 
 export function MobileClinicDialog({ open, onOpenChange, clinic, onSave }: MobileClinicDialogProps) {
+  const [activeTab, setActiveTab] = useState("basic");
   const [formData, setFormData] = useState({
     serialNo: 0,
     date: undefined as Date | undefined,
@@ -182,8 +185,66 @@ export function MobileClinicDialog({ open, onOpenChange, clinic, onSave }: Mobil
     }
   }, [clinic]);
 
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
+  const validateForm = () => {
+    const newErrors: Record<string, string> = {};
+    
+    // Required fields validation
+    if (!formData.owner.name.trim()) {
+      newErrors.ownerName = "اسم المربي مطلوب";
+    } else if (formData.owner.name.trim().length < 2) {
+      newErrors.ownerName = "اسم المربي يجب أن يكون أكثر من حرفين";
+    }
+    
+    if (!formData.owner.id.trim()) {
+      newErrors.ownerId = "رقم هوية المربي مطلوب";
+    } else if (formData.owner.id.trim().length < 3) {
+      newErrors.ownerId = "رقم هوية المربي يجب أن يكون أكثر من 3 أحرف";
+    }
+    
+    if (!formData.owner.phone.trim()) {
+      newErrors.ownerPhone = "رقم الهاتف مطلوب";
+    } else if (!validateSaudiPhone(formData.owner.phone)) {
+      newErrors.ownerPhone = "رقم الهاتف غير صحيح. يجب أن يبدأ بـ +966 أو 05";
+    }
+    
+    if (!formData.supervisor) {
+      newErrors.supervisor = "المشرف مطلوب";
+    }
+    
+    if (!formData.vehicleNo) {
+      newErrors.vehicleNo = "رقم المركبة مطلوب";
+    }
+    
+    if (!formData.diagnosis) {
+      newErrors.diagnosis = "التشخيص مطلوب";
+    }
+    
+    if (!formData.interventionCategory) {
+      newErrors.interventionCategory = "نوع التدخل مطلوب";
+    }
+    
+    // Validate animal counts
+    const totalAnimals = getTotalAnimals();
+    if (totalAnimals === 0) {
+      newErrors.animalCount = "يجب إدخال عدد الحيوانات المعالجة";
+    }
+    
+    // Validate treatments
+    if (formData.treatments.length === 0 && !formData.treatment.trim()) {
+      newErrors.treatment = "يجب إدخال تفاصيل العلاج";
+    }
+    
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!validateForm()) return;
+    
     const treatmentText = formData.treatments.length > 0
       ? formData.treatments.map(t => `${t.medicine} - ${t.dosage}`).join(", ")
       : formData.treatment;
@@ -248,7 +309,7 @@ export function MobileClinicDialog({ open, onOpenChange, clinic, onSave }: Mobil
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto p-2">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto p-2 sm:p-4 lg:p-6">
         <DialogHeader>
           <DialogTitle>
             {clinic ? "تعديل زيارة العيادة المتنقلة" : "إضافة زيارة عيادة متنقلة جديدة"}
@@ -260,28 +321,40 @@ export function MobileClinicDialog({ open, onOpenChange, clinic, onSave }: Mobil
 
         <DialogBody>
           <form id="mobile-clinic-form" onSubmit={handleSubmit}>
-            <Tabs defaultValue="basic" className="tabs-modern" dir="rtl">
-              <TabsList className="tabs-list-modern">
-                <TabsTrigger value="basic" className="tabs-trigger-modern">
-                  <User className="w-4 h-4 ml-2" />
-                  البيانات الأساسية
-                </TabsTrigger>
-                <TabsTrigger value="animals" className="tabs-trigger-modern">
-                  <Heart className="w-4 h-4 ml-2" />
-                  الحيوانات
-                </TabsTrigger>
-                <TabsTrigger value="diagnosis" className="tabs-trigger-modern">
-                  <Shield className="w-4 h-4 ml-2" />
-                  التشخيص والعلاج
-                </TabsTrigger>
-                <TabsTrigger value="followup" className="tabs-trigger-modern">
-                  <Activity className="w-4 h-4 ml-2" />
-                  المتابعة
-                </TabsTrigger>
-              </TabsList>
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="tabs-modern" dir="rtl">
+              <EnhancedMobileTabs
+                value={activeTab}
+                onValueChange={setActiveTab}
+                tabs={[
+                  {
+                    value: "basic",
+                    label: "البيانات الأساسية",
+                    shortLabel: "أساسية",
+                    icon: <User className="w-4 h-4" />
+                  },
+                  {
+                    value: "animals",
+                    label: "الحيوانات",
+                    shortLabel: "حيوانات",
+                    icon: <Heart className="w-4 h-4" />
+                  },
+                  {
+                    value: "diagnosis",
+                    label: "التشخيص والعلاج",
+                    shortLabel: "تشخيص",
+                    icon: <Shield className="w-4 h-4" />
+                  },
+                  {
+                    value: "followup",
+                    label: "المتابعة",
+                    shortLabel: "متابعة",
+                    icon: <Activity className="w-4 h-4" />
+                  }
+                ]}
+              />
 
-            <TabsContent value="basic" className="space-y-4 mt-4">
-              <div className="grid grid-cols-2 gap-4">
+            <TabsContent value="basic" className="tabs-content-modern">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>الرقم المسلسل</Label>
                   <Input
@@ -415,7 +488,7 @@ export function MobileClinicDialog({ open, onOpenChange, clinic, onSave }: Mobil
 
               <Separator />
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>خط الطول (E)</Label>
                   <Input
@@ -453,13 +526,13 @@ export function MobileClinicDialog({ open, onOpenChange, clinic, onSave }: Mobil
               </div>
             </TabsContent>
 
-            <TabsContent value="animals" className="space-y-4 mt-4">
+            <TabsContent value="animals" className="tabs-content-modern">
               <Card>
                 <CardHeader>
                   <CardTitle className="text-lg">عدد الحيوانات المعالجة</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                     <div className="space-y-2">
                       <Label>أغنام</Label>
                       <Input
@@ -529,8 +602,8 @@ export function MobileClinicDialog({ open, onOpenChange, clinic, onSave }: Mobil
               </div>
             </TabsContent>
 
-            <TabsContent value="diagnosis" className="space-y-4 mt-4">
-              <div className="grid grid-cols-2 gap-4">
+            <TabsContent value="diagnosis" className="tabs-content-modern">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>التشخيص *</Label>
                   <Select
@@ -575,7 +648,7 @@ export function MobileClinicDialog({ open, onOpenChange, clinic, onSave }: Mobil
                   <CardTitle className="text-lg">الأدوية والعلاجات</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label>اسم الدواء</Label>
                       <Input
@@ -666,8 +739,8 @@ export function MobileClinicDialog({ open, onOpenChange, clinic, onSave }: Mobil
               </div>
             </TabsContent>
 
-            <TabsContent value="followup" className="space-y-4 mt-4">
-              <div className="grid grid-cols-2 gap-4">
+            <TabsContent value="followup" className="tabs-content-modern">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>حالة الطلب</Label>
                   <Select

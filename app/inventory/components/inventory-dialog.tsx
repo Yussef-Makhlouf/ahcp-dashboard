@@ -31,7 +31,9 @@ import { CalendarIcon, Package, AlertCircle, Plus, Minus, Activity } from "lucid
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
 import { cn } from "@/lib/utils";
+import { validateSaudiPhone } from "@/lib/utils";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { EnhancedMobileTabs } from "@/components/ui/mobile-tabs";
 import { Card, CardContent, CardHeader, CardTitle, StatsCard } from "@/components/ui/card-modern";
 import { Badge, StatusBadge } from "@/components/ui/badge-modern";
 import { Separator } from "@/components/ui/separator";
@@ -92,6 +94,7 @@ const locations = [
 ];
 
 export function InventoryDialog({ open, onOpenChange, item, onSave }: InventoryDialogProps) {
+  const [activeTab, setActiveTab] = useState("basic");
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
@@ -162,8 +165,68 @@ export function InventoryDialog({ open, onOpenChange, item, onSave }: InventoryD
     }
   }, [item]);
 
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
+  const validateForm = () => {
+    const newErrors: Record<string, string> = {};
+    
+    // Required fields validation
+    if (!formData.name.trim()) {
+      newErrors.name = "اسم الصنف مطلوب";
+    } else if (formData.name.trim().length < 2) {
+      newErrors.name = "اسم الصنف يجب أن يكون أكثر من حرفين";
+    }
+    
+    if (!formData.category) {
+      newErrors.category = "الفئة مطلوبة";
+    }
+    
+    if (!formData.supplier) {
+      newErrors.supplier = "المورد مطلوب";
+    }
+    
+    if (!formData.location) {
+      newErrors.location = "الموقع مطلوب";
+    }
+    
+    if (formData.quantity < 0) {
+      newErrors.quantity = "الكمية لا يمكن أن تكون سالبة";
+    }
+    
+    if (formData.minStock < 0) {
+      newErrors.minStock = "الحد الأدنى لا يمكن أن يكون سالب";
+    }
+    
+    if (formData.maxStock < 0) {
+      newErrors.maxStock = "الحد الأقصى لا يمكن أن يكون سالب";
+    }
+    
+    if (formData.minStock > formData.maxStock && formData.maxStock > 0) {
+      newErrors.minStock = "الحد الأدنى لا يمكن أن يكون أكبر من الحد الأقصى";
+    }
+    
+    if (formData.price < 0) {
+      newErrors.price = "السعر لا يمكن أن يكون سالب";
+    }
+    
+    // Email validation for manufacturer (if provided)
+    if (formData.manufacturer && formData.manufacturer.includes('@') && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.manufacturer)) {
+      newErrors.manufacturer = "البريد الإلكتروني غير صحيح";
+    }
+    
+    // Expiry date validation
+    if (formData.expiryDate && formData.expiryDate < new Date()) {
+      newErrors.expiryDate = "تاريخ الانتهاء لا يمكن أن يكون في الماضي";
+    }
+    
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!validateForm()) return;
     
     // Auto-calculate status based on quantity
     let status: "in_stock" | "low_stock" | "out_of_stock" | "expired" = "in_stock";
@@ -215,7 +278,7 @@ export function InventoryDialog({ open, onOpenChange, item, onSave }: InventoryD
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto p-2">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto p-2 sm:p-4 lg:p-6">
         <DialogHeader>
           <DialogTitle>
             {item ? "تعديل بيانات الصنف" : "إضافة صنف جديد"}
@@ -227,34 +290,46 @@ export function InventoryDialog({ open, onOpenChange, item, onSave }: InventoryD
 
         <DialogBody>
           <form id="inventory-form" onSubmit={handleSubmit}>
-            <Tabs defaultValue="basic" className="tabs-modern" dir="rtl">
-              <TabsList className="tabs-list-modern">
-                <TabsTrigger value="basic" className="tabs-trigger-modern">
-                  <Package className="w-4 h-4 ml-2" />
-                  البيانات الأساسية
-                </TabsTrigger>
-                <TabsTrigger value="stock" className="tabs-trigger-modern">
-                  <AlertCircle className="w-4 h-4 ml-2" />
-                  المخزون
-                </TabsTrigger>
-                <TabsTrigger value="movement" className="tabs-trigger-modern">
-                  <Activity className="w-4 h-4 ml-2" />
-                  حركة المخزون
-                </TabsTrigger>
-                <TabsTrigger value="additional" className="tabs-trigger-modern">
-                  <Plus className="w-4 h-4 ml-2" />
-                  بيانات إضافية
-                </TabsTrigger>
-              </TabsList>
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="tabs-modern" dir="rtl">
+              <EnhancedMobileTabs
+                value={activeTab}
+                onValueChange={setActiveTab}
+                tabs={[
+                  {
+                    value: "basic",
+                    label: "البيانات الأساسية",
+                    shortLabel: "أساسية",
+                    icon: <Package className="w-4 h-4" />
+                  },
+                  {
+                    value: "stock",
+                    label: "المخزون",
+                    shortLabel: "مخزون",
+                    icon: <AlertCircle className="w-4 h-4" />
+                  },
+                  {
+                    value: "movement",
+                    label: "حركة المخزون",
+                    shortLabel: "حركة",
+                    icon: <Activity className="w-4 h-4" />
+                  },
+                  {
+                    value: "additional",
+                    label: "بيانات إضافية",
+                    shortLabel: "إضافية",
+                    icon: <Plus className="w-4 h-4" />
+                  }
+                ]}
+              />
 
-            <TabsContent value="basic" className="space-y-6 mt-4 p-2">
+            <TabsContent value="basic" className="tabs-content-modern">
               <div className="section-modern">
                 <div className="section-header-modern">
                   <h3 className="section-title-modern">معلومات الصنف</h3>
                   <p className="section-description-modern">أدخل البيانات الأساسية للصنف</p>
                 </div>
                 
-                <div className="grid-modern grid-cols-2-modern">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 lg:gap-6">
                 <div className="space-y-2">
                   <Label>اسم الصنف *</Label>
                   <Input
@@ -262,7 +337,11 @@ export function InventoryDialog({ open, onOpenChange, item, onSave }: InventoryD
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                     required
                     placeholder="أدخل اسم الصنف"
+                    className={errors.name ? "border-red-500" : ""}
                   />
+                  {errors.name && (
+                    <p className="text-sm text-red-500">{errors.name}</p>
+                  )}
                 </div>
 
                 <div className="space-y-2">
@@ -271,7 +350,7 @@ export function InventoryDialog({ open, onOpenChange, item, onSave }: InventoryD
                     value={formData.category}
                     onValueChange={(value) => setFormData({ ...formData, category: value })}
                   >
-                    <SelectTrigger>
+                    <SelectTrigger className={errors.category ? "border-red-500" : ""}>
                       <SelectValue placeholder="اختر الفئة" />
                     </SelectTrigger>
                     <SelectContent>
@@ -282,6 +361,9 @@ export function InventoryDialog({ open, onOpenChange, item, onSave }: InventoryD
                       ))}
                     </SelectContent>
                   </Select>
+                  {errors.category && (
+                    <p className="text-sm text-red-500">{errors.category}</p>
+                  )}
                 </div>
 
                 <div className="space-y-2">
@@ -375,7 +457,7 @@ export function InventoryDialog({ open, onOpenChange, item, onSave }: InventoryD
 
               <Separator />
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>الموقع في المخزن *</Label>
                   <Select
@@ -417,13 +499,13 @@ export function InventoryDialog({ open, onOpenChange, item, onSave }: InventoryD
               </div>
             </TabsContent>
 
-            <TabsContent value="stock" className="space-y-4 mt-4">
+            <TabsContent value="stock" className="tabs-content-modern">
               <Card>
                 <CardHeader>
                   <CardTitle className="text-lg">مستويات المخزون</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label>الكمية الحالية *</Label>
                       <Input
@@ -559,7 +641,7 @@ export function InventoryDialog({ open, onOpenChange, item, onSave }: InventoryD
               </div>
             </TabsContent>
 
-            <TabsContent value="movement" className="space-y-4 mt-4">
+            <TabsContent value="movement" className="tabs-content-modern">
               <Card>
                 <CardHeader>
                   <CardTitle className="text-lg">تسجيل حركة مخزون</CardTitle>
@@ -644,7 +726,7 @@ export function InventoryDialog({ open, onOpenChange, item, onSave }: InventoryD
               </Card>
             </TabsContent>
 
-            <TabsContent value="additional" className="space-y-4 mt-4">
+            <TabsContent value="additional" className="tabs-content-modern">
               <div className="space-y-2">
                 <Label>ملاحظات</Label>
                 <Textarea

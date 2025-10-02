@@ -104,10 +104,10 @@ export function DataTable<TData, TValue>({
   return (
     <div className="space-y-4 w-full max-w-none">
       {/* Enhanced Toolbar */}
-      <div className="card">
+      <div className="">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex flex-1 items-center gap-3">
-            <div className="relative flex-1 max-w-md">
+            <div className="relative flex-1 max-w-md border rounded-md shadow-sm">
               <Search className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
               <Input
                 placeholder="البحث في البيانات..."
@@ -155,10 +155,7 @@ export function DataTable<TData, TValue>({
                     onClick={() => onExport("pdf", selectedRows.length > 0 ? selectedRows : undefined)}
                     className="cursor-pointer"
                   >
-                    <div className="flex items-center gap-2">
-                      <div className="w-2 h-2 bg-danger rounded-full"></div>
-                      تصدير PDF {selectedRows.length > 0 && `(${selectedRows.length} محدد)`}
-                    </div>
+                 
                   </DropdownMenuCheckboxItem>
                 </DropdownMenuContent>
               </DropdownMenu>

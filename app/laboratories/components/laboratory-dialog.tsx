@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import {  useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -28,10 +28,13 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { CalendarIcon, Plus, Trash2, AlertCircle, CheckCircle2, User, Heart, Shield, Activity } from "lucide-react";
+import { useState } from "react";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
 import { cn } from "@/lib/utils";
+import { validateSaudiPhone } from "@/lib/utils";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { EnhancedMobileTabs } from "@/components/ui/mobile-tabs";
 import { Card, CardContent, CardHeader, CardTitle, StatsCard } from "@/components/ui/card-modern";
 import { Badge, StatusBadge } from "@/components/ui/badge-modern";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -90,6 +93,7 @@ interface TestResult {
 }
 
 export function LaboratoryDialog({ open, onOpenChange, laboratory, onSave }: LaboratoryDialogProps) {
+  const [activeTab, setActiveTab] = useState("basic");
   const [formData, setFormData] = useState({
     sampleCode: "",
     sampleType: "",
@@ -165,8 +169,67 @@ export function LaboratoryDialog({ open, onOpenChange, laboratory, onSave }: Lab
     }
   }, [laboratory]);
 
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
+  const validateForm = () => {
+    const newErrors: Record<string, string> = {};
+    
+    // Required fields validation
+    if (!formData.sampleCode.trim()) {
+      newErrors.sampleCode = "رمز العينة مطلوب";
+    } else if (formData.sampleCode.trim().length < 3) {
+      newErrors.sampleCode = "رمز العينة يجب أن يكون أكثر من 3 أحرف";
+    }
+    
+    if (!formData.sampleType) {
+      newErrors.sampleType = "نوع العينة مطلوب";
+    }
+    
+    if (!formData.collector) {
+      newErrors.collector = "جامع العينة مطلوب";
+    }
+    
+    if (!formData.date) {
+      newErrors.date = "تاريخ جمع العينة مطلوب";
+    }
+    
+    if (!formData.testType) {
+      newErrors.testType = "نوع الفحص مطلوب";
+    }
+    
+    // Validate species counts
+    const totalSamples = getTotalSamples();
+    if (totalSamples === 0) {
+      newErrors.speciesCounts = "يجب إدخال عدد العينات";
+    }
+    
+    // Validate test results
+    if (formData.testResults.length === 0) {
+      newErrors.testResults = "يجب إدخال نتائج الفحص";
+    }
+    
+    // Validate positive and negative cases
+    if (formData.positiveCases < 0) {
+      newErrors.positiveCases = "الحالات الإيجابية لا يمكن أن تكون سالبة";
+    }
+    
+    if (formData.negativeCases < 0) {
+      newErrors.negativeCases = "الحالات السلبية لا يمكن أن تكون سالبة";
+    }
+    
+    const totalCases = formData.positiveCases + formData.negativeCases;
+    if (totalCases > totalSamples) {
+      newErrors.positiveCases = "مجموع الحالات الإيجابية والسلبية لا يمكن أن يكون أكبر من إجمالي العينات";
+    }
+    
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!validateForm()) return;
     
     // Calculate positive and negative cases from test results
     const positive = formData.testResults.filter(r => r.result === "positive").length;
@@ -217,7 +280,7 @@ export function LaboratoryDialog({ open, onOpenChange, laboratory, onSave }: Lab
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto p-2">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto p-2 sm:p-4 lg:p-6">
         <DialogHeader>
           <DialogTitle>
             {laboratory ? "تعديل نتائج الفحص المخبري" : "إضافة فحص مخبري جديد"}
@@ -229,28 +292,40 @@ export function LaboratoryDialog({ open, onOpenChange, laboratory, onSave }: Lab
 
         <DialogBody>
           <form id="laboratory-form" onSubmit={handleSubmit}>
-            <Tabs defaultValue="basic" className="tabs-modern" dir="rtl">
-              <TabsList className="tabs-list-modern">
-                <TabsTrigger value="basic" className="tabs-trigger-modern">
-                  <User className="w-4 h-4 ml-2" />
-                  البيانات الأساسية
-                </TabsTrigger>
-                <TabsTrigger value="samples" className="tabs-trigger-modern">
-                  <Heart className="w-4 h-4 ml-2" />
-                  العينات
-                </TabsTrigger>
-                <TabsTrigger value="results" className="tabs-trigger-modern">
-                  <Shield className="w-4 h-4 ml-2" />
-                  النتائج
-                </TabsTrigger>
-                <TabsTrigger value="report" className="tabs-trigger-modern">
-                  <Activity className="w-4 h-4 ml-2" />
-                  التقرير
-                </TabsTrigger>
-              </TabsList>
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="tabs-modern" dir="rtl">
+              <EnhancedMobileTabs
+                value={activeTab}
+                onValueChange={setActiveTab}
+                tabs={[
+                  {
+                    value: "basic",
+                    label: "البيانات الأساسية",
+                    shortLabel: "أساسية",
+                    icon: <User className="w-4 h-4" />
+                  },
+                  {
+                    value: "samples",
+                    label: "العينات",
+                    shortLabel: "عينات",
+                    icon: <Heart className="w-4 h-4" />
+                  },
+                  {
+                    value: "results",
+                    label: "النتائج",
+                    shortLabel: "نتائج",
+                    icon: <Shield className="w-4 h-4" />
+                  },
+                  {
+                    value: "report",
+                    label: "التقرير",
+                    shortLabel: "تقرير",
+                    icon: <Activity className="w-4 h-4" />
+                  }
+                ]}
+              />
 
-            <TabsContent value="basic" className="space-y-4 mt-4">
-              <div className="grid grid-cols-2 gap-4">
+            <TabsContent value="basic" className="tabs-content-modern">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>رمز العينة *</Label>
                   <Input
@@ -409,13 +484,13 @@ export function LaboratoryDialog({ open, onOpenChange, laboratory, onSave }: Lab
               </div>
             </TabsContent>
 
-            <TabsContent value="samples" className="space-y-4 mt-4">
+            <TabsContent value="samples" className="tabs-content-modern">
               <Card>
                 <CardHeader>
                   <CardTitle className="text-lg">عدد العينات حسب النوع</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                     <div className="space-y-2">
                       <Label>أغنام</Label>
                       <Input
@@ -500,13 +575,13 @@ export function LaboratoryDialog({ open, onOpenChange, laboratory, onSave }: Lab
               </Alert>
             </TabsContent>
 
-            <TabsContent value="results" className="space-y-4 mt-4">
+            <TabsContent value="results" className="tabs-content-modern">
               <Card>
                 <CardHeader>
                   <CardTitle className="text-lg">النتائج الإجمالية</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label>الحالات الإيجابية</Label>
                       <Input
@@ -545,7 +620,7 @@ export function LaboratoryDialog({ open, onOpenChange, laboratory, onSave }: Lab
                   <CardTitle className="text-lg">نتائج تفصيلية</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label>رقم الحيوان</Label>
                       <Input
@@ -672,7 +747,7 @@ export function LaboratoryDialog({ open, onOpenChange, laboratory, onSave }: Lab
               </Card>
             </TabsContent>
 
-            <TabsContent value="report" className="space-y-4 mt-4">
+            <TabsContent value="report" className="tabs-content-modern">
               <div className="space-y-2">
                 <Label>التوصيات</Label>
                 <Textarea
