@@ -1,6 +1,7 @@
 "use client";
 
 import { useTheme } from "next-themes";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -23,6 +24,12 @@ interface NavbarProps {
 export function Navbar({ onToggleSidebar, onToggleCollapse, isCollapsed = false }: NavbarProps) {
   const { theme, setTheme } = useTheme();
   const { user, logout } = useAuthStore();
+  const router = useRouter();
+
+  const handleLogout = () => {
+    logout();
+    router.push('/login');
+  };
 
   return (
     <header className="navbar flex h-16 items-center justify-between px-6">
@@ -97,8 +104,8 @@ export function Navbar({ onToggleSidebar, onToggleCollapse, isCollapsed = false 
               <span>الملف الشخصي</span>
             </DropdownMenuItem>
             <DropdownMenuItem 
-              onClick={logout}
-              className="text-danger focus:text-danger"
+              onClick={handleLogout}
+              className="text-red-600 focus:text-red-600"
             >
               <LogOut className="ml-2 h-4 w-4" />
               <span>تسجيل الخروج</span>
