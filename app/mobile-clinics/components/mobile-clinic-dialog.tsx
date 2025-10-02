@@ -430,7 +430,7 @@ export function MobileClinicDialog({ open, onOpenChange, clinic, onSave }: Mobil
                       owner: { ...formData.owner, phone: e.target.value }
                     })}
                     required
-                    placeholder="+201234567890"
+                    placeholder="+966501234567 أو 0501234567"
                     dir="ltr"
                   />
                 </div>

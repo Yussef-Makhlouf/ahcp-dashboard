@@ -555,7 +555,7 @@ export function ScheduleDialog({ open, onOpenChange, event, onSave }: ScheduleDi
                         <Input
                           value={formData.clientPhone}
                           onChange={(e) => setFormData({ ...formData, clientPhone: e.target.value })}
-                          placeholder="+201234567890"
+                          placeholder="+966501234567 أو 0501234567"
                           className="pr-10"
                           dir="ltr"
                         />

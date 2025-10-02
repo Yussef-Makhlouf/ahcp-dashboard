@@ -295,10 +295,10 @@ export function EquineHealthDialog({
                       <FormItem>
                         <FormLabel>رقم الهاتف</FormLabel>
                         <FormControl>
-                          <Input placeholder="01012345678" dir="ltr" {...field} />
+                          <Input placeholder="+966501234567 أو 0501234567" dir="ltr" {...field} />
                         </FormControl>
                         <FormDescription>
-                          رقم الموبايل المصري (يبدأ بـ 010، 011، 012، أو 015)
+                          رقم الموبايل السعودي (يبدأ بـ +966 أو 05)
                         </FormDescription>
                         <FormMessage />
                       </FormItem>

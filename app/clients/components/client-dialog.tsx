@@ -350,7 +350,7 @@ export function ClientDialog({ open, onOpenChange, client, onSave }: ClientDialo
                       id="phone"
                       value={formData.phone}
                       onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                      placeholder="+201234567890"
+                      placeholder="+966501234567 أو 0501234567"
                       variant="enhanced"
                       error={!!errors.phone}
                       dir="ltr"
@@ -607,7 +607,7 @@ export function ClientDialog({ open, onOpenChange, client, onSave }: ClientDialo
                     id="emergencyContact"
                     value={formData.emergencyContact}
                     onChange={(e) => setFormData({ ...formData, emergencyContact: e.target.value })}
-                    placeholder="+201234567890"
+                    placeholder="+966501234567 أو 0501234567"
                     dir="ltr"
                     className={errors.emergencyContact ? "border-red-500" : ""}
                   />
