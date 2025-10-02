@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect, Suspense } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/lib/store/auth-store';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,7 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Eye, EyeOff, Shield, Building2, AlertCircle, CheckCircle } from 'lucide-react';
 
-function LoginForm() {
+export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -23,21 +23,33 @@ function LoginForm() {
   
   const { login, isAuthenticated } = useAuthStore();
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const returnUrl = searchParams.get('returnUrl') || '/';
+  const [returnUrl, setReturnUrl] = useState('/');
+
+  // الحصول على returnUrl من URL
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search);
+      const url = urlParams.get('returnUrl') || '/';
+      setReturnUrl(url);
+      console.log('Return URL:', url);
+    }
+  }, []);
 
   // التحقق من حالة المصادقة
   useEffect(() => {
     if (isAuthenticated) {
       console.log('User is authenticated, redirecting to:', returnUrl);
+      console.log('Current pathname:', window.location.pathname);
       router.push(returnUrl);
+      // إضافة تأخير للتأكد من التوجيه
+      setTimeout(() => {
+        if (window.location.pathname === '/login') {
+          console.log('Still on login page, forcing redirect...');
+          window.location.href = returnUrl;
+        }
+      }, 1000);
     }
   }, [isAuthenticated, router, returnUrl]);
-
-  // Debug: طباعة returnUrl
-  useEffect(() => {
-    console.log('Return URL:', returnUrl);
-  }, [returnUrl]);
 
   // دالة التحقق من صحة البريد الإلكتروني
   const validateEmail = (email: string) => {
@@ -174,7 +186,15 @@ function LoginForm() {
       // تأخير قصير لإظهار رسالة النجاح
       setTimeout(() => {
         console.log('Redirecting to:', returnUrl);
+        // استخدام router.push للتوجيه
         router.push(returnUrl);
+        // إضافة تأخير إضافي للتأكد من التوجيه
+        setTimeout(() => {
+          if (window.location.pathname === '/login') {
+            console.log('Still on login page, forcing redirect...');
+            window.location.href = returnUrl;
+          }
+        }, 500);
       }, 1500);
     } else {
       setError('البريد الإلكتروني أو كلمة المرور غير صحيحة');
@@ -348,20 +368,5 @@ function LoginForm() {
         </div>
       </div>
     </div>
-  );
-}
-
-export default function LoginPage() {
-  return (
-    <Suspense fallback={
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-gray-50 to-slate-100 flex items-center justify-center p-4">
-        <div className="text-center">
-          <div className="w-8 h-8 border-4 border-slate-300 border-t-slate-600 rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-slate-600">جاري التحميل...</p>
-        </div>
-      </div>
-    }>
-      <LoginForm />
-    </Suspense>
   );
 }

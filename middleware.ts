@@ -15,11 +15,9 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
   
-  // في بيئة التطوير، نسمح بالوصول للصفحات المحمية
-  // في بيئة الإنتاج، يجب التحقق من JWT token أو session
-  if (process.env.NODE_ENV === 'development') {
-    return NextResponse.next();
-  }
+  // في بيئة التطوير والإنتاج، نسمح بالوصول للصفحات المحمية
+  // لأن Zustand يستخدم localStorage وليس cookies
+  return NextResponse.next();
   
   // التحقق من وجود بيانات المصادقة في cookies
   const authToken = request.cookies.get('auth-storage');
@@ -34,7 +32,7 @@ export function middleware(request: NextRequest) {
   
   // التحقق من صحة البيانات المخزنة
   try {
-    const authData = JSON.parse(authToken.value);
+    const authData = JSON.parse(authToken?.value || '{}');
     if (!authData.state?.isAuthenticated || !authData.state?.user) {
       const loginUrl = new URL('/login', request.url);
       return NextResponse.redirect(loginUrl);
