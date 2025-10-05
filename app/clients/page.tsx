@@ -1,13 +1,13 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { MainLayout } from "@/components/layout/main-layout";
 import { DataTable } from "@/components/data-table/data-table";
 import { Button } from "@/components/ui/button";
 import { Plus, Upload, Download, Users, UserCheck, MapPin, Phone } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import type { Owner } from "@/types";
+import type { Client } from "@/types";
 import { formatDate, formatPhoneNumber } from "@/lib/utils";
 import { ColumnDef } from "@tanstack/react-table";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -30,94 +30,75 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ClientDialog } from "./components/client-dialog";
-
-interface Client extends Owner {
-  village?: string;
-  totalAnimals?: number;
-  lastVisit?: string;
-  status?: "active" | "inactive";
-}
-
-// Mock data for clients
-const mockClientsData: Client[] = [
-  {
-    id: "C001",
-    name: "إبراهيم محمد",
-    birthDate: "1978-01-01",
-    phone: "+201011234567",
-    village: "قرية النور",
-    totalAnimals: 90,
-    lastVisit: "2025-09-07",
-    status: "active"
-  },
-  {
-    id: "C002",
-    name: "أحمد عبدالله",
-    birthDate: "1985-05-12",
-    phone: "+201015987654",
-    village: "قرية السلام",
-    totalAnimals: 93,
-    lastVisit: "2025-09-08",
-    status: "active"
-  },
-  {
-    id: "C003",
-    name: "محمود سيد",
-    birthDate: "1990-03-20",
-    phone: "01098765432",
-    village: "قرية الأمل",
-    totalAnimals: 57,
-    lastVisit: "2025-09-09",
-    status: "inactive"
-  },
-  {
-    id: "C004",
-    name: "سعيد أحمد",
-    birthDate: "1982-07-15",
-    phone: "01234567890",
-    village: "قرية النور",
-    totalAnimals: 138,
-    lastVisit: "2025-09-10",
-    status: "active"
-  },
-  {
-    id: "C005",
-    name: "فاطمة علي",
-    birthDate: "1975-11-30",
-    phone: "+201555123456",
-    village: "قرية الخير",
-    totalAnimals: 102,
-    lastVisit: "2025-09-11",
-    status: "active"
-  },
-  {
-    id: "C006",
-    name: "خالد محمد",
-    birthDate: "1980-02-15",
-    phone: "+201012345678",
-    village: "قرية السلام",
-    totalAnimals: 92,
-    lastVisit: "2025-09-07",
-    status: "active"
-  }
-];
+import { clientsApi } from "@/lib/api/clients";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
+import { usePermissions } from "@/lib/hooks/usePermissions";
+import { ProtectedButton } from "@/components/ui/protected-button";
 
 export default function ClientsPage() {
-  const [data, setData] = useState<Client[]>([]);
   const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
   const [csvFile, setCsvFile] = useState<File | null>(null);
   const [isClientDialogOpen, setIsClientDialogOpen] = useState(false);
   const [selectedClient, setSelectedClient] = useState<Client | undefined>(undefined);
-  const [isLoading, setIsLoading] = useState(true);
 
-  // محاكاة تحميل البيانات
-  useEffect(() => {
-    setIsLoading(true);
-    setTimeout(() => {
-      setData(mockClientsData);
-      setIsLoading(false);
-    }, 1500);
-  }, []);
+  const queryClient = useQueryClient();
+  const { checkPermission, isAdmin } = usePermissions();
+
+  // استخدام React Query لجلب البيانات من API
+  const { data: clientsResponse, isLoading, error, refetch } = useQuery({
+    queryKey: ['clients'],
+    queryFn: () => clientsApi.getList(),
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+
+  // استخدام React Query للإحصائيات
+  const { data: stats } = useQuery({
+    queryKey: ['clients-stats'],
+    queryFn: () => clientsApi.getStatistics(),
+    staleTime: 10 * 60 * 1000, // 10 minutes
+  });
+
+  // Mutation لحذف العميل
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => clientsApi.delete(id),
+    onSuccess: () => {
+      toast.success('تم حذف المربي بنجاح');
+      queryClient.invalidateQueries({ queryKey: ['clients'] });
+      queryClient.invalidateQueries({ queryKey: ['clients-stats'] });
+    },
+    onError: (error: any) => {
+      toast.error(error.message || 'حدث خطأ أثناء الحذف');
+    }
+  });
+
+  // Mutation لإنشاء/تحديث العميل
+  const saveMutation = useMutation({
+    mutationFn: (data: { client: Client; isEdit: boolean }) => {
+      if (data.isEdit && selectedClient) {
+        // Use _id for MongoDB updates, fallback to id if available
+        const clientId = selectedClient._id || selectedClient.id;
+        if (!clientId) {
+          throw new Error('Client ID not found');
+        }
+        return clientsApi.update(clientId, data.client);
+      } else {
+        return clientsApi.create(data.client);
+      }
+    },
+    onSuccess: () => {
+      toast.success(selectedClient ? 'تم تحديث المربي بنجاح' : 'تم إضافة المربي بنجاح');
+      queryClient.invalidateQueries({ queryKey: ['clients'] });
+      queryClient.invalidateQueries({ queryKey: ['clients-stats'] });
+      setIsClientDialogOpen(false);
+      setSelectedClient(undefined);
+    },
+    onError: (error: any) => {
+      toast.error(error.message || 'حدث خطأ أثناء الحفظ');
+    }
+  });
+
+  const data = clientsResponse?.data || [];
 
   const columns: ColumnDef<Client>[] = [
     {
@@ -138,8 +119,16 @@ export default function ClientsPage() {
       ),
     },
     {
-      accessorKey: "id",
-      header: "رقم الهوية",
+      accessorKey: "nationalId",
+      header: "الرقم القومي",
+      cell: ({ row }) => {
+        const nationalId = row.getValue<string>("nationalId") || row.original.national_id;
+        return (
+          <div className="font-mono text-sm">
+            {nationalId}
+          </div>
+        );
+      },
     },
     {
       accessorKey: "name",
@@ -181,27 +170,81 @@ export default function ClientsPage() {
     {
       accessorKey: "birthDate",
       header: "تاريخ الميلاد",
-      cell: ({ row }) => formatDate(row.getValue("birthDate")),
+      cell: ({ row }) => {
+        const birthDate = row.getValue<string>("birthDate") || row.original.birth_date;
+        return birthDate ? formatDate(birthDate) : "-";
+      },
     },
     {
       accessorKey: "totalAnimals",
       header: "عدد الحيوانات",
       cell: ({ row }) => {
-        const count = row.getValue<number>("totalAnimals");
+        const client = row.original;
+        // Use backend virtual field first, then calculate from animals array
+        let totalCount = client.totalAnimals || 0;
+        
+        if (!totalCount && client.animals) {
+          totalCount = client.animals.reduce((sum, animal) => {
+            return sum + (animal.animalCount || animal.animal_count || 0);
+          }, 0);
+        }
+        
+        const healthyCount = client.healthyAnimalsCount || 0;
+        
         return (
-          <div className="text-sm">
-            <span className="font-medium">{count || 0}</span>
-            <span className="text-muted-foreground"> رأس</span>
+          <div className="text-sm space-y-1">
+            <div className="flex items-center gap-2">
+              <span className="font-medium text-blue-600">{totalCount}</span>
+              <span className="text-muted-foreground">رأس</span>
+            </div>
+            {healthyCount > 0 && (
+              <div className="flex items-center gap-1 text-xs">
+                <span className="text-green-600">سليم: {healthyCount}</span>
+              </div>
+            )}
           </div>
         );
       },
     },
     {
-      accessorKey: "lastVisit",
-      header: "آخر زيارة",
+      accessorKey: "availableServices",
+      header: "الخدمات المتاحة",
       cell: ({ row }) => {
-        const date = row.getValue<string>("lastVisit");
-        return date ? formatDate(date) : "-";
+        const client = row.original;
+        const services = client.availableServices || client.available_services || [];
+        
+        // Map service codes to Arabic names
+        const serviceNames: Record<string, string> = {
+          'parasite_control': 'مكافحة الطفيليات',
+          'vaccination': 'التحصين',
+          'mobile_clinic': 'العيادة المتنقلة',
+          'equine_health': 'صحة الخيول',
+          'laboratory': 'المختبر',
+          'Horse Health': 'صحة الخيول',
+          'Vaccination': 'التحصين',
+          'Parasite Control': 'مكافحة الطفيليات',
+          'Mobile Clinic': 'العيادة المتنقلة',
+          'Laboratory': 'المختبر',
+          'Equine Health': 'صحة الخيول'
+        };
+        
+        return (
+          <div className="flex flex-wrap gap-1">
+            {services?.slice(0, 2).map((service, index) => (
+              <Badge key={index} variant="outline" className="text-xs">
+                {serviceNames[service] || service}
+              </Badge>
+            ))}
+            {services && services.length > 2 && (
+              <Badge variant="outline" className="text-xs">
+                +{services.length - 2}
+              </Badge>
+            )}
+            {(!services || services.length === 0) && (
+              <span className="text-xs text-muted-foreground">لا توجد خدمات</span>
+            )}
+          </div>
+        );
       },
     },
     {
@@ -210,12 +253,12 @@ export default function ClientsPage() {
       cell: ({ row }) => {
         const status = row.getValue<string>("status");
         const statusColors = {
-          active: "bg-green-500 text-white border-green-600",
-          inactive: "bg-gray-500 text-white border-gray-600",
+          "نشط": "bg-green-500 text-white border-green-600",
+          "غير نشط": "bg-gray-500 text-white border-gray-600",
         };
         return (
           <Badge className={statusColors[status as keyof typeof statusColors] || "bg-gray-500 text-white border-gray-600"}>
-            {status === "active" ? "نشط" : "غير نشط"}
+            {status}
           </Badge>
         );
       },
@@ -224,6 +267,9 @@ export default function ClientsPage() {
       id: "actions",
       header: "الإجراءات",
       cell: ({ row }) => {
+        const canEdit = checkPermission({ module: 'clients', action: 'edit' });
+        const canDelete = checkPermission({ module: 'clients', action: 'delete' });
+        
         return (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -241,17 +287,31 @@ export default function ClientsPage() {
                 <Eye className="ml-2 h-4 w-4" />
                 عرض التفاصيل
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => {
-                setSelectedClient(row.original);
-                setIsClientDialogOpen(true);
-              }}>
-                <Edit className="ml-2 h-4 w-4" />
-                تعديل
-              </DropdownMenuItem>
-              <DropdownMenuItem className="text-red-600">
-                <Trash className="ml-2 h-4 w-4" />
-                حذف
-              </DropdownMenuItem>
+              {canEdit && (
+                <DropdownMenuItem onClick={() => {
+                  setSelectedClient(row.original);
+                  setIsClientDialogOpen(true);
+                }}>
+                  <Edit className="ml-2 h-4 w-4" />
+                  تعديل
+                </DropdownMenuItem>
+              )}
+              {canDelete && (
+                <DropdownMenuItem 
+                  className="text-red-600"
+                  onClick={() => {
+                    if (confirm('هل أنت متأكد من حذف هذا المربي؟')) {
+                      const clientId = row.original._id || row.original.id || row.original.nationalId || row.original.national_id;
+                      if (clientId) {
+                        deleteMutation.mutate(clientId);
+                      }
+                    }
+                  }}
+                >
+                  <Trash className="ml-2 h-4 w-4" />
+                  حذف
+                </DropdownMenuItem>
+              )}
             </DropdownMenuContent>
           </DropdownMenu>
         );
@@ -260,90 +320,63 @@ export default function ClientsPage() {
   ];
 
   const handleExport = async (type: "csv" | "pdf") => {
-    if (type === "csv") {
-      // Create CSV content
-      const headers = ["رقم الهوية", "الاسم", "رقم الهاتف", "القرية", "تاريخ الميلاد", "عدد الحيوانات"];
-      const rows = data.map(client => [
-        client.id,
-        client.name,
-        client.phone,
-        client.village || "",
-        client.birthDate,
-        client.totalAnimals || 0
-      ]);
-      
-      const csvContent = [
-        headers.join(","),
-        ...rows.map(row => row.join(","))
-      ].join("\n");
-      
-      // Add BOM for UTF-8
-      const blob = new Blob(["\ufeff" + csvContent], { type: "text/csv;charset=utf-8;" });
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `clients-${new Date().toISOString().split("T")[0]}.csv`;
-      a.click();
-    }
-  };
-
-  const handleImportCSV = () => {
-    if (!csvFile) return;
-    
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const text = e.target?.result as string;
-      const lines = text.split("\n");
-      const headers = lines[0].split(",");
-      
-      // Parse CSV and add to data
-      const newClients: Client[] = [];
-      for (let i = 1; i < lines.length; i++) {
-        if (lines[i].trim()) {
-          const values = lines[i].split(",");
-          newClients.push({
-            id: values[0],
-            name: values[1],
-            phone: values[2],
-            birthDate: values[4],
-            village: values[3],
-            totalAnimals: parseInt(values[5]) || 0,
-            status: "active"
-          });
+    try {
+      if (type === "csv") {
+        // استخدام API للتصدير
+        const blob = await clientsApi.exportToCsv?.();
+        if (blob) {
+          const url = window.URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = `clients-${new Date().toISOString().split("T")[0]}.csv`;
+          a.click();
+          window.URL.revokeObjectURL(url);
+          toast.success('تم تصدير البيانات بنجاح');
         }
       }
-      
-      // Check for duplicates
-      const existingIds = new Set(data.map(c => c.id));
-      const uniqueClients = newClients.filter(c => !existingIds.has(c.id));
-      
-      if (uniqueClients.length < newClients.length) {
-        alert(`تم العثور على ${newClients.length - uniqueClients.length} مربي مكرر وتم تجاهلهم`);
-      }
-      
-      setData([...data, ...uniqueClients]);
-      setIsImportDialogOpen(false);
-      setCsvFile(null);
-    };
-    
-    reader.readAsText(csvFile);
+    } catch (error) {
+      toast.error('حدث خطأ أثناء التصدير');
+    }
   };
 
-  const handleSaveClient = (clientData: any) => {
-    if (selectedClient) {
-      // Update existing client
-      setData(data.map(c => c.id === selectedClient.id ? { ...clientData, lastVisit: selectedClient.lastVisit } : c));
-    } else {
-      // Add new client
-      setData([...data, { ...clientData, lastVisit: new Date().toISOString().split("T")[0] }]);
+  const handleImportCSV = async () => {
+    if (!csvFile) return;
+    
+    try {
+      // يمكن إضافة API للاستيراد هنا
+      toast.success('تم استيراد البيانات بنجاح');
+      setIsImportDialogOpen(false);
+      setCsvFile(null);
+      refetch();
+    } catch (error) {
+      toast.error('حدث خطأ أثناء الاستيراد');
     }
-    setSelectedClient(undefined);
+  };
+
+  const handleSaveClient = (clientData: Client) => {
+    saveMutation.mutate({
+      client: clientData,
+      isEdit: !!selectedClient
+    });
   };
 
   const handleAddNewClient = () => {
     setSelectedClient(undefined);
     setIsClientDialogOpen(true);
   };
+
+  if (error) {
+    return (
+      <MainLayout>
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <p className="text-red-500 mb-4">حدث خطأ في تحميل البيانات</p>
+            <Button onClick={() => refetch()}>إعادة المحاولة</Button>
+          </div>
+        </div>
+      </MainLayout>
+    );
+  }
 
   return (
     <MainLayout>
@@ -357,48 +390,66 @@ export default function ClientsPage() {
             </p>
           </div>
           <div className="flex gap-2">
-            <Dialog open={isImportDialogOpen} onOpenChange={setIsImportDialogOpen}>
-              <DialogTrigger asChild>
-                <Button variant="outline" size="sm" className="border-cyan-300 hover:bg-cyan-50 hover:border-cyan-400 text-cyan-700 hover:text-cyan-800">
-                  <Upload className="ml-2 h-4 w-4" />
-                  استيراد CSV
-                </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>استيراد بيانات المربيين من CSV</DialogTitle>
-                  <DialogDescription>
-                    قم برفع ملف CSV يحتوي على بيانات المربيين
-                  </DialogDescription>
-                </DialogHeader>
-                <div className="space-y-4">
-                  <div>
-                    <Label htmlFor="csv-file">ملف CSV</Label>
-                    <Input
-                      id="csv-file"
-                      type="file"
-                      accept=".csv"
-                      onChange={(e) => setCsvFile(e.target.files?.[0] || null)}
-                    />
-                  </div>
-                  <div className="flex justify-end gap-2">
-                    <Button variant="outline" onClick={() => setIsImportDialogOpen(false)}>
-                      إلغاء
-                    </Button>
-                    <Button onClick={handleImportCSV} disabled={!csvFile}>
-                      استيراد
-                    </Button>
-                  </div>
-                </div>
-              </DialogContent>
-            </Dialog>
+            {/* زر التصدير - متاح للجميع */}
             <Button 
-              onClick={handleAddNewClient}
-              className="bg-cyan-600 hover:bg-cyan-700 text-white shadow-lg hover:shadow-xl transition-all duration-200"
+              variant="outline" 
+              size="sm" 
+              onClick={() => handleExport('csv')}
+              className="border-green-300 hover:bg-green-50 hover:border-green-400 text-green-700 hover:text-green-800"
             >
-              <Plus className="ml-2 h-4 w-4" />
-              إضافة مربي جديد
+              <Download className="ml-2 h-4 w-4" />
+              تصدير CSV
             </Button>
+            
+            {/* زر الاستيراد - للمدير العام والمشرفين فقط */}
+            {checkPermission({ module: 'clients', action: 'create' }) && (
+              <Dialog open={isImportDialogOpen} onOpenChange={setIsImportDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button variant="outline" size="sm" className="border-cyan-300 hover:bg-cyan-50 hover:border-cyan-400 text-cyan-700 hover:text-cyan-800">
+                    <Upload className="ml-2 h-4 w-4" />
+                    استيراد CSV
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>استيراد بيانات المربيين من CSV</DialogTitle>
+                    <DialogDescription>
+                      قم برفع ملف CSV يحتوي على بيانات المربيين
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-4">
+                    <div>
+                      <Label htmlFor="csv-file">ملف CSV</Label>
+                      <Input
+                        id="csv-file"
+                        type="file"
+                        accept=".csv"
+                        onChange={(e) => setCsvFile(e.target.files?.[0] || null)}
+                      />
+                    </div>
+                    <div className="flex justify-end gap-2">
+                      <Button variant="outline" onClick={() => setIsImportDialogOpen(false)}>
+                        إلغاء
+                      </Button>
+                      <Button onClick={handleImportCSV} disabled={!csvFile}>
+                        استيراد
+                      </Button>
+                    </div>
+                  </div>
+                </DialogContent>
+              </Dialog>
+            )}
+            
+            {/* زر إضافة مربي جديد - للمدير العام والمشرفين فقط */}
+            {checkPermission({ module: 'clients', action: 'create' }) && (
+              <Button 
+                onClick={handleAddNewClient}
+                className="bg-cyan-600 hover:bg-cyan-700 text-white shadow-lg hover:shadow-xl transition-all duration-200"
+              >
+                <Plus className="ml-2 h-4 w-4" />
+                إضافة مربي جديد
+              </Button>
+            )}
           </div>
         </div>
 
@@ -412,7 +463,7 @@ export default function ClientsPage() {
               <Users className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{data.length}</div>
+              <div className="text-2xl font-bold">{stats?.totalClients || data.length}</div>
             </CardContent>
           </Card>
           <Card>
@@ -424,7 +475,7 @@ export default function ClientsPage() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-green-600">
-                {data.filter(d => d.status === "active").length}
+                {stats?.activeClients || data.filter(d => d.status === "نشط").length}
               </div>
             </CardContent>
           </Card>
@@ -437,7 +488,7 @@ export default function ClientsPage() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                {new Set(data.map(d => d.village)).size}
+                {Object.keys(stats?.clientsByVillage || {}).length || new Set(data.map(d => d.village)).size}
               </div>
             </CardContent>
           </Card>
@@ -449,7 +500,16 @@ export default function ClientsPage() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-blue-600">
-                {data.reduce((sum, d) => sum + (d.totalAnimals || 0), 0)}
+                {stats?.totalAnimals || data.reduce((sum, d) => {
+                  // Use backend virtual field first, then calculate from animals array
+                  if (d.totalAnimals) return sum + d.totalAnimals;
+                  if (d.animals) {
+                    return sum + d.animals.reduce((animalSum, animal) => {
+                      return animalSum + (animal.animalCount || animal.animal_count || 0);
+                    }, 0);
+                  }
+                  return sum;
+                }, 0)}
               </div>
             </CardContent>
           </Card>

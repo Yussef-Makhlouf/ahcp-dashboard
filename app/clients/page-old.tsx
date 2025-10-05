@@ -1,0 +1,407 @@
+"use client";
+
+import { useState } from "react";
+import { MainLayout } from "@/components/layout/main-layout";
+import { ApiDataTable } from "@/components/data-table/api-data-table";
+import { ApiForm } from "@/components/forms/api-form";
+import { ImportExportManager } from "@/components/import-export/import-export-manager";
+import { Button } from "@/components/ui/button";
+import { Plus, Users, UserCheck, MapPin, Phone } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import type { Client } from "@/types";
+import { formatDate, formatPhoneNumber } from "@/lib/utils";
+import { clientsApi } from "@/lib/api/clients";
+import { useQuery } from "@tanstack/react-query";
+import { z } from "zod";
+
+export default function ClientsPage() {
+  const [isClientDialogOpen, setIsClientDialogOpen] = useState(false);
+  const [selectedClient, setSelectedClient] = useState<Client | undefined>(undefined);
+
+  // استخدام React Query لجلب البيانات من API
+  const { data: clientsData, isLoading, error, refetch } = useQuery({
+    queryKey: ['clients'],
+    queryFn: () => clientsApi.getList(),
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+
+  // استخدام React Query للإحصائيات
+  const { data: stats } = useQuery({
+    queryKey: ['clients-stats'],
+    queryFn: () => clientsApi.getStatistics(),
+    staleTime: 10 * 60 * 1000, // 10 minutes
+  });
+
+  const columns: ColumnDef<Client>[] = [
+    {
+      id: "select",
+      header: ({ table }) => (
+        <Checkbox
+          checked={table.getIsAllPageRowsSelected()}
+          onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
+          aria-label="Select all"
+        />
+      ),
+      cell: ({ row }) => (
+        <Checkbox
+          checked={row.getIsSelected()}
+          onCheckedChange={(value) => row.toggleSelected(!!value)}
+          aria-label="Select row"
+        />
+      ),
+    },
+    {
+      accessorKey: "national_id",
+      header: "الرقم القومي",
+    },
+    {
+      accessorKey: "name",
+      header: "الاسم",
+      cell: ({ row }) => (
+        <div className="flex items-center gap-2">
+          <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center">
+            <span className="text-xs font-semibold">
+              {row.getValue<string>("name").split(" ").map(n => n[0]).join("")}
+            </span>
+          </div>
+          <span className="font-medium">{row.getValue("name")}</span>
+        </div>
+      ),
+    },
+    {
+      accessorKey: "phone",
+      header: "رقم الهاتف",
+      cell: ({ row }) => {
+        const phone = row.getValue<string>("phone");
+        return (
+          <div className="flex items-center gap-2">
+            <Phone className="h-3 w-3 text-muted-foreground" />
+            <span dir="ltr">{formatPhoneNumber(phone)}</span>
+          </div>
+        );
+      },
+    },
+    {
+      accessorKey: "village",
+      header: "القرية",
+      cell: ({ row }) => (
+        <div className="flex items-center gap-2">
+          <MapPin className="h-3 w-3 text-muted-foreground" />
+          <span>{row.getValue("village")}</span>
+        </div>
+      ),
+    },
+    {
+      accessorKey: "birth_date",
+      header: "تاريخ الميلاد",
+      cell: ({ row }) => formatDate(row.getValue("birth_date")),
+    },
+    {
+      accessorKey: "animals",
+      header: "عدد الحيوانات",
+      cell: ({ row }) => {
+        const animals = row.getValue<Client["animals"]>("animals");
+        const totalCount = animals?.reduce((sum, animal) => sum + (animal.animal_count || 0), 0) || 0;
+        return (
+          <div className="text-sm">
+            <span className="font-medium">{totalCount}</span>
+            <span className="text-muted-foreground"> رأس</span>
+          </div>
+        );
+      },
+    },
+    {
+      accessorKey: "available_services",
+      header: "الخدمات المتاحة",
+      cell: ({ row }) => {
+        const services = row.getValue<string[]>("available_services");
+        return (
+          <div className="flex flex-wrap gap-1">
+            {services?.slice(0, 2).map((service, index) => (
+              <Badge key={index} variant="outline" className="text-xs">
+                {service}
+              </Badge>
+            ))}
+            {services && services.length > 2 && (
+              <Badge variant="outline" className="text-xs">
+                +{services.length - 2}
+              </Badge>
+            )}
+          </div>
+        );
+      },
+    },
+    {
+      accessorKey: "status",
+      header: "الحالة",
+      cell: ({ row }) => {
+        const status = row.getValue<string>("status");
+        const statusColors = {
+          "نشط": "bg-green-500 text-white border-green-600",
+          "غير نشط": "bg-gray-500 text-white border-gray-600",
+        };
+        return (
+          <Badge className={statusColors[status as keyof typeof statusColors] || "bg-gray-500 text-white border-gray-600"}>
+            {status}
+          </Badge>
+        );
+      },
+    },
+    {
+      id: "actions",
+      header: "الإجراءات",
+      cell: ({ row }) => {
+        return (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" className="h-8 w-8 p-0">
+                <span className="sr-only">فتح القائمة</span>
+                <MoreHorizontal className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuLabel>الإجراءات</DropdownMenuLabel>
+              <DropdownMenuItem onClick={() => {
+                setSelectedClient(row.original);
+                setIsClientDialogOpen(true);
+              }}>
+                <Eye className="ml-2 h-4 w-4" />
+                عرض التفاصيل
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => {
+                setSelectedClient(row.original);
+                setIsClientDialogOpen(true);
+              }}>
+                <Edit className="ml-2 h-4 w-4" />
+                تعديل
+              </DropdownMenuItem>
+              <DropdownMenuItem className="text-red-600">
+                <Trash className="ml-2 h-4 w-4" />
+                حذف
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        );
+      },
+    },
+  ];
+
+  const handleExport = async (type: "csv" | "pdf") => {
+    if (type === "csv") {
+      // Create CSV content
+      const headers = ["الرقم القومي", "الاسم", "رقم الهاتف", "القرية", "تاريخ الميلاد", "عدد الحيوانات"];
+      const rows = data.map(client => [
+        client.national_id,
+        client.name,
+        client.phone,
+        client.village || "",
+        client.birth_date,
+        client.animals?.reduce((sum, animal) => sum + (animal.animal_count || 0), 0) || 0
+      ]);
+      
+      const csvContent = [
+        headers.join(","),
+        ...rows.map(row => row.join(","))
+      ].join("\n");
+      
+      // Add BOM for UTF-8
+      const blob = new Blob(["\ufeff" + csvContent], { type: "text/csv;charset=utf-8;" });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `clients-${new Date().toISOString().split("T")[0]}.csv`;
+      a.click();
+    }
+  };
+
+  const handleImportCSV = () => {
+    if (!csvFile) return;
+    
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const text = e.target?.result as string;
+      const lines = text.split("\n");
+      const headers = lines[0].split(",");
+      
+      // Parse CSV and add to data
+      const newClients: Client[] = [];
+      for (let i = 1; i < lines.length; i++) {
+        if (lines[i].trim()) {
+          const values = lines[i].split(",");
+          newClients.push({
+            name: values[1],
+            national_id: values[0],
+            birth_date: values[4],
+            phone: values[2],
+            email: "",
+            village: values[3],
+            detailed_address: "",
+            status: "نشط",
+            animals: [],
+            available_services: []
+          });
+        }
+      }
+      
+      // Check for duplicates
+      const existingIds = new Set(data.map(c => c.national_id));
+      const uniqueClients = newClients.filter(c => !existingIds.has(c.national_id));
+      
+      if (uniqueClients.length < newClients.length) {
+        alert(`تم العثور على ${newClients.length - uniqueClients.length} مربي مكرر وتم تجاهلهم`);
+      }
+      
+      setData([...data, ...uniqueClients]);
+      setIsImportDialogOpen(false);
+      setCsvFile(null);
+    };
+    
+    reader.readAsText(csvFile);
+  };
+
+  const handleSaveClient = (clientData: Client) => {
+    if (selectedClient) {
+      // Update existing client
+      setData(data.map(c => c.national_id === selectedClient.national_id ? clientData : c));
+    } else {
+      // Add new client
+      setData([...data, clientData]);
+    }
+    setSelectedClient(undefined);
+  };
+
+  const handleAddNewClient = () => {
+    setSelectedClient(undefined);
+    setIsClientDialogOpen(true);
+  };
+
+  return (
+    <MainLayout>
+      <div className="space-y-6">
+        {/* Header */}
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h1 className="text-3xl font-bold">المربيين</h1>
+            <p className="text-muted-foreground mt-2">
+              إدارة بيانات المربيين والعملاء
+            </p>
+          </div>
+          <div className="flex gap-2">
+            <Dialog open={isImportDialogOpen} onOpenChange={setIsImportDialogOpen}>
+              <DialogTrigger asChild>
+                <Button variant="outline" size="sm" className="border-cyan-300 hover:bg-cyan-50 hover:border-cyan-400 text-cyan-700 hover:text-cyan-800">
+                  <Upload className="ml-2 h-4 w-4" />
+                  استيراد CSV
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>استيراد بيانات المربيين من CSV</DialogTitle>
+                  <DialogDescription>
+                    قم برفع ملف CSV يحتوي على بيانات المربيين
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <div>
+                    <Label htmlFor="csv-file">ملف CSV</Label>
+                    <Input
+                      id="csv-file"
+                      type="file"
+                      accept=".csv"
+                      onChange={(e) => setCsvFile(e.target.files?.[0] || null)}
+                    />
+                  </div>
+                  <div className="flex justify-end gap-2">
+                    <Button variant="outline" onClick={() => setIsImportDialogOpen(false)}>
+                      إلغاء
+                    </Button>
+                    <Button onClick={handleImportCSV} disabled={!csvFile}>
+                      استيراد
+                    </Button>
+                  </div>
+                </div>
+              </DialogContent>
+            </Dialog>
+            <Button 
+              onClick={handleAddNewClient}
+              className="bg-cyan-600 hover:bg-cyan-700 text-white shadow-lg hover:shadow-xl transition-all duration-200"
+            >
+              <Plus className="ml-2 h-4 w-4" />
+              إضافة مربي جديد
+            </Button>
+          </div>
+        </div>
+
+        {/* Stats Cards */}
+        <div className="grid gap-4 md:grid-cols-4">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">
+                إجمالي المربيين
+              </CardTitle>
+              <Users className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{data.length}</div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">
+                المربيين النشطين
+              </CardTitle>
+              <UserCheck className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-green-600">
+                {data.filter(d => d.status === "نشط").length}
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">
+                عدد القرى
+              </CardTitle>
+              <MapPin className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">
+                {new Set(data.map(d => d.village)).size}
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">
+                إجمالي الحيوانات
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-blue-600">
+                {data.reduce((sum, d) => sum + (d.animals?.reduce((animalSum, animal) => animalSum + (animal.animal_count || 0), 0) || 0), 0)}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Data Table */}
+        <DataTable
+          columns={columns}
+          data={data}
+          isLoading={isLoading}
+          onExport={handleExport}
+        />
+
+        {/* Client Dialog */}
+        <ClientDialog
+          open={isClientDialogOpen}
+          onOpenChange={setIsClientDialogOpen}
+          client={selectedClient}
+          onSave={handleSaveClient}
+        />
+      </div>
+    </MainLayout>
+  );
+}

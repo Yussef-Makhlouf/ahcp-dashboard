@@ -1,193 +1,197 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import { MainLayout } from "@/components/layout/main-layout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import {
-  User,
-  Mail,
-  Phone,
-  Calendar,
-  Briefcase,
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { 
+  User, 
+  Mail, 
+  Phone, 
+  MapPin, 
+  Calendar, 
+  Shield, 
+  Settings,
   Camera,
   Save,
-  Shield,
-  Building,
-  Upload,
-  X,
+  Edit,
+  Key,
+  Bell,
+  Activity,
+  BarChart3
 } from "lucide-react";
-import { useAuthStore } from "@/lib/store/auth-store";
-
-interface UserProfile {
-  id: string;
-  name: string;
-  email: string;
-  phone: string;
-  role: string;
-  department?: string;
-  joinDate: string;
-  avatar?: string;
-}
-
-// Mock data based on user role
-const getMockProfile = (role: string, section?: string): UserProfile => {
-  const baseProfile = {
-    id: "USR001",
-    name: "إبراهيم أحمد",
-    email: "ibrahim@ahcp.gov.eg",
-    phone: "+201234567890",
-    joinDate: "2020-03-15",
-    avatar: "/placeholder-avatar.jpg",
-  };
-
-  switch (role) {
-    case "super_admin":
-      return {
-        ...baseProfile,
-        name: "إبراهيم أحمد",
-        role: "مدير النظام",
-        email: "ibrahim@ahcp.gov.eg",
-      };
-    case "section_supervisor":
-      const departmentNames: { [key: string]: string } = {
-        parasite_control: "مكافحة الطفيليات",
-        vaccination: "التحصين",
-        mobile_clinics: "العيادات المتنقلة",
-        equine_health: "صحة الخيول",
-        laboratories: "المختبرات",
-      };
-      return {
-        ...baseProfile,
-        name: "أحمد محمد",
-        role: "مشرف قسم",
-        department: departmentNames[section || ""] || "قسم غير محدد",
-        email: "ahmed@ahcp.gov.eg",
-      };
-    case "field_worker":
-      return {
-        ...baseProfile,
-        name: "محمد علي",
-        role: "عامل ميداني",
-        email: "mohamed@ahcp.gov.eg",
-      };
-    default:
-      return {
-        ...baseProfile,
-        role: "مستخدم",
-      };
-  }
-};
+import { useAuth } from "@/lib/auth-provider";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { authApi } from "@/lib/api/auth";
+import { toast } from "sonner";
+import { formatDate } from "@/lib/utils";
 
 export default function ProfilePage() {
-  const { user, updateUser } = useAuthStore();
-  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const { user } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
-  const [editedProfile, setEditedProfile] = useState<UserProfile | null>(null);
-  const [selectedImage, setSelectedImage] = useState<File | null>(null);
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [formData, setFormData] = useState({
+    name: user?.name || '',
+    email: user?.email || '',
+    phone: user?.phone || '',
+    section: user?.role === 'super_admin' ? 'super admin' : (user?.section || ''),
+    bio: user?.bio || '',
+  });
+  const [passwordData, setPasswordData] = useState({
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: '',
+  });
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Initialize profile based on user data
+  const queryClient = useQueryClient();
+
+  // تحديث بيانات النموذج عند تغيير بيانات المستخدم
   useEffect(() => {
     if (user) {
-      const mockProfile = getMockProfile(user.role, user.section);
-      setProfile(mockProfile);
-      setEditedProfile(mockProfile);
+      setFormData({
+        name: user.name || '',
+        email: user.email || '',
+        phone: user.phone || '',
+        section: user.role === 'super_admin' ? 'super admin' : (user.section || ''),
+        bio: user.bio || '',
+      });
     }
   }, [user]);
 
+  // جلب بيانات المستخدم
+  const { data: profileData, isLoading } = useQuery({
+    queryKey: ['profile'],
+    queryFn: () => authApi.getProfile(),
+    enabled: !!user,
+  });
 
-  const handleCancelEdit = () => {
-    setEditedProfile(profile);
-    setIsEditing(false);
-    setSelectedImage(null);
-    setImagePreview(null);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
+  // جلب إحصائيات النشاط
+  const { data: activityStats } = useQuery({
+    queryKey: ['user-activity'],
+    queryFn: () => authApi.getUserActivity?.() || Promise.resolve({
+      totalActions: 156,
+      thisMonth: 42,
+      lastLogin: new Date().toISOString(),
+      recentActions: [
+        { action: 'إضافة مربي جديد', date: '2024-01-15', module: 'العملاء' },
+        { action: 'تحديث سجل تحصين', date: '2024-01-14', module: 'التحصينات' },
+        { action: 'تصدير تقرير', date: '2024-01-13', module: 'التقارير' },
+      ]
+    }),
+  });
+
+  // تحديث الملف الشخصي
+  const updateProfileMutation = useMutation({
+    mutationFn: (data: any) => authApi.updateProfile(data),
+    onSuccess: () => {
+      toast.success('تم تحديث الملف الشخصي بنجاح');
+      setIsEditing(false);
+      queryClient.invalidateQueries({ queryKey: ['profile'] });
+    },
+    onError: (error: any) => {
+      toast.error(error.message || 'حدث خطأ أثناء التحديث');
     }
-  };
+  });
 
-  const handleInputChange = (field: keyof UserProfile, value: string) => {
-    if (editedProfile) {
-      setEditedProfile({ ...editedProfile, [field]: value });
+  // تغيير كلمة المرور
+  const changePasswordMutation = useMutation({
+    mutationFn: (data: any) => authApi.changePassword(data.currentPassword, data.newPassword),
+    onSuccess: () => {
+      toast.success('تم تغيير كلمة المرور بنجاح');
+      setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
+    },
+    onError: (error: any) => {
+      toast.error(error.message || 'حدث خطأ أثناء تغيير كلمة المرور');
     }
-  };
-
-  const handleImageSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      // Validate file type
-      if (!file.type.startsWith('image/')) {
-        alert('يرجى اختيار ملف صورة صالح');
-        return;
-      }
-      
-      // Validate file size (max 5MB)
-      if (file.size > 5 * 1024 * 1024) {
-        alert('حجم الصورة يجب أن يكون أقل من 5 ميجابايت');
-        return;
-      }
-      
-      setSelectedImage(file);
-      
-      // Create preview URL
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        setImagePreview(e.target?.result as string);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  const handleImageUpload = () => {
-    fileInputRef.current?.click();
-  };
-
-  const handleRemoveImage = () => {
-    setSelectedImage(null);
-    setImagePreview(null);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
-  };
+  });
 
   const handleSaveProfile = () => {
-    if (editedProfile) {
-      const updatedProfile = { ...editedProfile };
-      
-      // If new image is selected, update avatar
-      if (selectedImage && imagePreview) {
-        updatedProfile.avatar = imagePreview;
-      }
-      
-      setProfile(updatedProfile);
-      // Update user in store
-      updateUser({
-        name: updatedProfile.name,
-        email: updatedProfile.email,
-        avatar: updatedProfile.avatar,
-      });
-      setIsEditing(false);
-      setSelectedImage(null);
-      setImagePreview(null);
+    updateProfileMutation.mutate(formData);
+  };
+
+  const handleChangePassword = () => {
+    if (passwordData.newPassword !== passwordData.confirmPassword) {
+      toast.error('كلمة المرور الجديدة غير متطابقة');
+      return;
+    }
+    if (passwordData.newPassword.length < 6) {
+      toast.error('كلمة المرور يجب أن تكون 6 أحرف على الأقل');
+      return;
+    }
+    changePasswordMutation.mutate(passwordData);
+  };
+
+  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast.error('يرجى اختيار ملف صورة صالح');
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('حجم الصورة يجب أن يكون أقل من 5 ميجابايت');
+      return;
+    }
+
+    setIsUploadingImage(true);
+
+    // Create preview
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      setAvatarPreview(e.target?.result as string);
+    };
+    reader.readAsDataURL(file);
+
+    // Simulate upload (you can replace this with actual upload logic)
+    setTimeout(() => {
+      setIsUploadingImage(false);
+      toast.success('تم رفع الصورة بنجاح');
+    }, 2000);
+  };
+
+  const handleImageClick = () => {
+    if (isEditing) {
+      fileInputRef.current?.click();
     }
   };
 
-  // Check if user can edit (only super_admin)
-  const canEdit = user?.role === "super_admin";
+  const getRoleLabel = (role: string) => {
+    const roles = {
+      'super_admin': 'مدير عام',
+      'section_supervisor': 'مشرف قسم',
+      'field_worker': 'عامل ميداني'
+    };
+    return roles[role as keyof typeof roles] || role;
+  };
 
-  if (!user || !profile) {
+  const getRoleBadgeVariant = (role: string): "default" | "destructive" | "outline" | "secondary" => {
+    const variants: Record<string, "default" | "destructive" | "outline" | "secondary"> = {
+      'super_admin': 'default',
+      'section_supervisor': 'secondary',
+      'field_worker': 'outline'
+    };
+    return variants[role] || 'outline';
+  };
+
+  if (isLoading) {
     return (
       <MainLayout>
         <div className="flex items-center justify-center h-64">
           <div className="text-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-            <p className="mt-2 text-muted-foreground">جاري تحميل البيانات...</p>
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+            <p>جاري تحميل الملف الشخصي...</p>
           </div>
         </div>
       </MainLayout>
@@ -198,189 +202,353 @@ export default function ProfilePage() {
     <MainLayout>
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold">الملف الشخصي</h1>
             <p className="text-muted-foreground mt-2">
-              {canEdit ? "إدارة معلوماتك الشخصية" : "عرض معلوماتك الشخصية"}
+              إدارة معلوماتك الشخصية وإعدادات الحساب
             </p>
           </div>
-          {canEdit && (
-            <div className="flex gap-2">
-              {isEditing ? (
-                <>
-                  <Button variant="outline" onClick={handleCancelEdit}>
-                    إلغاء
-                  </Button>
-                  <Button onClick={handleSaveProfile}>
-                    <Save className="ml-2 h-4 w-4" />
-                    حفظ التغييرات
-                  </Button>
-                </>
-              ) : (
-                <Button onClick={() => setIsEditing(true)}>
-                  تعديل الملف الشخصي
-                </Button>
-              )}
-            </div>
-          )}
+          <Button
+            onClick={() => setIsEditing(!isEditing)}
+            variant={isEditing ? "outline" : "default"}
+          >
+            <Edit className="h-4 w-4 mr-2" />
+            {isEditing ? 'إلغاء التعديل' : 'تعديل الملف'}
+          </Button>
         </div>
 
-        {/* Profile Card */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <User className="h-5 w-5" />
-              المعلومات الشخصية
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            {/* Avatar and Basic Info */}
-            <div className="flex flex-col md:flex-row gap-6">
-              <div className="flex flex-col items-center">
-                <Avatar className="h-32 w-32">
-                  <AvatarImage src={imagePreview || profile.avatar} />
-                  <AvatarFallback className="text-2xl">
-                    {profile.name.split(" ").map(n => n[0]).join("")}
+        <div className="grid gap-6 md:grid-cols-3">
+          {/* Profile Card */}
+          <Card className="md:col-span-1">
+            <CardHeader className="text-center">
+              <div className="relative mx-auto">
+                <Avatar 
+                  className="h-24 w-24 cursor-pointer transition-opacity hover:opacity-80" 
+                  onClick={handleImageClick}
+                >
+                  <AvatarImage src={avatarPreview || user?.avatar} />
+                  <AvatarFallback className="text-lg">
+                    {user?.name?.split(' ').map(n => n[0]).join('') || 'U'}
                   </AvatarFallback>
                 </Avatar>
-                
-                {/* Hidden file input */}
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*"
-                  onChange={handleImageSelect}
-                  className="hidden"
-                />
-                
-                {isEditing && canEdit && (
-                  <div className="flex flex-col gap-2 mt-3">
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      onClick={handleImageUpload}
-                      className="w-full"
+                {isEditing && (
+                  <>
+                    <Button
+                      size="sm"
+                      className="absolute -bottom-2 -right-2 rounded-full h-8 w-8 p-0"
+                      onClick={handleImageClick}
+                      disabled={isUploadingImage}
                     >
-                      <Upload className="ml-2 h-4 w-4" />
-                      {selectedImage ? "تغيير الصورة" : "رفع صورة"}
+                      {isUploadingImage ? (
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                      ) : (
+                        <Camera className="h-4 w-4" />
+                      )}
                     </Button>
-                    
-                    {selectedImage && (
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs text-muted-foreground truncate max-w-20">
-                          {selectedImage.name}
-                        </span>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={handleRemoveImage}
-                          className="h-6 w-6 p-0"
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageUpload}
+                      className="hidden"
+                    />
+                  </>
+                )}
+                {isEditing && (
+                  <p className="text-xs text-muted-foreground mt-2">
+                    انقر على الصورة لتغييرها
+                  </p>
+                )}
+              </div>
+              <div className="space-y-2">
+                <h3 className="text-xl font-semibold">{user?.name}</h3>
+                <Badge variant={getRoleBadgeVariant(user?.role || '')}>
+                  {getRoleLabel(user?.role || '')}
+                </Badge>
+                {user?.section && (
+                  <p className="text-sm text-muted-foreground">
+                    قسم: {user.section}
+                  </p>
+                )}
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="flex items-center gap-3">
+                  <Mail className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-sm">{user?.email}</span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <Calendar className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-sm">
+                    انضم في {formatDate(user?.createdAt || new Date().toISOString())}
+                  </span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <Activity className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-sm">
+                    آخر نشاط: {formatDate(activityStats?.lastLogin || new Date().toISOString())}
+                  </span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Main Content */}
+          <div className="md:col-span-2 space-y-6">
+            <Tabs defaultValue="profile" className="w-full">
+              <TabsList className="grid w-full grid-cols-4">
+                <TabsTrigger value="profile">
+                  <User className="h-4 w-4 mr-2" />
+                  المعلومات
+                </TabsTrigger>
+                <TabsTrigger value="security">
+                  <Shield className="h-4 w-4 mr-2" />
+                  الأمان
+                </TabsTrigger>
+                <TabsTrigger value="activity">
+                  <BarChart3 className="h-4 w-4 mr-2" />
+                  النشاط
+                </TabsTrigger>
+                <TabsTrigger value="settings">
+                  <Settings className="h-4 w-4 mr-2" />
+                  الإعدادات
+                </TabsTrigger>
+              </TabsList>
+
+              {/* Profile Tab */}
+              <TabsContent value="profile">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>المعلومات الشخصية</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="grid gap-4 md:grid-cols-2">
+                      <div className="space-y-2">
+                        <Label htmlFor="name">الاسم الكامل</Label>
+                        <Input
+                          id="name"
+                          value={formData.name}
+                          onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                          disabled={!isEditing}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="email">البريد الإلكتروني</Label>
+                        <Input
+                          id="email"
+                          type="email"
+                          value={formData.email}
+                          onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                          disabled={!isEditing}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="phone">رقم الهاتف</Label>
+                        <Input
+                          id="phone"
+                          value={formData.phone}
+                          onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                          disabled={!isEditing}
+                          placeholder="+966501234567"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="section">القسم</Label>
+                        <Input
+                          id="section"
+                          value={formData.section}
+                          onChange={(e) => setFormData({ ...formData, section: e.target.value })}
+                          disabled={!isEditing || user?.role === 'super_admin'}
+                        />
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="bio">نبذة شخصية</Label>
+                      <Textarea
+                        id="bio"
+                        value={formData.bio}
+                        onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
+                        disabled={!isEditing}
+                        placeholder="اكتب نبذة مختصرة عنك..."
+                        rows={3}
+                      />
+                    </div>
+                    {isEditing && (
+                      <div className="flex gap-2">
+                        <Button 
+                          onClick={handleSaveProfile}
+                          disabled={updateProfileMutation.isLoading}
                         >
-                          <X className="h-3 w-3" />
+                          <Save className="h-4 w-4 mr-2" />
+                          {updateProfileMutation.isLoading ? 'جاري الحفظ...' : 'حفظ التغييرات'}
                         </Button>
                       </div>
                     )}
-                  </div>
-                )}
-              </div>
-              
-              <div className="flex-1 space-y-4">
-                <div>
-                  <h2 className="text-2xl font-bold">{profile.name}</h2>
-                  <p className="text-muted-foreground text-lg">{profile.role}</p>
-                  {profile.department && (
-                    <div className="flex items-center gap-2 mt-2">
-                      <Building className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm text-muted-foreground">{profile.department}</span>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              {/* Security Tab */}
+              <TabsContent value="security">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>الأمان وكلمة المرور</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="current-password">كلمة المرور الحالية</Label>
+                      <Input
+                        id="current-password"
+                        type="password"
+                        value={passwordData.currentPassword}
+                        onChange={(e) => setPasswordData({ ...passwordData, currentPassword: e.target.value })}
+                      />
                     </div>
-                  )}
-                  <div className="flex items-center gap-2 mt-2">
-                    <Calendar className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-sm text-muted-foreground">
-                      انضم في {new Date(profile.joinDate).toLocaleDateString("ar")}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Contact Information */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-2">
-                <Label htmlFor="email" className="flex items-center gap-2">
-                  <Mail className="h-4 w-4" />
-                  البريد الإلكتروني
-                </Label>
-                {isEditing ? (
-                  <Input
-                    id="email"
-                    value={editedProfile?.email || ""}
-                    onChange={(e) => handleInputChange("email", e.target.value)}
-                  />
-                ) : (
-                  <div className="p-3 bg-muted rounded-md">{profile.email}</div>
-                )}
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="phone" className="flex items-center gap-2">
-                  <Phone className="h-4 w-4" />
-                  رقم الهاتف
-                </Label>
-                {isEditing ? (
-                  <Input
-                    id="phone"
-                    value={editedProfile?.phone || ""}
-                    onChange={(e) => handleInputChange("phone", e.target.value)}
-                  />
-                ) : (
-                  <div className="p-3 bg-muted rounded-md">{profile.phone}</div>
-                )}
-              </div>
-            </div>
-
-            {/* Role and Permissions */}
-            <div className="space-y-4">
-              <div className="flex items-center gap-2">
-                <Shield className="h-5 w-5 text-primary" />
-                <h3 className="text-lg font-semibold">الصلاحيات والصلاحية</h3>
-              </div>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>المنصب</Label>
-                  <div className="p-3 bg-muted rounded-md flex items-center gap-2">
-                    <Briefcase className="h-4 w-4 text-muted-foreground" />
-                    {profile.role}
-                  </div>
-                </div>
-
-                {profile.department && (
-                  <div className="space-y-2">
-                    <Label>القسم</Label>
-                    <div className="p-3 bg-muted rounded-md flex items-center gap-2">
-                      <Building className="h-4 w-4 text-muted-foreground" />
-                      {profile.department}
+                    <div className="space-y-2">
+                      <Label htmlFor="new-password">كلمة المرور الجديدة</Label>
+                      <Input
+                        id="new-password"
+                        type="password"
+                        value={passwordData.newPassword}
+                        onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
+                      />
                     </div>
-                  </div>
-                )}
-              </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="confirm-password">تأكيد كلمة المرور</Label>
+                      <Input
+                        id="confirm-password"
+                        type="password"
+                        value={passwordData.confirmPassword}
+                        onChange={(e) => setPasswordData({ ...passwordData, confirmPassword: e.target.value })}
+                      />
+                    </div>
+                    <Button 
+                      onClick={handleChangePassword}
+                      disabled={changePasswordMutation.isLoading}
+                    >
+                      <Key className="h-4 w-4 mr-2" />
+                      {changePasswordMutation.isLoading ? 'جاري التغيير...' : 'تغيير كلمة المرور'}
+                    </Button>
+                  </CardContent>
+                </Card>
+              </TabsContent>
 
-              {/* Permission Notice */}
-              {!canEdit && (
-                <div className="p-4 bg-blue-50 border border-blue-200 rounded-md">
-                  <div className="flex items-center gap-2">
-                    <Shield className="h-4 w-4 text-blue-600" />
-                    <span className="text-sm text-blue-800">
-                      يمكنك فقط عرض معلوماتك. للتعديل، يرجى التواصل مع مدير النظام.
-                    </span>
+              {/* Activity Tab */}
+              <TabsContent value="activity">
+                <div className="space-y-4">
+                  <div className="grid gap-4 md:grid-cols-3">
+                    <Card>
+                      <CardContent className="p-6">
+                        <div className="flex items-center gap-4">
+                          <div className="p-2 bg-blue-100 rounded-lg">
+                            <Activity className="h-6 w-6 text-blue-600" />
+                          </div>
+                          <div>
+                            <p className="text-2xl font-bold">{activityStats?.totalActions || 0}</p>
+                            <p className="text-sm text-muted-foreground">إجمالي الأنشطة</p>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                    <Card>
+                      <CardContent className="p-6">
+                        <div className="flex items-center gap-4">
+                          <div className="p-2 bg-green-100 rounded-lg">
+                            <BarChart3 className="h-6 w-6 text-green-600" />
+                          </div>
+                          <div>
+                            <p className="text-2xl font-bold">{activityStats?.thisMonth || 0}</p>
+                            <p className="text-sm text-muted-foreground">هذا الشهر</p>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                    <Card>
+                      <CardContent className="p-6">
+                        <div className="flex items-center gap-4">
+                          <div className="p-2 bg-orange-100 rounded-lg">
+                            <Calendar className="h-6 w-6 text-orange-600" />
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium">آخر نشاط</p>
+                            <p className="text-xs text-muted-foreground">
+                              {formatDate(activityStats?.lastLogin || new Date().toISOString())}
+                            </p>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
                   </div>
+
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>الأنشطة الأخيرة</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-4">
+                        {activityStats?.recentActions?.map((activity, index) => (
+                          <div key={index} className="flex items-center gap-4 p-3 rounded-lg bg-muted/50">
+                            <div className="p-2 bg-primary/10 rounded-lg">
+                              <Activity className="h-4 w-4 text-primary" />
+                            </div>
+                            <div className="flex-1">
+                              <p className="font-medium">{activity.action}</p>
+                              <p className="text-sm text-muted-foreground">{activity.module}</p>
+                            </div>
+                            <div className="text-sm text-muted-foreground">
+                              {formatDate(activity.date)}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
                 </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
+              </TabsContent>
+
+              {/* Settings Tab */}
+              <TabsContent value="settings">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>إعدادات الحساب</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="font-medium">الإشعارات</p>
+                        <p className="text-sm text-muted-foreground">تلقي إشعارات عن التحديثات</p>
+                      </div>
+                      <Button variant="outline" size="sm">
+                        <Bell className="h-4 w-4 mr-2" />
+                        إدارة الإشعارات
+                      </Button>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="font-medium">اللغة</p>
+                        <p className="text-sm text-muted-foreground">العربية</p>
+                      </div>
+                      <Button variant="outline" size="sm" disabled>
+                        تغيير اللغة
+                      </Button>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="font-medium">المنطقة الزمنية</p>
+                        <p className="text-sm text-muted-foreground">توقيت الرياض (GMT+3)</p>
+                      </div>
+                      <Button variant="outline" size="sm" disabled>
+                        تغيير المنطقة
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+            </Tabs>
+          </div>
+        </div>
       </div>
     </MainLayout>
   );

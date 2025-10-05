@@ -21,12 +21,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { Calendar } from "@/components/ui/calendar";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+import { ModernDatePicker } from "@/components/ui/modern-date-picker";
 import { CalendarIcon, Plus, Trash2, AlertCircle, CheckCircle2, User, Heart, Shield, Activity } from "lucide-react";
 import { useState } from "react";
 import { format } from "date-fns";
@@ -376,33 +371,15 @@ export function LaboratoryDialog({ open, onOpenChange, laboratory, onSave }: Lab
                 </div>
 
                 <div className="space-y-2">
-                  <Label>تاريخ جمع العينة *</Label>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        className={cn(
-                          "w-full justify-start text-right",
-                          !formData.date && "text-muted-foreground"
-                        )}
-                      >
-                        <CalendarIcon className="ml-2 h-4 w-4" />
-                        {formData.date ? (
-                          format(formData.date, "PPP", { locale: ar })
-                        ) : (
-                          <span>اختر التاريخ</span>
-                        )}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0">
-                      <Calendar
-                        mode="single"
-                        selected={formData.date}
-                        onSelect={(date) => setFormData({ ...formData, date })}
-                        initialFocus
-                      />
-                    </PopoverContent>
-                  </Popover>
+                  <ModernDatePicker
+                    label="تاريخ جمع العينة"
+                    placeholder="اختر تاريخ جمع العينة"
+                    value={formData.date}
+                    onChange={(date) => setFormData({ ...formData, date: date || undefined })}
+                    required
+                    variant="modern"
+                    size="md"
+                  />
                 </div>
 
                 <div className="space-y-2">
@@ -453,33 +430,14 @@ export function LaboratoryDialog({ open, onOpenChange, laboratory, onSave }: Lab
                 </div>
 
                 <div className="space-y-2">
-                  <Label>تاريخ الاستلام</Label>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        className={cn(
-                          "w-full justify-start text-right",
-                          !formData.receivedDate && "text-muted-foreground"
-                        )}
-                      >
-                        <CalendarIcon className="ml-2 h-4 w-4" />
-                        {formData.receivedDate ? (
-                          format(formData.receivedDate, "PPP", { locale: ar })
-                        ) : (
-                          <span>اختر التاريخ</span>
-                        )}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0">
-                      <Calendar
-                        mode="single"
-                        selected={formData.receivedDate}
-                        onSelect={(date) => setFormData({ ...formData, receivedDate: date })}
-                        initialFocus
-                      />
-                    </PopoverContent>
-                  </Popover>
+                  <ModernDatePicker
+                    label="تاريخ الاستلام"
+                    placeholder="اختر تاريخ الاستلام"
+                    value={formData.receivedDate}
+                    onChange={(date) => setFormData({ ...formData, receivedDate: date || undefined })}
+                    variant="modern"
+                    size="md"
+                  />
                 </div>
               </div>
             </TabsContent>
@@ -769,33 +727,14 @@ export function LaboratoryDialog({ open, onOpenChange, laboratory, onSave }: Lab
               </div>
 
               <div className="space-y-2">
-                <Label>تاريخ إكمال الفحص</Label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className={cn(
-                        "w-full justify-start text-right",
-                        !formData.completedDate && "text-muted-foreground"
-                      )}
-                    >
-                      <CalendarIcon className="ml-2 h-4 w-4" />
-                      {formData.completedDate ? (
-                        format(formData.completedDate, "PPP", { locale: ar })
-                      ) : (
-                        <span>اختر التاريخ</span>
-                      )}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0">
-                    <Calendar
-                      mode="single"
-                      selected={formData.completedDate}
-                      onSelect={(date) => setFormData({ ...formData, completedDate: date })}
-                      initialFocus
-                    />
-                  </PopoverContent>
-                </Popover>
+                <ModernDatePicker
+                  label="تاريخ إكمال الفحص"
+                  placeholder="اختر تاريخ إكمال الفحص"
+                  value={formData.completedDate}
+                  onChange={(date) => setFormData({ ...formData, completedDate: date || undefined })}
+                  variant="modern"
+                  size="md"
+                />
               </div>
 
               {formData.positiveCases > 0 && (

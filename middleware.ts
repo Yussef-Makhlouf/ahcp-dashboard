@@ -2,11 +2,16 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
 export function middleware(request: NextRequest) {
+  // في بيئة التطوير، نسمح بالوصول لجميع الصفحات بدون مصادقة
+  if (process.env.NODE_ENV === 'development') {
+    return NextResponse.next();
+  }
+  
   // الحصول على المسار الحالي
   const { pathname } = request.nextUrl;
   
   // المسارات التي لا تحتاج إلى حماية
-  const publicPaths = ['/login'];
+  const publicPaths = ['/login', '/api'];
   
   // التحقق من أن المسار الحالي ليس من المسارات العامة
   const isPublicPath = publicPaths.some(path => pathname.startsWith(path));
@@ -15,34 +20,8 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
   
-  // في بيئة التطوير والإنتاج، نسمح بالوصول للصفحات المحمية
-  // لأن Zustand يستخدم localStorage وليس cookies
-  return NextResponse.next();
-  
-  // التحقق من وجود بيانات المصادقة في cookies
-  const authToken = request.cookies.get('auth-storage');
-  
-  // إذا لم يكن هناك token، أعد التوجيه إلى صفحة تسجيل الدخول
-  if (!authToken) {
-    const loginUrl = new URL('/login', request.url);
-    // إضافة معامل returnUrl لإعادة التوجيه بعد تسجيل الدخول
-    loginUrl.searchParams.set('returnUrl', pathname);
-    return NextResponse.redirect(loginUrl);
-  }
-  
-  // التحقق من صحة البيانات المخزنة
-  try {
-    const authData = JSON.parse(authToken?.value || '{}');
-    if (!authData.state?.isAuthenticated || !authData.state?.user) {
-      const loginUrl = new URL('/login', request.url);
-      return NextResponse.redirect(loginUrl);
-    }
-  } catch (error) {
-    // إذا فشل تحليل البيانات، أعد التوجيه إلى تسجيل الدخول
-    const loginUrl = new URL('/login', request.url);
-    return NextResponse.redirect(loginUrl);
-  }
-  
+  // في بيئة الإنتاج، يمكن تفعيل المصادقة هنا
+  // للآن نسمح بالوصول لجميع الصفحات
   return NextResponse.next();
 }
 

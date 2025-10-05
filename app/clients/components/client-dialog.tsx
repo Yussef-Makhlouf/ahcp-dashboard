@@ -23,12 +23,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { Calendar } from "@/components/ui/calendar";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+import { ModernDatePicker } from "@/components/ui/modern-date-picker";
 import { 
   CalendarIcon, 
   MapPin, 
@@ -49,12 +44,13 @@ import { validateSaudiPhone } from "@/lib/utils";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { EnhancedMobileTabs } from "@/components/ui/mobile-tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import type { Client, Animal } from "@/types";
 
 interface ClientDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  client?: any;
-  onSave: (data: any) => void;
+  client?: Client;
+  onSave: (data: Client) => void;
 }
 
 const villages = [
@@ -67,33 +63,34 @@ const villages = [
   "قرية البركة",
 ];
 
-interface Animal {
-  id: string;
-  type: string;
-  breed: string;
-  age: string;
-  gender: string;
-  healthStatus: string;
-  vaccinated: boolean;
-  lastVaccination?: string;
-  notes?: string;
-}
+const availableServices = [
+  { code: "parasite_control", name: "مكافحة الطفيليات", icon: "🦠" },
+  { code: "vaccination", name: "التحصين", icon: "💉" },
+  { code: "mobile_clinic", name: "العيادة المتنقلة", icon: "🚑" },
+  { code: "equine_health", name: "صحة الخيول", icon: "🐎" },
+  { code: "laboratory", name: "المختبر", icon: "🔬" }
+];
+
+const animalTypes = [
+  "خيول",
+  "أغنام", 
+  "ماعز",
+  "أبقار",
+  "إبل"
+];
 
 export function ClientDialog({ open, onOpenChange, client, onSave }: ClientDialogProps) {
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<Client>({
     name: "",
-    id: "",
-    phone: "",
-    birthDate: undefined as Date | undefined,
-    village: "",
-    address: "",
-    email: "",
     nationalId: "",
-    status: "active",
-    notes: "",
-    animals: [] as Animal[],
-    emergencyContact: "",
-    preferredVet: "",
+    birthDate: "",
+    phone: "",
+    email: "",
+    village: "",
+    detailedAddress: "",
+    status: "نشط",
+    animals: [],
+    availableServices: [],
   });
 
   const [loading, setLoading] = useState(false);
@@ -101,38 +98,37 @@ export function ClientDialog({ open, onOpenChange, client, onSave }: ClientDialo
   const [activeTab, setActiveTab] = useState("basic");
 
   const [newAnimal, setNewAnimal] = useState<Animal>({
-    id: "",
-    type: "sheep",
+    animalType: "خيول",
     breed: "",
-    age: "",
-    gender: "male",
-    healthStatus: "healthy",
-    vaccinated: false,
-    notes: "",
+    age: 0,
+    gender: "ذكر",
+    healthStatus: "سليم",
+    identificationNumber: "",
+    animalCount: 0,
   });
 
   useEffect(() => {
     if (client) {
+      // Transform client data to match form structure
       setFormData({
         ...client,
-        birthDate: client.birthDate ? new Date(client.birthDate) : undefined,
-        animals: client.animals || [],
+        nationalId: client.nationalId || client.national_id || "",
+        birthDate: client.birthDate || client.birth_date || "",
+        detailedAddress: client.detailedAddress || client.detailed_address || "",
+        availableServices: client.availableServices || client.available_services || [],
       });
     } else {
       setFormData({
         name: "",
-        id: "",
-        phone: "",
-        birthDate: undefined,
-        village: "",
-        address: "",
-        email: "",
         nationalId: "",
-        status: "active",
-        notes: "",
+        birthDate: "",
+        phone: "",
+        email: "",
+        village: "",
+        detailedAddress: "",
+        status: "نشط",
         animals: [],
-        emergencyContact: "",
-        preferredVet: "",
+        availableServices: [],
       });
     }
   }, [client]);
@@ -147,10 +143,10 @@ export function ClientDialog({ open, onOpenChange, client, onSave }: ClientDialo
       newErrors.name = "الاسم يجب أن يكون أكثر من حرفين";
     }
     
-    if (!formData.id.trim()) {
-      newErrors.id = "رقم الهوية مطلوب";
-    } else if (formData.id.trim().length < 3) {
-      newErrors.id = "رقم الهوية يجب أن يكون أكثر من 3 أحرف";
+    if (!formData.nationalId.trim()) {
+      newErrors.nationalId = "الرقم القومي مطلوب";
+    } else if (!/^\d{10}$/.test(formData.nationalId)) {
+      newErrors.nationalId = "الرقم القومي يجب أن يكون 10 أرقام";
     }
     
     if (!formData.phone.trim()) {
@@ -163,24 +159,13 @@ export function ClientDialog({ open, onOpenChange, client, onSave }: ClientDialo
       newErrors.village = "القرية مطلوبة";
     }
     
+    if (!formData.birthDate) {
+      newErrors.birthDate = "تاريخ الميلاد مطلوب";
+    }
+    
     // Email validation (if provided)
     if (formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
       newErrors.email = "البريد الإلكتروني غير صحيح";
-    }
-    
-    // National ID validation (if provided)
-    if (formData.nationalId && !/^\d{14}$/.test(formData.nationalId)) {
-      newErrors.nationalId = "الرقم القومي يجب أن يكون 14 رقم";
-    }
-    
-    // Birth date validation
-    if (formData.birthDate && formData.birthDate > new Date()) {
-      newErrors.birthDate = "تاريخ الميلاد لا يمكن أن يكون في المستقبل";
-    }
-    
-    // Emergency contact validation (if provided)
-    if (formData.emergencyContact && !validateSaudiPhone(formData.emergencyContact)) {
-      newErrors.emergencyContact = "رقم الطوارئ غير صحيح. يجب أن يبدأ بـ +966 أو 05";
     }
     
     setErrors(newErrors);
@@ -195,13 +180,8 @@ export function ClientDialog({ open, onOpenChange, client, onSave }: ClientDialo
     setLoading(true);
     
     try {
-      await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate API call
-      
-      onSave({
-        ...formData,
-        birthDate: formData.birthDate ? format(formData.birthDate, "yyyy-MM-dd") : "",
-        totalAnimals: formData.animals.length,
-      });
+      // استخدام API الحقيقي بدلاً من المحاكاة
+      onSave(formData);
       onOpenChange(false);
     } catch (error) {
       console.error("Error saving client:", error);
@@ -212,7 +192,7 @@ export function ClientDialog({ open, onOpenChange, client, onSave }: ClientDialo
 
   const addAnimal = () => {
     // Validate animal data
-    if (!newAnimal.id.trim()) {
+    if (!newAnimal.identificationNumber?.trim()) {
       alert("رقم التعريف مطلوب");
       return;
     }
@@ -220,37 +200,44 @@ export function ClientDialog({ open, onOpenChange, client, onSave }: ClientDialo
       alert("السلالة مطلوبة");
       return;
     }
-    if (!newAnimal.age.trim()) {
+    if (newAnimal.age <= 0) {
       alert("العمر مطلوب");
+      return;
+    }
+    if (newAnimal.animalCount <= 0) {
+      alert("عدد الحيوانات يجب أن يكون أكبر من صفر");
       return;
     }
     
     // Check if animal ID already exists
-    if (formData.animals.some(animal => animal.id === newAnimal.id)) {
+    if (formData.animals.some(animal => 
+      (animal.identificationNumber || animal.identification_number) === newAnimal.identificationNumber
+    )) {
       alert("رقم التعريف موجود بالفعل");
       return;
     }
     
     setFormData({
       ...formData,
-      animals: [...formData.animals, { ...newAnimal, id: Date.now().toString() }],
+      animals: [...formData.animals, newAnimal],
     });
     setNewAnimal({
-      id: "",
-      type: "sheep",
+      animalType: "خيول",
       breed: "",
-      age: "",
-      gender: "male",
-      healthStatus: "healthy",
-      vaccinated: false,
-      notes: "",
+      age: 0,
+      gender: "ذكر",
+      healthStatus: "سليم",
+      identificationNumber: "",
+      animalCount: 0,
     });
   };
 
-  const removeAnimal = (id: string) => {
+  const removeAnimal = (identificationNumber: string) => {
     setFormData({
       ...formData,
-      animals: formData.animals.filter(a => a.id !== id),
+      animals: formData.animals.filter(a => 
+        (a.identificationNumber || a.identification_number) !== identificationNumber
+      ),
     });
   };
 
@@ -317,32 +304,20 @@ export function ClientDialog({ open, onOpenChange, client, onSave }: ClientDialo
                   </FormField>
 
                   <FormField>
-                    <FormLabel htmlFor="id" required>رقم الهوية</FormLabel>
-                    <Input
-                      id="id"
-                      value={formData.id}
-                      onChange={(e) => setFormData({ ...formData, id: e.target.value })}
-                      placeholder="C001"
-                      variant="enhanced"
-                      error={!!errors.id}
-                    />
-                    {errors.id && <p className="error-message">{errors.id}</p>}
-                  </FormField>
-
-                  <FormField>
-                    <FormLabel htmlFor="nationalId">الرقم القومي</FormLabel>
+                    <FormLabel htmlFor="nationalId" required>الرقم القومي</FormLabel>
                     <Input
                       id="nationalId"
                       value={formData.nationalId}
                       onChange={(e) => setFormData({ ...formData, nationalId: e.target.value })}
-                      placeholder="أدخل الرقم القومي"
+                      placeholder="7777777777"
                       variant="enhanced"
-                      maxLength={14}
                       error={!!errors.nationalId}
+                      maxLength={10}
                       dir="ltr"
                     />
                     {errors.nationalId && <p className="error-message">{errors.nationalId}</p>}
                   </FormField>
+
 
                   <FormField>
                     <FormLabel htmlFor="phone" required>رقم الهاتف</FormLabel>
@@ -359,35 +334,21 @@ export function ClientDialog({ open, onOpenChange, client, onSave }: ClientDialo
                   </FormField>
 
                   <FormField>
-                    <FormLabel>تاريخ الميلاد</FormLabel>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button
-                          variant="outline"
-                          className={cn(
-                            "w-full justify-start text-right form-input-enhanced",
-                            !formData.birthDate && "text-muted-foreground",
-                            errors.birthDate && "border-red-500"
-                          )}
-                        >
-                          <CalendarIcon className="ml-2 h-4 w-4" />
-                          {formData.birthDate ? (
-                            format(formData.birthDate, "PPP", { locale: ar })
-                          ) : (
-                            <span>اختر التاريخ</span>
-                          )}
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0">
-                        <Calendar
-                          mode="single"
-                          selected={formData.birthDate}
-                          onSelect={(date) => setFormData({ ...formData, birthDate: date })}
-                          initialFocus
-                        />
-                      </PopoverContent>
-                    </Popover>
-                    {errors.birthDate && <p className="error-message">{errors.birthDate}</p>}
+                    <ModernDatePicker
+                      label="تاريخ الميلاد"
+                      placeholder="اختر تاريخ الميلاد"
+                      value={formData.birthDate}
+                      onChange={(date: Date | null) => {
+                        const dateString = date ? format(date, 'yyyy-MM-dd') : '';
+                        setFormData({ ...formData, birthDate: dateString });
+                      }}
+                      required
+                      error={errors.birthDate}
+                      maxDate={new Date()} // لا يمكن اختيار تاريخ مستقبلي
+                      minDate={new Date(1900, 0, 1)} // حد أدنى منطقي
+                      size="md"
+                      variant="modern"
+                    />
                   </FormField>
 
                   <FormField>
@@ -429,25 +390,25 @@ export function ClientDialog({ open, onOpenChange, client, onSave }: ClientDialo
                     <FormLabel htmlFor="status">الحالة</FormLabel>
                     <Select
                       value={formData.status}
-                      onValueChange={(value) => setFormData({ ...formData, status: value })}
+                      onValueChange={(value) => setFormData({ ...formData, status: value as "نشط" | "غير نشط" })}
                     >
                       <SelectTrigger className="form-select-enhanced">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="active">نشط</SelectItem>
-                        <SelectItem value="inactive">غير نشط</SelectItem>
+                        <SelectItem value="نشط">نشط</SelectItem>
+                        <SelectItem value="غير نشط">غير نشط</SelectItem>
                       </SelectContent>
                     </Select>
                   </FormField>
                 </div>
 
                 <FormField>
-                  <FormLabel htmlFor="address">العنوان التفصيلي</FormLabel>
+                  <FormLabel htmlFor="detailedAddress">العنوان التفصيلي</FormLabel>
                   <Textarea
-                    id="address"
-                    value={formData.address}
-                    onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                    id="detailedAddress"
+                    value={formData.detailedAddress}
+                    onChange={(e) => setFormData({ ...formData, detailedAddress: e.target.value })}
                     placeholder="أدخل العنوان التفصيلي"
                     className="form-input-enhanced"
                     rows={2}
@@ -466,19 +427,18 @@ export function ClientDialog({ open, onOpenChange, client, onSave }: ClientDialo
                     <div className="space-y-2 bg-white">
                       <Label>نوع الحيوان</Label>
                       <Select
-                        value={newAnimal.type}
-                        onValueChange={(value) => setNewAnimal({ ...newAnimal, type: value })}
-                      
+                        value={newAnimal.animalType}
+                        onValueChange={(value) => setNewAnimal({ ...newAnimal, animalType: value })}
                       >
                         <SelectTrigger>
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="sheep">أغنام</SelectItem>
-                          <SelectItem value="goats">ماعز</SelectItem>
-                          <SelectItem value="cattle">أبقار</SelectItem>
-                          <SelectItem value="camel">إبل</SelectItem>
-                          <SelectItem value="horse">خيول</SelectItem>
+                          {animalTypes.map((type) => (
+                            <SelectItem key={type} value={type}>
+                              {type}
+                            </SelectItem>
+                          ))}
                         </SelectContent>
                       </Select>
                     </div>
@@ -495,9 +455,11 @@ export function ClientDialog({ open, onOpenChange, client, onSave }: ClientDialo
                     <div className="space-y-2">
                       <Label>العمر</Label>
                       <Input
+                        type="number"
                         value={newAnimal.age}
-                        onChange={(e) => setNewAnimal({ ...newAnimal, age: e.target.value })}
-                        placeholder="مثال: 2 سنة"
+                        onChange={(e) => setNewAnimal({ ...newAnimal, age: parseInt(e.target.value) || 0 })}
+                        placeholder="مثال: 2"
+                        min="0"
                       />
                     </div>
 
@@ -505,14 +467,14 @@ export function ClientDialog({ open, onOpenChange, client, onSave }: ClientDialo
                       <Label>الجنس</Label>
                       <Select
                         value={newAnimal.gender}
-                        onValueChange={(value) => setNewAnimal({ ...newAnimal, gender: value })}
+                        onValueChange={(value) => setNewAnimal({ ...newAnimal, gender: value as "ذكر" | "أنثى" })}
                       >
                         <SelectTrigger>
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="male">ذكر</SelectItem>
-                          <SelectItem value="female">أنثى</SelectItem>
+                          <SelectItem value="ذكر">ذكر</SelectItem>
+                          <SelectItem value="أنثى">أنثى</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
@@ -521,15 +483,15 @@ export function ClientDialog({ open, onOpenChange, client, onSave }: ClientDialo
                       <Label>الحالة الصحية</Label>
                       <Select
                         value={newAnimal.healthStatus}
-                        onValueChange={(value) => setNewAnimal({ ...newAnimal, healthStatus: value })}
+                        onValueChange={(value) => setNewAnimal({ ...newAnimal, healthStatus: value as "سليم" | "مريض" | "تحت العلاج" })}
                       >
                         <SelectTrigger>
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="healthy">سليم</SelectItem>
-                          <SelectItem value="sick">مريض</SelectItem>
-                          <SelectItem value="under_treatment">تحت العلاج</SelectItem>
+                          <SelectItem value="سليم">سليم</SelectItem>
+                          <SelectItem value="مريض">مريض</SelectItem>
+                          <SelectItem value="تحت العلاج">تحت العلاج</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
@@ -537,9 +499,20 @@ export function ClientDialog({ open, onOpenChange, client, onSave }: ClientDialo
                     <div className="space-y-2">
                       <Label>رقم التعريف</Label>
                       <Input
-                        value={newAnimal.id}
-                        onChange={(e) => setNewAnimal({ ...newAnimal, id: e.target.value })}
+                        value={newAnimal.identificationNumber}
+                        onChange={(e) => setNewAnimal({ ...newAnimal, identificationNumber: e.target.value })}
                         placeholder="رقم التعريف"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>عدد الحيوانات</Label>
+                      <Input
+                        type="number"
+                        value={newAnimal.animalCount}
+                        onChange={(e) => setNewAnimal({ ...newAnimal, animalCount: parseInt(e.target.value) || 0 })}
+                        placeholder="عدد الحيوانات"
+                        min="0"
                       />
                     </div>
                   </div>
@@ -563,31 +536,31 @@ export function ClientDialog({ open, onOpenChange, client, onSave }: ClientDialo
                     <p className="text-center text-muted-foreground">لا توجد حيوانات مضافة</p>
                   ) : (
                     <div className="space-y-2">
-                      {formData.animals.map((animal) => (
+                      {formData.animals.map((animal, index) => (
                         <div
-                          key={animal.id}
+                          key={animal.identificationNumber || animal.identification_number || index}
                           className="flex items-center justify-between p-2 rounded-lg bg-muted/50"
                         >
                           <div className="flex items-center gap-2">
                             <Badge variant="outline">
-                              {animal.type === "sheep" && "أغنام"}
-                              {animal.type === "goats" && "ماعز"}
-                              {animal.type === "cattle" && "أبقار"}
-                              {animal.type === "camel" && "إبل"}
-                              {animal.type === "horse" && "خيول"}
+                              {animal.animalType || animal.animal_type}
                             </Badge>
                             <span className="text-sm">{animal.breed}</span>
-                            <Badge variant={animal.healthStatus === "healthy" ? "default" : "danger"}>
-                              {animal.healthStatus === "healthy" && "سليم"}
-                              {animal.healthStatus === "sick" && "مريض"}
-                              {animal.healthStatus === "under_treatment" && "تحت العلاج"}
+                            <Badge variant={(animal.healthStatus || animal.health_status) === "سليم" ? "default" : "danger"}>
+                              {animal.healthStatus || animal.health_status}
                             </Badge>
+                            <span className="text-xs text-muted-foreground">
+                              {animal.age} سنة
+                            </span>
+                            <span className="text-xs text-blue-600 font-medium">
+                              {animal.animalCount || animal.animal_count} رأس
+                            </span>
                           </div>
                           <Button
                             type="button"
                             variant="ghost"
                             size="sm"
-                            onClick={() => removeAnimal(animal.id)}
+                            onClick={() => removeAnimal(animal.identificationNumber || animal.identification_number || "")}
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>
@@ -600,49 +573,89 @@ export function ClientDialog({ open, onOpenChange, client, onSave }: ClientDialo
             </TabsContent>
 
             <TabsContent value="additional" className="tabs-content-modern">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="emergencyContact">رقم الطوارئ</Label>
-                  <Input
-                    id="emergencyContact"
-                    value={formData.emergencyContact}
-                    onChange={(e) => setFormData({ ...formData, emergencyContact: e.target.value })}
-                    placeholder="+966501234567 أو 0501234567"
-                    dir="ltr"
-                    className={errors.emergencyContact ? "border-red-500" : ""}
-                  />
-                  {errors.emergencyContact && (
-                    <p className="error-message">{errors.emergencyContact}</p>
-                  )}
+              <div className="section-modern">
+                <div className="section-header-modern">
+                  <h3 className="section-title-modern">الخدمات المتاحة</h3>
+                  <p className="section-description-modern">اختر الخدمات المتاحة لهذا المربي</p>
                 </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="preferredVet">الطبيب البيطري المفضل</Label>
-                  <Input
-                    id="preferredVet"
-                    value={formData.preferredVet}
-                    onChange={(e) => setFormData({ ...formData, preferredVet: e.target.value })}
-                    placeholder="اسم الطبيب البيطري"
-                  />
+                
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {availableServices.map((service) => {
+                    const isChecked = (formData.availableServices || []).includes(service.code);
+                    return (
+                      <div 
+                        key={service.code} 
+                        className={`relative flex items-center p-4 rounded-lg border-2 transition-all cursor-pointer hover:shadow-md ${
+                          isChecked 
+                            ? 'border-blue-500 bg-blue-50 shadow-sm' 
+                            : 'border-gray-200 bg-white hover:border-gray-300'
+                        }`}
+                        onClick={() => {
+                          const currentServices = formData.availableServices || [];
+                          if (isChecked) {
+                            setFormData({
+                              ...formData,
+                              availableServices: currentServices.filter(s => s !== service.code)
+                            });
+                          } else {
+                            setFormData({
+                              ...formData,
+                              availableServices: [...currentServices, service.code]
+                            });
+                          }
+                        }}
+                      >
+                        <input
+                          type="checkbox"
+                          id={service.code}
+                          checked={isChecked}
+                          onChange={() => {}} // Handled by div onClick
+                          className="sr-only"
+                        />
+                        <div className="flex items-center gap-3 w-full">
+                          <div className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center text-lg ${
+                            isChecked ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-600'
+                          }`}>
+                            {service.icon}
+                          </div>
+                          <div className="flex-1">
+                            <Label htmlFor={service.code} className="text-sm font-medium cursor-pointer">
+                              {service.name}
+                            </Label>
+                          </div>
+                          <div className={`flex-shrink-0 w-5 h-5 rounded border-2 flex items-center justify-center ${
+                            isChecked 
+                              ? 'border-blue-500 bg-blue-500' 
+                              : 'border-gray-300 bg-white'
+                          }`}>
+                            {isChecked && (
+                              <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                              </svg>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="notes">ملاحظات</Label>
-                <Textarea
-                  id="notes"
-                  value={formData.notes}
-                  onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                  placeholder="أي ملاحظات إضافية"
-                  rows={4}
-                />
-              </div>
-
-              <div className="flex items-center gap-2 p-4 rounded-lg bg-muted/50">
-                <MapPin className="h-4 w-4 text-muted-foreground" />
-                <span className="text-sm text-muted-foreground">
-                  يمكن إضافة الموقع الجغرافي لاحقاً من خلال خرائط جوجل
-                </span>
+                
+                {/* عرض الخدمات المختارة */}
+                {(formData.availableServices || []).length > 0 && (
+                  <div className="mt-6 p-4 bg-green-50 rounded-lg border border-green-200">
+                    <h4 className="text-sm font-medium text-green-800 mb-2">الخدمات المختارة:</h4>
+                    <div className="flex flex-wrap gap-2">
+                      {(formData.availableServices || []).map((serviceCode) => {
+                        const service = availableServices.find(s => s.code === serviceCode);
+                        return service ? (
+                          <Badge key={serviceCode} variant="outline" className="bg-white border-green-300 text-green-700">
+                            {service.icon} {service.name}
+                          </Badge>
+                        ) : null;
+                      })}
+                    </div>
+                  </div>
+                )}
               </div>
             </TabsContent>
             </Tabs>

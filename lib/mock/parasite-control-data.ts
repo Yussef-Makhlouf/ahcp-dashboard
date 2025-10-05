@@ -23,13 +23,19 @@ export const mockParasiteControlData: ParasiteControl[] = [
       type: "Cyperdip 10%",
       method: "Pour on",
       volume_ml: 50,
-      status: "Sprayed"
+      status: "Sprayed",
+      category: "Pour-on"
     },
     barns: [
       { size: 100, insecticideVolume: 20 },
       { size: 150, insecticideVolume: 30 }
     ],
     breedingSites: [],
+    // New fields from database schema
+    herdLocation: "منطقة الشمال",
+    animalBarnSizeSqM: 250.50,
+    parasiteControlVolume: 75.25,
+    parasiteControlStatus: "مكتمل",
     herdHealthStatus: "Healthy",
     complying: "Comply",
     request: {
@@ -62,12 +68,18 @@ export const mockParasiteControlData: ParasiteControl[] = [
       type: "Ultra-Pour 1%",
       method: "Pour on",
       volume_ml: 45,
-      status: "Sprayed"
+      status: "Sprayed",
+      category: "Pour-on"
     },
     barns: [
       { size: 200, insecticideVolume: 40 }
     ],
     breedingSites: [],
+    // New fields from database schema
+    herdLocation: "منطقة الجنوب",
+    animalBarnSizeSqM: 200.00,
+    parasiteControlVolume: 45.00,
+    parasiteControlStatus: "مكتمل",
     herdHealthStatus: "Healthy",
     complying: "Comply",
     request: {
@@ -100,10 +112,16 @@ export const mockParasiteControlData: ParasiteControl[] = [
       type: "Cyperdip 10%",
       method: "Spray",
       volume_ml: 0,
-      status: "Not Sprayed"
+      status: "Not Sprayed",
+      category: "Spray"
     },
     barns: [],
     breedingSites: [],
+    // New fields from database schema
+    herdLocation: "منطقة الشرق",
+    animalBarnSizeSqM: 0,
+    parasiteControlVolume: 0,
+    parasiteControlStatus: "معلق",
     herdHealthStatus: "Sick",
     complying: "Not Comply",
     request: {
@@ -135,7 +153,8 @@ export const mockParasiteControlData: ParasiteControl[] = [
       type: "Deltamethrin 5%",
       method: "Pour on",
       volume_ml: 70,
-      status: "Sprayed"
+      status: "Sprayed",
+      category: "Pour-on"
     },
     barns: [
       { size: 250, insecticideVolume: 50 },
@@ -144,6 +163,11 @@ export const mockParasiteControlData: ParasiteControl[] = [
     breedingSites: [
       { type: "بركة مياه", area: 50, treatment: "معالج" }
     ],
+    // New fields from database schema
+    herdLocation: "منطقة الغرب",
+    animalBarnSizeSqM: 350.75,
+    parasiteControlVolume: 90.50,
+    parasiteControlStatus: "مكتمل",
     herdHealthStatus: "Healthy",
     complying: "Comply",
     request: {
@@ -176,13 +200,19 @@ export const mockParasiteControlData: ParasiteControl[] = [
       type: "Cyperdip 10%",
       method: "Pour on",
       volume_ml: 60,
-      status: "Sprayed"
+      status: "Sprayed",
+      category: "Pour-on"
     },
     barns: [
       { size: 180, insecticideVolume: 35 },
       { size: 120, insecticideVolume: 25 }
     ],
     breedingSites: [],
+    // New fields from database schema
+    herdLocation: "منطقة الوسط",
+    animalBarnSizeSqM: 300.00,
+    parasiteControlVolume: 60.00,
+    parasiteControlStatus: "مكتمل",
     herdHealthStatus: "Healthy",
     complying: "Comply",
     request: {

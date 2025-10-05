@@ -21,12 +21,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { Calendar } from "@/components/ui/calendar";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+import { ModernDatePicker } from "@/components/ui/modern-date-picker";
 import { 
   CalendarIcon, 
   Clock, 
@@ -39,7 +34,8 @@ import {
   User,
   Heart,
   Shield,
-  Activity
+  Activity,
+  Calendar
 } from "lucide-react";
 import { useState } from "react";
 import { format } from "date-fns";
@@ -53,6 +49,7 @@ import { Badge, StatusBadge } from "@/components/ui/badge-modern";
 import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Popover, PopoverContent, PopoverTrigger, PopoverTrigger } from "@radix-ui/react-popover";
 
 interface ScheduleDialogProps {
   open: boolean;

@@ -17,6 +17,8 @@ import {
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { mockLogin } from "@/lib/store/auth-store";
+import { reportsApi } from "@/lib/api/reports";
+import type { DashboardStats } from "@/lib/api/reports";
 import {
   BarChart,
   Bar,
@@ -91,12 +93,30 @@ const animalDistribution = [
 
 export default function Home() {
   const [mounted, setMounted] = useState(false);
+  const [dashboardStats, setDashboardStats] = useState<DashboardStats | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     setMounted(true);
     // Auto login for development
     mockLogin("super_admin");
+    
+    // Load dashboard data
+    loadDashboardData();
   }, []);
+
+  const loadDashboardData = async () => {
+    try {
+      setLoading(true);
+      const stats = await reportsApi.getDashboardStats();
+      setDashboardStats(stats);
+    } catch (error) {
+      console.error('Error loading dashboard data:', error);
+      // Use fallback mock data if API fails
+    } finally {
+      setLoading(false);
+    }
+  };
 
   if (!mounted) {
     return null;
@@ -115,21 +135,72 @@ export default function Home() {
 
         {/* Stats Cards */}
         <div className="grid-modern grid-cols-4-modern">
-          {stats.map((stat) => {
-            const Icon = stat.icon;
-            
-            return (
-              <StatsCard
-                key={stat.title}
-                title={stat.title}
-                value={stat.value}
-                change={stat.change}
-                trend={stat.trend as "up" | "down"}
-                icon={<Icon className="h-5 w-5" />}
-                description="مقارنة بالشهر الماضي"
-              />
-            );
-          })}
+          {loading ? (
+            // Loading skeleton
+            Array.from({ length: 4 }).map((_, index) => (
+              <div key={index} className="animate-pulse">
+                <div className="bg-gray-200 rounded-lg h-32"></div>
+              </div>
+            ))
+          ) : (
+            // Real or fallback stats
+            (() => {
+              const displayStats = dashboardStats ? [
+                {
+                  title: "إجمالي المربيين",
+                  value: dashboardStats.totalClients.toString(),
+                  change: "+12%",
+                  trend: "up",
+                  icon: Users,
+                  color: "text-info",
+                  bgColor: "bg-light",
+                },
+                {
+                  title: "التحصينات هذا الشهر",
+                  value: dashboardStats.vaccinationRecords.toString(),
+                  change: "+8%",
+                  trend: "up",
+                  icon: Syringe,
+                  color: "text-success",
+                  bgColor: "bg-light",
+                },
+                {
+                  title: "مكافحة الطفيليات",
+                  value: dashboardStats.parasiteControlRecords.toString(),
+                  change: "-3%",
+                  trend: "down",
+                  icon: Bug,
+                  color: "text-warning",
+                  bgColor: "bg-light",
+                },
+                {
+                  title: "العيادات المتنقلة",
+                  value: dashboardStats.mobileClinicVisits.toString(),
+                  change: "+15%",
+                  trend: "up",
+                  icon: Truck,
+                  color: "text-primary",
+                  bgColor: "bg-light",
+                },
+              ] : stats;
+
+              return displayStats.map((stat) => {
+                const Icon = stat.icon;
+                
+                return (
+                  <StatsCard
+                    key={stat.title}
+                    title={stat.title}
+                    value={stat.value}
+                    change={stat.change}
+                    trend={stat.trend as "up" | "down"}
+                    icon={<Icon className="h-5 w-5" />}
+                    description="مقارنة بالشهر الماضي"
+                  />
+                );
+              });
+            })()
+          )}
         </div>
 
         {/* Charts */}

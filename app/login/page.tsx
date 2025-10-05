@@ -149,12 +149,6 @@ export default function LoginPage() {
     }
   };
 
-  // بيانات تسجيل الدخول المحددة
-  const validCredentials = {
-    email: 'admin@ahcp.gov.eg',
-    password: 'AHCP2024!'
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
@@ -167,40 +161,36 @@ export default function LoginPage() {
       return;
     }
 
-    // محاكاة تأخير للواجهة
-    await new Promise(resolve => setTimeout(resolve, 1000));
-
-    if (email === validCredentials.email && password === validCredentials.password) {
-      // تسجيل دخول ناجح
+    try {
+      console.log('🔐 Attempting login with:', { email, password: '***' });
+      
+      // استدعاء API الحقيقي
+      await login({ email, password });
+      
       setSuccess('تم تسجيل الدخول بنجاح! جاري التوجيه...');
-      
-      const user = {
-        id: '1',
-        name: 'مدير النظام',
-        email: validCredentials.email,
-        role: 'super_admin' as const,
-      };
-      
-      login(user);
+      console.log('✅ Login successful, redirecting to:', returnUrl);
       
       // تأخير قصير لإظهار رسالة النجاح
       setTimeout(() => {
-        console.log('Redirecting to:', returnUrl);
-        // استخدام router.push للتوجيه
         router.push(returnUrl);
-        // إضافة تأخير إضافي للتأكد من التوجيه
-        setTimeout(() => {
-          if (window.location.pathname === '/login') {
-            console.log('Still on login page, forcing redirect...');
-            window.location.href = returnUrl;
-          }
-        }, 500);
       }, 1500);
-    } else {
-      setError('البريد الإلكتروني أو كلمة المرور غير صحيحة');
+      
+    } catch (error: any) {
+      console.error('❌ Login error:', error);
+      
+      // معالجة أنواع مختلفة من الأخطاء
+      if (error.response?.status === 401) {
+        setError('البريد الإلكتروني أو كلمة المرور غير صحيحة');
+      } else if (error.response?.status === 403) {
+        setError('الحساب غير مفعل أو محظور');
+      } else if (error.code === 'NETWORK_ERROR' || error.message.includes('Network Error')) {
+        setError('خطأ في الاتصال بالخادم. تأكد من تشغيل الخادم الخلفي');
+      } else {
+        setError(error.response?.data?.message || error.message || 'حدث خطأ أثناء تسجيل الدخول');
+      }
+    } finally {
+      setIsLoading(false);
     }
-    
-    setIsLoading(false);
   };
 
   return (
@@ -269,7 +259,7 @@ export default function LoginPage() {
                   value={email}
                   onChange={handleEmailChange}
                   onBlur={() => handleBlur('email')}
-                  placeholder="admin@ahcp.gov.eg"
+                  placeholder="admin@ahcp.gov.sa"
                   className={`h-14 text-right text-lg rounded-xl border-2 transition-all duration-200 ${
                     emailError 
                       ? 'border-red-400 focus:border-red-500 focus:ring-red-200' 
@@ -351,11 +341,16 @@ export default function LoginPage() {
               <div className="text-sm text-slate-700 space-y-3">
                 <div className="flex items-center justify-between">
                   <span className="font-medium text-slate-600">البريد الإلكتروني:</span>
-                  <span className="bg-slate-100 px-3 py-2 rounded-lg text-slate-800 font-mono text-sm">admin@ahcp.gov.eg</span>
+                  <span className="bg-slate-100 px-3 py-2 rounded-lg text-slate-800 font-mono text-sm">admin@ahcp.gov.sa</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="font-medium text-slate-600">كلمة المرور:</span>
-                  <span className="bg-slate-100 px-3 py-2 rounded-lg text-slate-800 font-mono text-sm">AHCP2024!</span>
+                  <span className="bg-slate-100 px-3 py-2 rounded-lg text-slate-800 font-mono text-sm">Admin@123456</span>
+                </div>
+                <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                  <p className="text-xs text-blue-700 font-medium">💡 بيانات إضافية للاختبار:</p>
+                  <p className="text-xs text-blue-600 mt-1">ibrahim@ahcp.gov.eg / admin123</p>
+                  <p className="text-xs text-blue-600">supervisor@ahcp.gov.sa / Supervisor@123</p>
                 </div>
               </div>
             </div>

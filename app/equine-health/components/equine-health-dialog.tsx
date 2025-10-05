@@ -41,6 +41,7 @@ import type { EquineHealth } from "@/types";
 import { validateEgyptianPhone, validateSaudiPhone } from "@/lib/utils";
 import { User, Heart, Shield, Activity } from "lucide-react";
 import { useState } from "react";
+import { ModernDatePicker } from "@/components/ui/modern-date-picker";
 
 const formSchema = z.object({
   date: z.string().min(1, "التاريخ مطلوب"),
@@ -192,9 +193,19 @@ export function EquineHealthDialog({
                     name="date"
                     render={({ field }) => (
                       <FormItem className="space-y-3">
-                        <FormLabel className="text-sm font-semibold text-gray-800">التاريخ</FormLabel>
                         <FormControl>
-                          <Input type="date" {...field} className="border-2 border-gray-400 focus:border-purple-500 transition-colors duration-200" dir="rtl" />
+                          <ModernDatePicker
+                            label="التاريخ"
+                            placeholder="اختر التاريخ"
+                            value={field.value}
+                            onChange={(date) => {
+                              const dateString = date ? date.toISOString().split('T')[0] : '';
+                              field.onChange(dateString);
+                            }}
+                            required
+                            variant="modern"
+                            size="md"
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -280,9 +291,21 @@ export function EquineHealthDialog({
                     name="owner.birthDate"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>تاريخ الميلاد</FormLabel>
                         <FormControl>
-                          <Input type="date" {...field} />
+                          <ModernDatePicker
+                            label="تاريخ الميلاد"
+                            placeholder="اختر تاريخ الميلاد"
+                            value={field.value}
+                            onChange={(date) => {
+                              const dateString = date ? date.toISOString().split('T')[0] : '';
+                              field.onChange(dateString);
+                            }}
+                            required
+                            variant="modern"
+                            size="md"
+                            maxDate={new Date()}
+                            minDate={new Date(1900, 0, 1)}
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>

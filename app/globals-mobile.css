@@ -77,6 +77,8 @@
   display: none;
 }
 
+/* Table styles moved to globals-clean.css for consistency */
+
 /* Mobile Dialog Improvements */
 .mobile-dialog-content {
   @apply max-h-[95vh] overflow-y-auto;
@@ -165,4 +167,70 @@
     @apply hover:bg-gray-100;
     @apply data-[state=active]:bg-blue-50 data-[state=active]:border-blue-300;
   }
+}
+
+/* Mobile Table Enhancements */
+.mobile-table-container {
+  @apply overflow-x-auto;
+  @apply -mx-4;
+  @apply border-l-0 border-r-0 rounded-none;
+  scrollbar-width: thin;
+  scrollbar-color: #d1d5db #f3f4f6;
+}
+
+.mobile-table-container::-webkit-scrollbar {
+  height: 4px;
+}
+
+.mobile-table-container::-webkit-scrollbar-track {
+  @apply bg-gray-100;
+}
+
+.mobile-table-container::-webkit-scrollbar-thumb {
+  @apply bg-gray-400 rounded-full;
+}
+
+.mobile-table {
+  @apply min-w-[600px] w-full;
+}
+
+.mobile-table th,
+.mobile-table td {
+  @apply min-w-[120px] px-2 py-3 text-xs;
+  @apply whitespace-nowrap;
+}
+
+/* Sticky first column for better mobile UX */
+.mobile-table th:first-child,
+.mobile-table td:first-child {
+  @apply sticky right-0 bg-white z-10;
+  @apply border-l border-gray-200;
+  @apply shadow-lg;
+}
+
+/* Very small screens */
+@media (max-width: 480px) {
+  .mobile-table {
+    @apply min-w-[500px];
+  }
+  
+  .mobile-table th,
+  .mobile-table td {
+    @apply min-w-[100px] px-1 py-2 text-xs;
+  }
+}
+
+/* Touch-friendly scroll indicators */
+.mobile-table-container::before,
+.mobile-table-container::after {
+  content: '';
+  @apply absolute top-0 bottom-0 w-4 pointer-events-none z-20;
+}
+
+.mobile-table-container::before {
+  @apply left-0 bg-gradient-to-r from-white to-transparent;
+}
+
+.mobile-table-container::after {
+  @apply right-0 bg-gradient-to-l from-white to-transparent;
 }

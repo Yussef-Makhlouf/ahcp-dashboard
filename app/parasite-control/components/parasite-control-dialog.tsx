@@ -41,6 +41,7 @@ import type { ParasiteControl } from "@/types";
 import { validateEgyptianPhone, validateSaudiPhone } from "@/lib/utils";
 import { User, Heart, Shield, Activity } from "lucide-react";
 import { useState } from "react";
+import { ModernDatePicker } from "@/components/ui/modern-date-picker";
 
 const formSchema = z.object({
   date: z.string().min(1, "التاريخ مطلوب"),
@@ -87,6 +88,7 @@ const formSchema = z.object({
     method: z.string().min(1, "طريقة الرش مطلوبة"),
     volume_ml: z.number().min(0, "يجب أن تكون الكمية أكبر من أو تساوي 0"),
     status: z.enum(["Sprayed", "Not Sprayed"]),
+    category: z.string().min(1, "فئة المبيد مطلوبة"),
   }),
   herdHealthStatus: z.enum(["Healthy", "Sick", "Under Treatment"]),
   complying: z.enum(["Comply", "Not Comply"]),
@@ -97,6 +99,11 @@ const formSchema = z.object({
   }),
   category: z.string().default("مكافحة الطفيليات"),
   remarks: z.string().optional(),
+  // New fields from database schema
+  herdLocation: z.string().min(1, "موقع القطيع مطلوب"),
+  animalBarnSizeSqM: z.number().min(0, "يجب أن يكون الحجم أكبر من أو يساوي 0"),
+  parasiteControlVolume: z.number().min(0, "يجب أن تكون الكمية أكبر من أو تساوي 0"),
+  parasiteControlStatus: z.string().min(1, "حالة مكافحة الطفيليات مطلوبة"),
 });
 
 type FormData = z.infer<typeof formSchema>;
@@ -126,7 +133,7 @@ export function ParasiteControlDialog({
         phone: "",
       },
       location: { e: null, n: null },
-      supervisor: "",
+      supervisor: "أحمد سالم",
       vehicleNo: "",
       herd: {
         sheep: { total: 0, young: 0, female: 0, treated: 0 },
@@ -139,6 +146,7 @@ export function ParasiteControlDialog({
         method: "Pour on",
         volume_ml: 0,
         status: "Not Sprayed",
+        category: "Pour-on",
       },
       herdHealthStatus: "Healthy",
       complying: "Comply",
@@ -149,26 +157,50 @@ export function ParasiteControlDialog({
       },
       category: "مكافحة الطفيليات",
       remarks: "",
+      // New fields from database schema
+      herdLocation: "",
+      animalBarnSizeSqM: 0,
+      parasiteControlVolume: 0,
+      parasiteControlStatus: "مكتمل",
     },
   });
 
   useEffect(() => {
-    if (item) {
-      form.reset(item as any);
-    }
+    const loadItemData = async () => {
+      if (item && (item._id || item.serialNo)) {
+        try {
+          // Fetch fresh data from API using getById with _id or serialNo
+          const id = item._id || item.serialNo;
+          const freshData = await parasiteControlApi.getById(id);
+          form.reset(freshData as any);
+        } catch (error) {
+          console.error("Error loading item data:", error);
+          // Fallback to the item data if API fails
+          form.reset(item as any);
+        }
+      } else if (item) {
+        form.reset(item as any);
+      }
+    };
+
+    loadItemData();
   }, [item, form]);
 
   const onSubmit = async (data: any) => {
     try {
-      if (item) {
-        await parasiteControlApi.update(item.serialNo, data as any);
+      if (item && (item._id || item.serialNo)) {
+        // Use PUT for full update with _id or serialNo
+        const id = item._id || item.serialNo;
+        await parasiteControlApi.update(id, data as any);
       } else {
+        // Create new record
         await parasiteControlApi.create(data as any);
       }
       onSuccess();
       form.reset();
     } catch (error) {
       console.error("Error saving data:", error);
+      alert("فشل في حفظ البيانات. يرجى المحاولة مرة أخرى.");
     }
   };
 
@@ -187,10 +219,16 @@ export function ParasiteControlDialog({
         <DialogBody>
           <Form {...form}>
             <form id="parasite-control-form" onSubmit={form.handleSubmit(onSubmit)}>
-              <Tabs value={activeTab} onValueChange={setActiveTab} className="tabs-modern" dir="rtl">
+              <Tabs value={activeTab} onValueChange={(value) => {
+                // Only change tab, don't trigger any side effects
+                setActiveTab(value);
+              }} className="tabs-modern" dir="rtl">
                 <EnhancedMobileTabs
                   value={activeTab}
-                  onValueChange={setActiveTab}
+                  onValueChange={(value) => {
+                    // Only change tab, don't trigger any side effects
+                    setActiveTab(value);
+                  }}
                   tabs={[
                     {
                       value: "basic",
@@ -226,9 +264,19 @@ export function ParasiteControlDialog({
                     name="date"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>التاريخ</FormLabel>
                         <FormControl>
-                          <Input type="date" {...field} />
+                          <ModernDatePicker
+                            label="التاريخ"
+                            placeholder="اختر التاريخ"
+                            value={field.value}
+                            onChange={(date) => {
+                              const dateString = date ? date.toISOString().split('T')[0] : '';
+                              field.onChange(dateString);
+                            }}
+                            required
+                            variant="modern"
+                            size="md"
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -240,9 +288,23 @@ export function ParasiteControlDialog({
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>المشرف</FormLabel>
-                        <FormControl>
-                          <Input placeholder="اسم المشرف" {...field} />
-                        </FormControl>
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="اختر المشرف" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="أحمد سالم">أحمد سالم</SelectItem>
+                            <SelectItem value="محمد حسن">محمد حسن</SelectItem>
+                            <SelectItem value="علي محمد">علي محمد</SelectItem>
+                            <SelectItem value="سعد عبدالله">سعد عبدالله</SelectItem>
+                            <SelectItem value="خالد أحمد">خالد أحمد</SelectItem>
+                            <SelectItem value="فهد السعد">فهد السعد</SelectItem>
+                            <SelectItem value="عبدالرحمن محمد">عبدالرحمن محمد</SelectItem>
+                            <SelectItem value="ناصر العتيبي">ناصر العتيبي</SelectItem>
+                          </SelectContent>
+                        </Select>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -268,6 +330,19 @@ export function ParasiteControlDialog({
                         <FormLabel>الفئة</FormLabel>
                         <FormControl>
                           <Input {...field} disabled />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control as any}
+                    name="herdLocation"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>موقع القطيع</FormLabel>
+                        <FormControl>
+                          <Input placeholder="موقع القطيع" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -309,9 +384,21 @@ export function ParasiteControlDialog({
                     name="owner.birthDate"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>تاريخ الميلاد</FormLabel>
                         <FormControl>
-                          <Input type="date" {...field} />
+                          <ModernDatePicker
+                            label="تاريخ الميلاد"
+                            placeholder="اختر تاريخ الميلاد"
+                            value={field.value}
+                            onChange={(date) => {
+                              const dateString = date ? date.toISOString().split('T')[0] : '';
+                              field.onChange(dateString);
+                            }}
+                            required
+                            variant="modern"
+                            size="md"
+                            maxDate={new Date()}
+                            minDate={new Date(1900, 0, 1)}
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -490,6 +577,28 @@ export function ParasiteControlDialog({
                   />
                   <FormField
                     control={form.control as any}
+                    name="insecticide.category"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>فئة المبيد</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="اختر فئة المبيد" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="Pour-on">Pour-on</SelectItem>
+                            <SelectItem value="Spray">Spray</SelectItem>
+                            <SelectItem value="Injection">Injection</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control as any}
                     name="insecticide.status"
                     render={({ field }) => (
                       <FormItem>
@@ -548,6 +657,71 @@ export function ParasiteControlDialog({
                           <SelectContent>
                             <SelectItem value="Comply">ممتثل</SelectItem>
                             <SelectItem value="Not Comply">غير ممتثل</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control as any}
+                    name="animalBarnSizeSqM"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>حجم الحظيرة (م²)</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            placeholder="100.50"
+                            {...field}
+                            onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control as any}
+                    name="parasiteControlVolume"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>حجم مكافحة الطفيليات</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            placeholder="50.25"
+                            {...field}
+                            onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control as any}
+                    name="parasiteControlStatus"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>حالة مكافحة الطفيليات</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="اختر حالة مكافحة الطفيليات" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="مكتمل">مكتمل</SelectItem>
+                            <SelectItem value="جاري">جاري</SelectItem>
+                            <SelectItem value="معلق">معلق</SelectItem>
+                            <SelectItem value="ملغي">ملغي</SelectItem>
                           </SelectContent>
                         </Select>
                         <FormMessage />

@@ -1,282 +1,311 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { MainLayout } from "@/components/layout/main-layout";
 import { DataTable } from "@/components/data-table/data-table";
+import { ImportExportManager } from "@/components/import-export/import-export-manager";
+import { getColumns } from "./components/columns";
+import { MobileClinicDialog } from "./components/mobile-clinic-dialog";
 import { Button } from "@/components/ui/button";
-import { Plus, FileDown, Upload, Truck, Stethoscope, MapPin } from "lucide-react";
+import { Plus, Truck, Heart, TrendingUp, Activity } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import type { MobileClinic } from "@/types";
-import { formatDate, formatPhoneNumber } from "@/lib/utils";
-import { ColumnDef } from "@tanstack/react-table";
-import { Checkbox } from "@/components/ui/checkbox";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { MoreHorizontal, Edit, Trash, Eye } from "lucide-react";
-import { MobileClinicDialog } from "./components/mobile-clinic-dialog";
+import { formatDate } from "@/lib/utils";
+import { mobileClinicsApi } from "@/lib/api/mobile-clinics";
+import { useQuery } from "@tanstack/react-query";
 
-// Mock data for mobile clinics
-const mockMobileClinicData: MobileClinic[] = [
+// تعريف حقول النموذج
+const formFields = [
   {
-    serialNo: 1,
-    date: "2025-09-07",
-    owner: {
-      name: "سامي أحمد",
-      id: "MC1",
-      birthDate: "1979-04-10",
-      phone: "+201011112222"
-    },
-    location: { e: 30.1111, n: 31.2222 },
-    supervisor: "د. محمد علي",
-    vehicleNo: "MC1",
-    sheep: 20,
-    goats: 15,
-    camel: 2,
-    horse: 1,
-    cattle: 5,
-    diagnosis: "التهاب رئوي",
-    interventionCategory: "علاج",
-    treatment: "مضادات حيوية",
-    request: {
-      date: "2025-09-07",
-      situation: "Closed",
-      fulfillingDate: "2025-09-07"
-    },
-    category: "عيادة متنقلة",
-    remarks: "تم العلاج بنجاح"
+    name: "date",
+    label: "تاريخ الزيارة",
+    type: "date" as const,
+    required: true,
   },
   {
-    serialNo: 2,
-    date: "2025-09-08",
-    owner: {
-      name: "منى حسن",
-      id: "MC2",
-      birthDate: "1985-08-15",
-      phone: "01098887777"
-    },
-    location: { e: 30.2222, n: 31.3333 },
-    supervisor: "د. سارة محمود",
-    vehicleNo: "MC2",
-    sheep: 30,
-    goats: 25,
-    camel: 0,
-    horse: 3,
-    cattle: 10,
-    diagnosis: "طفيليات معوية",
-    interventionCategory: "وقاية",
-    treatment: "مضادات الطفيليات",
-    request: {
-      date: "2025-09-08",
-      situation: "Closed",
-      fulfillingDate: "2025-09-08"
-    },
-    category: "عيادة متنقلة",
-    remarks: ""
+    name: "client.name",
+    label: "اسم المربي",
+    type: "text" as const,
+    required: true,
+    placeholder: "أدخل اسم المربي",
   },
   {
-    serialNo: 3,
-    date: "2025-09-09",
-    owner: {
-      name: "عبدالله محمد",
-      id: "MC3",
-      birthDate: "1990-12-20",
-      phone: "+201555666777"
+    name: "client.nationalId",
+    label: "رقم الهوية",
+    type: "text" as const,
+    required: true,
+    placeholder: "1234567890",
+  },
+  {
+    name: "client.phone",
+    label: "رقم الهاتف",
+    type: "text" as const,
+    required: true,
+    placeholder: "+966501234567",
+  },
+  {
+    name: "supervisor",
+    label: "المشرف",
+    type: "text" as const,
+    required: true,
+    placeholder: "اسم المشرف",
+  },
+  {
+    name: "vehicleNo",
+    label: "رقم المركبة",
+    type: "text" as const,
+    required: true,
+    placeholder: "ABC-123",
+  },
+  {
+    name: "farmLocation",
+    label: "موقع المزرعة",
+    type: "text" as const,
+    required: true,
+    placeholder: "موقع المزرعة",
+  },
+  {
+    name: "animalCounts.sheep",
+    label: "عدد الأغنام",
+    type: "number" as const,
+    required: true,
+  },
+  {
+    name: "animalCounts.goats",
+    label: "عدد الماعز",
+    type: "number" as const,
+    required: true,
+  },
+  {
+    name: "animalCounts.camel",
+    label: "عدد الإبل",
+    type: "number" as const,
+    required: true,
+  },
+  {
+    name: "animalCounts.horse",
+    label: "عدد الخيول",
+    type: "number" as const,
+    required: true,
+  },
+  {
+    name: "animalCounts.cattle",
+    label: "عدد الأبقار",
+    type: "number" as const,
+    required: true,
+  },
+  {
+    name: "diagnosis",
+    label: "التشخيص",
+    type: "textarea" as const,
+    required: true,
+    placeholder: "وصف التشخيص",
+  },
+  {
+    name: "interventionCategory",
+    label: "فئة التدخل",
+    type: "select" as const,
+    required: true,
+    options: [
+      { value: "Emergency", label: "طارئ" },
+      { value: "Routine", label: "روتيني" },
+      { value: "Follow-up", label: "متابعة" },
+    ],
+  },
+  {
+    name: "treatment",
+    label: "العلاج",
+    type: "textarea" as const,
+    required: true,
+    placeholder: "وصف العلاج المقدم",
+  },
+  {
+    name: "remarks",
+    label: "ملاحظات",
+    type: "textarea" as const,
+    placeholder: "أدخل أي ملاحظات إضافية",
+  },
+];
+
+// تعريف أعمدة الجدول
+const tableColumns = [
+  {
+    key: "serialNo",
+    title: "الرقم التسلسلي",
+    width: "100px",
+  },
+  {
+    key: "date",
+    title: "التاريخ",
+    render: (value: string) => formatDate(value),
+    width: "120px",
+  },
+  {
+    key: "client.name",
+    title: "اسم المربي",
+    render: (value: any, record: MobileClinic) => record.client?.name || "-",
+  },
+  {
+    key: "farmLocation",
+    title: "موقع المزرعة",
+    width: "140px",
+  },
+  {
+    key: "supervisor",
+    title: "المشرف",
+    width: "120px",
+  },
+  {
+    key: "totalAnimals",
+    title: "إجمالي الحيوانات",
+    render: (value: any, record: MobileClinic) => {
+      // Use backend virtual field first, then calculate from animalCounts, then legacy fields
+      let total = record.totalAnimals || 0;
+      
+      if (!total && record.animalCounts) {
+        total = (record.animalCounts.sheep || 0) + 
+                (record.animalCounts.goats || 0) + 
+                (record.animalCounts.camel || 0) + 
+                (record.animalCounts.horse || 0) + 
+                (record.animalCounts.cattle || 0);
+      }
+      
+      // Fallback to legacy fields
+      if (!total) {
+        total = (record.sheep || 0) + (record.goats || 0) + 
+                (record.camel || 0) + (record.horse || 0) + 
+                (record.cattle || 0);
+      }
+      
+      return <span className="font-medium">{total} رأس</span>;
     },
-    location: { e: null, n: null },
-    supervisor: "د. محمد علي",
-    vehicleNo: "MC1",
-    sheep: 15,
-    goats: 10,
-    camel: 1,
-    horse: 0,
-    cattle: 3,
-    diagnosis: "جروح وإصابات",
-    interventionCategory: "علاج طارئ",
-    treatment: "تنظيف وخياطة الجروح",
-    request: {
-      date: "2025-09-09",
-      situation: "Open"
-    },
-    category: "عيادة متنقلة",
-    remarks: "حالة طارئة"
-  }
+    width: "120px",
+  },
+  {
+    key: "interventionCategory",
+    title: "فئة التدخل",
+    render: (value: string) => (
+      <Badge 
+        variant={
+          value === "Emergency" ? "destructive" : 
+          value === "Routine" ? "default" : 
+          "secondary"
+        }
+      >
+        {value === "Emergency" ? "طارئ" : 
+         value === "Routine" ? "روتيني" : 
+         "متابعة"}
+      </Badge>
+    ),
+    width: "120px",
+  },
+  {
+    key: "diagnosis",
+    title: "التشخيص",
+    render: (value: string) => (
+      <div className="max-w-xs truncate" title={value}>
+        {value}
+      </div>
+    ),
+    width: "200px",
+  },
+];
+
+// فلاتر الجدول
+const tableFilters = [
+  {
+    key: "interventionCategory",
+    label: "فئة التدخل",
+    options: [
+      { value: "Emergency", label: "طارئ" },
+      { value: "Routine", label: "روتيني" },
+      { value: "Follow-up", label: "متابعة" },
+    ],
+  },
 ];
 
 export default function MobileClinicsPage() {
-  const [data, setData] = useState<MobileClinic[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [selectedClinic, setSelectedClinic] = useState<MobileClinic | undefined>(undefined);
-  const [isLoading, setIsLoading] = useState(true);
+  const [selectedItem, setSelectedItem] = useState<MobileClinic | null>(null);
 
-  // محاكاة تحميل البيانات
-  useEffect(() => {
-    setIsLoading(true);
-    setTimeout(() => {
-      setData(mockMobileClinicData);
-      setIsLoading(false);
-    }, 1500);
-  }, []);
+  // Fetch mobile clinics data using React Query
+  const { data: mobileClinicsData, isLoading, refetch } = useQuery({
+    queryKey: ['mobile-clinics'],
+    queryFn: () => mobileClinicsApi.getList(),
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
 
-  const columns: ColumnDef<MobileClinic>[] = [
-    {
-      id: "select",
-      header: ({ table }) => (
-        <Checkbox
-          checked={table.getIsAllPageRowsSelected()}
-          onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
-          aria-label="Select all"
-        />
-      ),
-      cell: ({ row }) => (
-        <Checkbox
-          checked={row.getIsSelected()}
-          onCheckedChange={(value) => row.toggleSelected(!!value)}
-          aria-label="Select row"
-        />
-      ),
-    },
-    {
-      accessorKey: "serialNo",
-      header: "الرقم المسلسل",
-    },
-    {
-      accessorKey: "date",
-      header: "التاريخ",
-      cell: ({ row }) => formatDate(row.getValue("date")),
-    },
-    {
-      accessorKey: "owner.name",
-      header: "اسم المربي",
-    },
-    {
-      accessorKey: "owner.phone",
-      header: "رقم الهاتف",
-      cell: ({ row }) => {
-        const phone = row.original.owner.phone;
-        return <span dir="ltr">{formatPhoneNumber(phone)}</span>;
-      },
-    },
-    {
-      accessorKey: "diagnosis",
-      header: "التشخيص",
-      cell: ({ row }) => {
-        const diagnosis = row.getValue("diagnosis") as string;
-        const diagnosisColors: Record<string, string> = {
-          "التهاب رئوي": "bg-red-500 text-white border-red-600",
-          "طفيليات معوية": "bg-yellow-500 text-white border-yellow-600",
-          "جروح وإصابات": "bg-orange-500 text-white border-orange-600",
-          "حمى": "bg-purple-500 text-white border-purple-600",
-          "إسهال": "bg-blue-500 text-white border-blue-600",
-        };
-        return (
-          <Badge className={diagnosisColors[diagnosis] || "bg-gray-500 text-white border-gray-600"}>
-            {diagnosis}
-          </Badge>
-        );
-      },
-    },
-    {
-      accessorKey: "interventionCategory",
-      header: "نوع التدخل",
-      cell: ({ row }) => {
-        const category = row.getValue("interventionCategory") as string;
-        const categoryColors: Record<string, string> = {
-          "علاج": "bg-blue-500 text-white border-blue-600",
-          "وقاية": "bg-green-500 text-white border-green-600",
-          "علاج طارئ": "bg-red-500 text-white border-red-600",
-          "فحص": "bg-purple-500 text-white border-purple-600",
-          "جراحة": "bg-orange-500 text-white border-orange-600",
-        };
-        return (
-          <Badge className={categoryColors[category] || "bg-gray-500 text-white border-gray-600"}>
-            {category}
-          </Badge>
-        );
-      },
-    },
-    {
-      id: "animals",
-      header: "الحيوانات المعالجة",
-      cell: ({ row }) => {
-        const r = row.original;
-        const total = r.sheep + r.goats + r.camel + r.horse + r.cattle;
-        return (
-          <div className="text-sm">
-            <span className="font-medium">{total}</span>
-            <span className="text-muted-foreground"> حيوان</span>
-          </div>
-        );
-      },
-    },
-    {
-      accessorKey: "request.situation",
-      header: "حالة الطلب",
-      cell: ({ row }) => {
-        const situation = row.original.request.situation;
-        const statusColors: Record<string, string> = {
-          Closed: "bg-green-500 text-white border-green-600",
-          Open: "bg-red-500 text-white border-red-600",
-          Pending: "bg-yellow-500 text-white border-yellow-600",
-        };
-        const labels: Record<string, string> = {
-          Closed: "مغلق",
-          Open: "مفتوح",
-          Pending: "معلق",
-        };
-        return (
-          <Badge className={statusColors[situation] || "bg-gray-500 text-white border-gray-600"}>
-            {labels[situation] || situation}
-          </Badge>
-        );
-      },
-    },
-    {
-      id: "actions",
-      header: "الإجراءات",
-      cell: ({ row }) => {
-        return (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="h-8 w-8 p-0">
-                <span className="sr-only">فتح القائمة</span>
-                <MoreHorizontal className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuLabel>الإجراءات</DropdownMenuLabel>
-              <DropdownMenuItem onClick={() => {
-                setSelectedClinic(row.original);
-                setIsDialogOpen(true);
-              }}>
-                <Eye className="ml-2 h-4 w-4" />
-                عرض التفاصيل
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => {
-                setSelectedClinic(row.original);
-                setIsDialogOpen(true);
-              }}>
-                <Edit className="ml-2 h-4 w-4" />
-                تعديل
-              </DropdownMenuItem>
-              <DropdownMenuItem className="text-red-600">
-                <Trash className="ml-2 h-4 w-4" />
-                حذف
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        );
-      },
-    },
-  ];
+  // استخدام React Query للإحصائيات
+  const { data: stats } = useQuery({
+    queryKey: ['mobile-clinics-stats'],
+    queryFn: () => mobileClinicsApi.getStatistics(),
+    staleTime: 10 * 60 * 1000, // 10 minutes
+  });
+
+  const data = mobileClinicsData?.data || [];
 
   const handleExport = async (type: "csv" | "pdf") => {
-    console.log("Exporting as", type);
+    if (type === "csv") {
+      try {
+        const blob = await mobileClinicsApi.exportToCsv();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `mobile-clinics-records-${new Date().toISOString().split("T")[0]}.csv`;
+        a.click();
+        window.URL.revokeObjectURL(url);
+      } catch (error) {
+        console.error('Export failed:', error);
+        alert('فشل في تصدير البيانات');
+      }
+    }
+  };
+
+  const handleDelete = async (item: MobileClinic) => {
+    if (confirm("هل أنت متأكد من حذف هذا السجل؟")) {
+      try {
+        await mobileClinicsApi.delete(item.serialNo);
+        refetch(); // Refresh data after deletion
+        alert('تم حذف السجل بنجاح');
+      } catch (error) {
+        console.error('Delete failed:', error);
+        alert('فشل في حذف السجل');
+      }
+    }
+  };
+
+  const handleSave = async (data: any) => {
+    try {
+      if (selectedItem) {
+        await mobileClinicsApi.update(selectedItem.serialNo, data);
+        alert('تم تحديث السجل بنجاح');
+      } else {
+        await mobileClinicsApi.create(data);
+        alert('تم إضافة السجل بنجاح');
+      }
+      refetch(); // Refresh data
+      setIsDialogOpen(false);
+      setSelectedItem(null);
+    } catch (error) {
+      console.error('Save failed:', error);
+      alert('فشل في حفظ السجل');
+    }
+  };
+
+  const handleAdd = () => {
+    setSelectedItem(null);
+    setIsDialogOpen(true);
+  };
+
+  const handleEdit = (item: MobileClinic) => {
+    setSelectedItem(item);
+    setIsDialogOpen(true);
+  };
+
+  const handleView = (item: MobileClinic) => {
+    setSelectedItem(item);
+    setIsDialogOpen(true);
   };
 
   return (
@@ -287,22 +316,21 @@ export default function MobileClinicsPage() {
           <div>
             <h1 className="text-3xl font-bold">العيادات المتنقلة</h1>
             <p className="text-muted-foreground mt-2">
-              إدارة سجلات العيادات البيطرية المتنقلة
+              إدارة سجلات زيارات العيادات المتنقلة
             </p>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" size="sm" className="border-teal-300 hover:bg-teal-50 hover:border-teal-400 text-teal-700 hover:text-teal-800">
-              <Upload className="ml-2 h-4 w-4" />
-              استيراد
-            </Button>
-            <Button 
-              onClick={() => {
-                setSelectedClinic(undefined);
-                setIsDialogOpen(true);
-              }}
-              className="bg-teal-600 hover:bg-teal-700 text-white shadow-lg hover:shadow-xl transition-all duration-200"
-            >
-              <Plus className="ml-2 h-4 w-4" />
+            <ImportExportManager
+              exportEndpoint="/mobile-clinics/export"
+              importEndpoint="/mobile-clinics/import"
+              templateEndpoint="/mobile-clinics/template"
+              title="العيادات المتنقلة"
+              queryKey="mobile-clinics"
+              acceptedFormats={[".csv", ".xlsx"]}
+              maxFileSize={10}
+            />
+            <Button onClick={handleAdd}>
+              <Plus className="h-4 w-4 mr-2" />
               إضافة زيارة جديدة
             </Button>
           </div>
@@ -318,53 +346,68 @@ export default function MobileClinicsPage() {
               <Truck className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{data.length}</div>
+              <div className="text-2xl font-bold">{stats?.totalRecords || 0}</div>
+              <p className="text-xs text-muted-foreground">
+                +12.5% من الشهر الماضي
+              </p>
             </CardContent>
           </Card>
+          
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
-                الحالات المعالجة
+                الزيارات هذا الشهر
               </CardTitle>
-              <Stethoscope className="h-4 w-4 text-muted-foreground" />
+              <TrendingUp className="h-4 w-4 text-green-600" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-green-600">
-                {data.filter(d => d.request.situation === "Closed").length}
+                {stats?.recordsThisMonth || 0}
               </div>
+              <p className="text-xs text-muted-foreground">
+                زيارة هذا الشهر
+              </p>
             </CardContent>
           </Card>
+          
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
-                حالات طارئة
+                الحيوانات المفحوصة
               </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-red-600">
-                {data.filter(d => d.interventionCategory.includes("طارئ")).length}
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                الحيوانات المعالجة
-              </CardTitle>
+              <Heart className="h-4 w-4 text-blue-600" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-blue-600">
-                {data.reduce((sum, d) => 
-                  sum + d.sheep + d.goats + d.camel + d.horse + d.cattle, 0
-                )}
+                {stats?.totalAnimalsExamined || 0}
               </div>
+              <p className="text-xs text-muted-foreground">
+                رأس حيوان
+              </p>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">
+                الحالات الطارئة
+              </CardTitle>
+              <Activity className="h-4 w-4 text-red-600" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-red-600">
+                {stats?.emergencyCases || 0}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                حالة طارئة
+              </p>
             </CardContent>
           </Card>
         </div>
 
         {/* Data Table */}
         <DataTable
-          columns={columns}
+          columns={getColumns({ onEdit: handleEdit, onDelete: handleDelete, onView: handleView })}
           data={data}
           isLoading={isLoading}
           onExport={handleExport}
@@ -374,17 +417,8 @@ export default function MobileClinicsPage() {
         <MobileClinicDialog
           open={isDialogOpen}
           onOpenChange={setIsDialogOpen}
-          clinic={selectedClinic}
-          onSave={(clinicData) => {
-            if (selectedClinic) {
-              // Update existing clinic
-              setData(data.map(c => c.serialNo === selectedClinic.serialNo ? clinicData : c));
-            } else {
-              // Add new clinic
-              setData([...data, clinicData]);
-            }
-            setSelectedClinic(undefined);
-          }}
+          clinic={selectedItem || undefined}
+          onSave={handleSave}
         />
       </div>
     </MainLayout>

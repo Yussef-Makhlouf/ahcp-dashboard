@@ -398,13 +398,62 @@
     position: relative;
   }
 
+  /* Enhanced Table Scrolling */
+  .table-container .overflow-x-auto {
+    overflow-x: auto;
+    overflow-y: auto;
+    max-height: 600px;
+    scrollbar-width: thin;
+    scrollbar-color: var(--ahcp-border-dark) var(--ahcp-bg-secondary);
+  }
+
+  .table-container .overflow-x-auto::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  .table-container .overflow-x-auto::-webkit-scrollbar-track {
+    background: var(--ahcp-bg-secondary);
+    border-radius: var(--radius-sm);
+  }
+
+  .table-container .overflow-x-auto::-webkit-scrollbar-thumb {
+    background: var(--ahcp-border-dark);
+    border-radius: var(--radius-sm);
+  }
+
+  .table-container .overflow-x-auto::-webkit-scrollbar-thumb:hover {
+    background: var(--ahcp-text-muted);
+  }
+
   .table {
     width: 100%;
+    min-width: 1200px;
     caption-side: bottom;
     font-size: var(--text-body);
     border-collapse: separate;
     border-spacing: 0;
-    table-layout: fixed;
+    table-layout: auto;
+  }
+
+  /* Mobile Table Responsive */
+  .mobile-table {
+    min-width: 800px;
+  }
+
+  .mobile-table th,
+  .mobile-table td {
+    min-width: 120px;
+    padding: var(--space-md) var(--space-sm);
+    font-size: var(--text-small);
+  }
+
+  /* Sticky Header for Scrolling */
+  .table thead th {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background: var(--ahcp-bg-secondary);
   }
 
   .table thead {
@@ -520,6 +569,66 @@
     background: rgba(52, 152, 219, 0.1);
     color: var(--ahcp-info);
     border-color: rgba(52, 152, 219, 0.2);
+  }
+
+  /* ========================================
+     RESPONSIVE TABLE STYLES
+     ======================================== */
+
+  /* Tablet Styles */
+  @media (max-width: 768px) {
+    .mobile-table {
+      min-width: 600px;
+    }
+
+    .mobile-table th,
+    .mobile-table td {
+      min-width: 100px;
+      padding: var(--space-sm);
+      font-size: 0.75rem;
+    }
+
+    .table-container .overflow-x-auto {
+      max-height: 500px;
+    }
+  }
+
+  /* Mobile Styles */
+  @media (max-width: 640px) {
+    .mobile-table {
+      min-width: 500px;
+    }
+
+    .mobile-table th,
+    .mobile-table td {
+      min-width: 80px;
+      padding: var(--space-xs);
+      font-size: 0.7rem;
+    }
+
+    .table-container .overflow-x-auto {
+      max-height: 400px;
+    }
+
+    .table th,
+    .table td {
+      padding: var(--space-sm);
+      font-size: var(--text-small);
+    }
+  }
+
+  /* Small Mobile Styles */
+  @media (max-width: 480px) {
+    .mobile-table {
+      min-width: 400px;
+    }
+
+    .mobile-table th,
+    .mobile-table td {
+      min-width: 70px;
+      padding: var(--space-xs);
+      font-size: 0.65rem;
+    }
   }
 
   /* ========================================

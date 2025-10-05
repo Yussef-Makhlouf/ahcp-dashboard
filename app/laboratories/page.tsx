@@ -1,347 +1,283 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { MainLayout } from "@/components/layout/main-layout";
 import { DataTable } from "@/components/data-table/data-table";
+import { ImportExportManager } from "@/components/import-export/import-export-manager";
+import { getColumns } from "./components/columns";
+import { LaboratoryDialog } from "./components/laboratory-dialog";
 import { Button } from "@/components/ui/button";
-import { Plus, Upload, Download, FlaskConical, TestTube, FileText, TrendingUp } from "lucide-react";
+import { Plus, FlaskConical, TestTube, TrendingUp, Activity } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import type { Laboratory } from "@/types";
 import { formatDate } from "@/lib/utils";
-import { ColumnDef } from "@tanstack/react-table";
-import { Checkbox } from "@/components/ui/checkbox";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { MoreHorizontal, Edit, Trash, Eye, Printer } from "lucide-react";
-import { LaboratoryDialog } from "./components/laboratory-dialog";
-import { Progress } from "@/components/ui/progress";
-import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
-  BarChart,
-  Bar,
-} from "recharts";
+import { laboratoriesApi } from "@/lib/api/laboratories";
+import { useQuery } from "@tanstack/react-query";
 
-// Mock data for laboratories
-const mockLaboratoryData: Laboratory[] = [
+// تعريف حقول النموذج
+const formFields = [
   {
-    sampleCode: "LAB001",
-    sampleType: "دم",
-    collector: "د. محمد علي",
-    date: "2025-09-07",
-    speciesCounts: {
-      sheep: 10,
-      goats: 5,
-      camel: 2,
-      cattle: 3,
-      horse: 1,
-    },
-    positiveCases: 3,
-    negativeCases: 18,
-    remarks: "فحص روتيني للأمراض المعدية",
+    name: "sampleCode",
+    label: "رمز العينة",
+    type: "text" as const,
+    required: true,
+    placeholder: "LAB-001",
   },
   {
-    sampleCode: "LAB002",
-    sampleType: "براز",
-    collector: "د. سارة محمود",
-    date: "2025-09-08",
-    speciesCounts: {
-      sheep: 15,
-      goats: 8,
-      camel: 0,
-      cattle: 5,
-      horse: 0,
-    },
-    positiveCases: 7,
-    negativeCases: 21,
-    remarks: "فحص طفيليات معوية",
+    name: "sampleType",
+    label: "نوع العينة",
+    type: "select" as const,
+    required: true,
+    options: [
+      { value: "Blood", label: "دم" },
+      { value: "Urine", label: "بول" },
+      { value: "Feces", label: "براز" },
+      { value: "Tissue", label: "نسيج" },
+      { value: "Milk", label: "حليب" },
+      { value: "Swab", label: "مسحة" },
+    ],
   },
   {
-    sampleCode: "LAB003",
-    sampleType: "بول",
-    collector: "د. أحمد حسن",
-    date: "2025-09-09",
-    speciesCounts: {
-      sheep: 8,
-      goats: 6,
-      camel: 1,
-      cattle: 4,
-      horse: 2,
-    },
-    positiveCases: 2,
-    negativeCases: 19,
-    remarks: "فحص وظائف الكلى",
+    name: "collector",
+    label: "جامع العينة",
+    type: "text" as const,
+    required: true,
+    placeholder: "اسم جامع العينة",
   },
   {
-    sampleCode: "LAB004",
-    sampleType: "مسحة",
-    collector: "د. فاطمة عبدالله",
-    date: "2025-09-10",
-    speciesCounts: {
-      sheep: 12,
-      goats: 7,
-      camel: 3,
-      cattle: 6,
-      horse: 0,
-    },
-    positiveCases: 5,
-    negativeCases: 23,
-    remarks: "فحص بكتيري",
+    name: "date",
+    label: "تاريخ الجمع",
+    type: "date" as const,
+    required: true,
   },
   {
-    sampleCode: "LAB005",
-    sampleType: "أنسجة",
-    collector: "د. خالد إبراهيم",
-    date: "2025-09-11",
-    speciesCounts: {
-      sheep: 5,
-      goats: 3,
-      camel: 0,
-      cattle: 2,
-      horse: 1,
-    },
-    positiveCases: 4,
-    negativeCases: 7,
-    remarks: "فحص الأورام",
+    name: "speciesCounts.sheep",
+    label: "عدد الأغنام",
+    type: "number" as const,
+    required: true,
+  },
+  {
+    name: "speciesCounts.goats",
+    label: "عدد الماعز",
+    type: "number" as const,
+    required: true,
+  },
+  {
+    name: "speciesCounts.camel",
+    label: "عدد الإبل",
+    type: "number" as const,
+    required: true,
+  },
+  {
+    name: "speciesCounts.cattle",
+    label: "عدد الأبقار",
+    type: "number" as const,
+    required: true,
+  },
+  {
+    name: "speciesCounts.horse",
+    label: "عدد الخيول",
+    type: "number" as const,
+    required: true,
+  },
+  {
+    name: "positiveCases",
+    label: "الحالات الإيجابية",
+    type: "number" as const,
+    required: true,
+  },
+  {
+    name: "negativeCases",
+    label: "الحالات السلبية",
+    type: "number" as const,
+    required: true,
+  },
+  {
+    name: "remarks",
+    label: "ملاحظات",
+    type: "textarea" as const,
+    placeholder: "أدخل أي ملاحظات إضافية",
   },
 ];
 
-// Chart data
-const monthlyTestsData = [
-  { month: "يناير", tests: 45, positive: 12, negative: 33 },
-  { month: "فبراير", tests: 52, positive: 15, negative: 37 },
-  { month: "مارس", tests: 61, positive: 18, negative: 43 },
-  { month: "أبريل", tests: 58, positive: 14, negative: 44 },
-  { month: "مايو", tests: 70, positive: 22, negative: 48 },
-  { month: "يونيو", tests: 65, positive: 19, negative: 46 },
+// تعريف أعمدة الجدول
+const tableColumns = [
+  {
+    key: "sampleCode",
+    title: "رمز العينة",
+    width: "120px",
+  },
+  {
+    key: "sampleType",
+    title: "نوع العينة",
+    render: (value: string) => {
+      const typeLabels = {
+        "Blood": "دم",
+        "Urine": "بول",
+        "Feces": "براز",
+        "Tissue": "نسيج",
+        "Milk": "حليب",
+        "Swab": "مسحة"
+      };
+      return typeLabels[value as keyof typeof typeLabels] || value;
+    },
+    width: "100px",
+  },
+  {
+    key: "collector",
+    title: "جامع العينة",
+    width: "140px",
+  },
+  {
+    key: "date",
+    title: "تاريخ الجمع",
+    render: (value: string) => formatDate(value),
+    width: "120px",
+  },
+  {
+    key: "totalSamples",
+    title: "إجمالي العينات",
+    render: (value: any, record: Laboratory) => {
+      const total = Object.values(record.speciesCounts || {}).reduce((sum: number, count: any) => sum + (count || 0), 0);
+      return <span className="font-medium">{total}</span>;
+    },
+    width: "120px",
+  },
+  {
+    key: "positiveCases",
+    title: "الحالات الإيجابية",
+    render: (value: number) => (
+      <Badge variant={value > 0 ? "destructive" : "default"}>
+        {value}
+      </Badge>
+    ),
+    width: "120px",
+  },
+  {
+    key: "negativeCases",
+    title: "الحالات السلبية",
+    render: (value: number) => (
+      <Badge variant="secondary">
+        {value}
+      </Badge>
+    ),
+    width: "120px",
+  },
+  {
+    key: "positivityRate",
+    title: "معدل الإيجابية",
+    render: (value: any, record: Laboratory) => {
+      const total = (record.positiveCases || 0) + (record.negativeCases || 0);
+      const rate = total > 0 ? Math.round(((record.positiveCases || 0) / total) * 100) : 0;
+      return (
+        <span className={`font-medium ${rate > 20 ? 'text-red-600' : rate > 10 ? 'text-yellow-600' : 'text-green-600'}`}>
+          {rate}%
+        </span>
+      );
+    },
+    width: "100px",
+  },
 ];
 
-const sampleTypesData = [
-  { type: "دم", count: 120 },
-  { type: "براز", count: 85 },
-  { type: "بول", count: 65 },
-  { type: "مسحة", count: 95 },
-  { type: "أنسجة", count: 35 },
+// فلاتر الجدول
+const tableFilters = [
+  {
+    key: "sampleType",
+    label: "نوع العينة",
+    options: [
+      { value: "Blood", label: "دم" },
+      { value: "Urine", label: "بول" },
+      { value: "Feces", label: "براز" },
+      { value: "Tissue", label: "نسيج" },
+      { value: "Milk", label: "حليب" },
+      { value: "Swab", label: "مسحة" },
+    ],
+  },
 ];
 
 export default function LaboratoriesPage() {
-  const [data, setData] = useState<Laboratory[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [selectedLab, setSelectedLab] = useState<Laboratory | undefined>(undefined);
-  const [isLoading, setIsLoading] = useState(true);
+  const [selectedItem, setSelectedItem] = useState<Laboratory | null>(null);
 
-  // محاكاة تحميل البيانات
-  useEffect(() => {
-    setIsLoading(true);
-    setTimeout(() => {
-      setData(mockLaboratoryData);
-      setIsLoading(false);
-    }, 1500);
-  }, []);
+  // Fetch laboratories data using React Query
+  const { data: laboratoriesData, isLoading, refetch } = useQuery({
+    queryKey: ['laboratories'],
+    queryFn: () => laboratoriesApi.getList(),
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
 
-  const columns: ColumnDef<Laboratory>[] = [
-    {
-      id: "select",
-      header: ({ table }) => (
-        <Checkbox
-          checked={table.getIsAllPageRowsSelected()}
-          onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
-          aria-label="Select all"
-        />
-      ),
-      cell: ({ row }) => (
-        <Checkbox
-          checked={row.getIsSelected()}
-          onCheckedChange={(value) => row.toggleSelected(!!value)}
-          aria-label="Select row"
-        />
-      ),
-    },
-    {
-      accessorKey: "sampleCode",
-      header: "رمز العينة",
-      cell: ({ row }) => (
-        <div className="font-mono font-medium">{row.getValue("sampleCode")}</div>
-      ),
-    },
-    {
-      accessorKey: "sampleType",
-      header: "نوع العينة",
-      cell: ({ row }) => {
-        const sampleType = row.getValue("sampleType") as string;
-        const typeColors: Record<string, string> = {
-          "دم": "bg-red-500 text-white border-red-600",
-          "براز": "bg-yellow-500 text-white border-yellow-600",
-          "بول": "bg-blue-500 text-white border-blue-600",
-          "مسحة": "bg-purple-500 text-white border-purple-600",
-          "أنسجة": "bg-green-500 text-white border-green-600",
-        };
-        return (
-          <Badge className={typeColors[sampleType] || "bg-gray-500 text-white border-gray-600"}>
-            {sampleType}
-          </Badge>
-        );
-      },
-    },
-    {
-      accessorKey: "collector",
-      header: "جامع العينة",
-    },
-    {
-      accessorKey: "date",
-      header: "التاريخ",
-      cell: ({ row }) => formatDate(row.getValue("date")),
-    },
-    {
-      id: "totalSamples",
-      header: "إجمالي العينات",
-      cell: ({ row }) => {
-        const counts = row.original.speciesCounts;
-        const total = counts.sheep + counts.goats + counts.camel + counts.cattle + counts.horse;
-        return (
-          <div className="text-sm">
-            <span className="font-medium">{total}</span>
-            <span className="text-muted-foreground"> عينة</span>
-          </div>
-        );
-      },
-    },
-    {
-      id: "results",
-      header: "النتائج",
-      cell: ({ row }) => {
-        const positive = row.original.positiveCases;
-        const negative = row.original.negativeCases;
-        const total = positive + negative;
-        const positivePercentage = total > 0 ? (positive / total) * 100 : 0;
-        
-        return (
-          <div className="space-y-1">
-            <div className="flex items-center gap-2">
-              <Badge className="bg-red-500 text-white border-red-600 text-xs">
-                إيجابي: {positive}
-              </Badge>
-              <Badge className="bg-green-500 text-white border-green-600 text-xs">
-                سلبي: {negative}
-              </Badge>
-            </div>
-            <Progress value={positivePercentage} className="h-2" />
-          </div>
-        );
-      },
-    },
-    {
-      accessorKey: "remarks",
-      header: "ملاحظات",
-      cell: ({ row }) => (
-        <div className="max-w-[200px] truncate" title={row.getValue("remarks")}>
-          {row.getValue("remarks")}
-        </div>
-      ),
-    },
-    {
-      id: "actions",
-      header: "الإجراءات",
-      cell: ({ row }) => {
-        return (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="h-8 w-8 p-0">
-                <span className="sr-only">فتح القائمة</span>
-                <MoreHorizontal className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuLabel>الإجراءات</DropdownMenuLabel>
-              <DropdownMenuItem onClick={() => {
-                setSelectedLab(row.original);
-                setIsDialogOpen(true);
-              }}>
-                <Eye className="ml-2 h-4 w-4" />
-                عرض التفاصيل
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => {
-                setSelectedLab(row.original);
-                setIsDialogOpen(true);
-              }}>
-                <Edit className="ml-2 h-4 w-4" />
-                تعديل
-              </DropdownMenuItem>
-              <DropdownMenuItem>
-                <Printer className="ml-2 h-4 w-4" />
-                طباعة التقرير
-              </DropdownMenuItem>
-              <DropdownMenuItem className="text-red-600">
-                <Trash className="ml-2 h-4 w-4" />
-                حذف
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        );
-      },
-    },
-  ];
+  // Fetch statistics
+  const { data: stats } = useQuery({
+    queryKey: ['laboratories-stats'],
+    queryFn: () => laboratoriesApi.getStatistics(),
+    staleTime: 10 * 60 * 1000, // 10 minutes
+  });
+
+  const data = laboratoriesData?.data || [];
 
   const handleExport = async (type: "csv" | "pdf") => {
     if (type === "csv") {
-      // Create CSV content
-      const headers = ["رمز العينة", "نوع العينة", "جامع العينة", "التاريخ", "إيجابي", "سلبي"];
-      const rows = data.map(lab => [
-        lab.sampleCode,
-        lab.sampleType,
-        lab.collector,
-        lab.date,
-        lab.positiveCases,
-        lab.negativeCases,
-      ]);
-      
-      const csvContent = [
-        headers.join(","),
-        ...rows.map(row => row.join(","))
-      ].join("\n");
-      
-      // Add BOM for UTF-8
-      const blob = new Blob(["\ufeff" + csvContent], { type: "text/csv;charset=utf-8;" });
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `laboratory-results-${new Date().toISOString().split("T")[0]}.csv`;
-      a.click();
+      try {
+        const blob = await laboratoriesApi.exportToCsv();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `laboratories-records-${new Date().toISOString().split("T")[0]}.csv`;
+        a.click();
+        window.URL.revokeObjectURL(url);
+      } catch (error) {
+        console.error('Export failed:', error);
+        alert('فشل في تصدير البيانات');
+      }
     }
   };
 
-  const handleSaveLab = (labData: any) => {
-    if (selectedLab) {
-      // Update existing lab
-      setData(data.map(l => l.sampleCode === selectedLab.sampleCode ? labData : l));
-    } else {
-      // Add new lab
-      setData([...data, labData]);
+  const handleDelete = async (item: Laboratory) => {
+    if (confirm("هل أنت متأكد من حذف هذا السجل؟")) {
+      try {
+        await laboratoriesApi.delete(item.sampleCode);
+        refetch(); // Refresh data after deletion
+        alert('تم حذف السجل بنجاح');
+      } catch (error) {
+        console.error('Delete failed:', error);
+        alert('فشل في حذف السجل');
+      }
     }
-    setSelectedLab(undefined);
   };
 
-  // Calculate statistics
-  const totalTests = data.reduce((sum, lab) => {
-    const counts = lab.speciesCounts;
-    return sum + counts.sheep + counts.goats + counts.camel + counts.cattle + counts.horse;
-  }, 0);
+  const handleSave = async (data: any) => {
+    try {
+      if (selectedItem) {
+        await laboratoriesApi.update(selectedItem.sampleCode, data);
+        alert('تم تحديث السجل بنجاح');
+      } else {
+        await laboratoriesApi.create(data);
+        alert('تم إضافة السجل بنجاح');
+      }
+      refetch(); // Refresh data
+      setIsDialogOpen(false);
+      setSelectedItem(null);
+    } catch (error) {
+      console.error('Save failed:', error);
+      alert('فشل في حفظ السجل');
+    }
+  };
 
-  const totalPositive = data.reduce((sum, lab) => sum + lab.positiveCases, 0);
-  const totalNegative = data.reduce((sum, lab) => sum + lab.negativeCases, 0);
-  const positiveRate = totalTests > 0 ? ((totalPositive / (totalPositive + totalNegative)) * 100).toFixed(1) : "0";
+  const handleEdit = (item: Laboratory) => {
+    setSelectedItem(item);
+    setIsDialogOpen(true);
+  };
+
+  const handleView = (item: Laboratory) => {
+    setSelectedItem(item);
+    setIsDialogOpen(true);
+  };
+
+  const handleAdd = () => {
+    setSelectedItem(null);
+    setIsDialogOpen(true);
+  };
 
   return (
     <MainLayout>
@@ -351,23 +287,22 @@ export default function LaboratoriesPage() {
           <div>
             <h1 className="text-3xl font-bold">المختبرات</h1>
             <p className="text-muted-foreground mt-2">
-              إدارة نتائج الفحوصات المخبرية والتحاليل
+              إدارة سجلات الفحوصات المخبرية والعينات
             </p>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" size="sm" className="border-indigo-300 hover:bg-indigo-50 hover:border-indigo-400 text-indigo-700 hover:text-indigo-800">
-              <Upload className="ml-2 h-4 w-4" />
-              استيراد نتائج
-            </Button>
-            <Button 
-              onClick={() => {
-                setSelectedLab(undefined);
-                setIsDialogOpen(true);
-              }}
-              className="bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg hover:shadow-xl transition-all duration-200"
-            >
-              <Plus className="ml-2 h-4 w-4" />
-              إضافة فحص جديد
+            <ImportExportManager
+              exportEndpoint="/laboratories/export"
+              importEndpoint="/laboratories/import"
+              templateEndpoint="/laboratories/template"
+              title="المختبرات"
+              queryKey="laboratories"
+              acceptedFormats={[".csv", ".xlsx"]}
+              maxFileSize={10}
+            />
+            <Button onClick={handleAdd}>
+              <Plus className="h-4 w-4 mr-2" />
+              إضافة عينة جديدة
             </Button>
           </div>
         </div>
@@ -377,107 +312,73 @@ export default function LaboratoriesPage() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
-                إجمالي الفحوصات
+                إجمالي العينات
               </CardTitle>
               <FlaskConical className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{totalTests}</div>
-              <p className="text-xs text-muted-foreground mt-1">
-                فحص هذا الشهر
+              <div className="text-2xl font-bold">{stats?.totalSamples || 0}</div>
+              <p className="text-xs text-muted-foreground">
+                +8.2% من الشهر الماضي
               </p>
             </CardContent>
           </Card>
+          
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
-                النتائج الإيجابية
+                العينات هذا الشهر
               </CardTitle>
-              <TestTube className="h-4 w-4 text-muted-foreground" />
+              <TestTube className="h-4 w-4 text-blue-600" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-red-600">{totalPositive}</div>
-              <p className="text-xs text-muted-foreground mt-1">
-                {positiveRate}% من الإجمالي
+              <div className="text-2xl font-bold text-blue-600">
+                {stats?.samplesThisMonth || 0}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                عينة هذا الشهر
               </p>
             </CardContent>
           </Card>
+          
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
-                النتائج السلبية
+                الحالات الإيجابية
               </CardTitle>
-              <TestTube className="h-4 w-4 text-muted-foreground" />
+              <TrendingUp className="h-4 w-4 text-red-600" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-green-600">{totalNegative}</div>
-              <p className="text-xs text-muted-foreground mt-1">
-                {100 - parseFloat(positiveRate)}% من الإجمالي
+              <div className="text-2xl font-bold text-red-600">
+                {stats?.positiveCases || 0}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                حالة إيجابية
               </p>
             </CardContent>
           </Card>
+          
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
-                عينات اليوم
+                معدل الإيجابية
               </CardTitle>
-              <FileText className="h-4 w-4 text-muted-foreground" />
+              <Activity className="h-4 w-4 text-orange-600" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-blue-600">12</div>
-              <p className="text-xs text-muted-foreground mt-1">
-                <TrendingUp className="inline h-3 w-3 ml-1 text-green-600" />
-                +20% من الأمس
+              <div className="text-2xl font-bold text-orange-600">
+                {stats?.positivityRate ? `${Math.round(stats.positivityRate)}%` : '0%'}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                من إجمالي العينات
               </p>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Charts */}
-        <div className="grid gap-6 md:grid-cols-2">
-          {/* Monthly Tests Chart */}
-          <Card>
-            <CardHeader>
-              <CardTitle>الفحوصات الشهرية</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ResponsiveContainer width="100%" height={300}>
-                <LineChart data={monthlyTestsData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="month" />
-                  <YAxis />
-                  <Tooltip />
-                  <Legend />
-                  <Line type="monotone" dataKey="tests" stroke="#3B82F6" name="إجمالي الفحوصات" />
-                  <Line type="monotone" dataKey="positive" stroke="#EF4444" name="إيجابي" />
-                  <Line type="monotone" dataKey="negative" stroke="#10B981" name="سلبي" />
-                </LineChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
-
-          {/* Sample Types Chart */}
-          <Card>
-            <CardHeader>
-              <CardTitle>أنواع العينات</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={sampleTypesData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="type" />
-                  <YAxis />
-                  <Tooltip />
-                  <Bar dataKey="count" fill="#8B5CF6" name="عدد العينات" />
-                </BarChart>
-              </ResponsiveContainer>
             </CardContent>
           </Card>
         </div>
 
         {/* Data Table */}
         <DataTable
-          columns={columns}
+          columns={getColumns({ onEdit: handleEdit, onDelete: handleDelete, onView: handleView })}
           data={data}
           isLoading={isLoading}
           onExport={handleExport}
@@ -487,8 +388,8 @@ export default function LaboratoriesPage() {
         <LaboratoryDialog
           open={isDialogOpen}
           onOpenChange={setIsDialogOpen}
-          laboratory={selectedLab}
-          onSave={handleSaveLab}
+          laboratory={selectedItem || undefined}
+          onSave={handleSave}
         />
       </div>
     </MainLayout>

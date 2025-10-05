@@ -52,10 +52,10 @@ export default function EquineHealthPage() {
 
   // Calculate statistics
   const totalRecords = data?.total || 0;
-  const totalHorses = data?.data.reduce((sum, item) => sum + item.horseCount, 0) || 0;
-  const clinicalExams = data?.data.filter(item => item.interventionCategory === "Clinical Examination").length || 0;
-  const surgicalOps = data?.data.filter(item => item.interventionCategory === "Surgical Operation").length || 0;
-  const closedRequests = data?.data.filter(item => item.request.situation === "Closed").length || 0;
+  const totalHorses = data?.data?.reduce((sum, item) => sum + (item.horseCount || 0), 0) || 0;
+  const clinicalExams = data?.data?.filter(item => item.interventionCategory === "Clinical Examination").length || 0;
+  const surgicalOps = data?.data?.filter(item => item.interventionCategory === "Surgical Operation").length || 0;
+  const closedRequests = data?.data?.filter(item => item.request?.situation === "Closed").length || 0;
 
   return (
     <MainLayout>

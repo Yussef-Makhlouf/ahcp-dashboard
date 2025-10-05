@@ -40,18 +40,18 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { EnhancedMobileTabs } from "@/components/ui/mobile-tabs";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Calendar } from "@/components/ui/calendar";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+import { ModernDatePicker } from "@/components/ui/modern-date-picker";
 import { CalendarIcon, Loader2, User, Heart, Shield } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { validateSaudiPhone } from "@/lib/utils";
-import { toast } from "sonner";
-import { vaccinationApi } from "@/lib/api/vaccination";
 import type { Vaccination } from "@/types";
+import { vaccinationApi } from "@/lib/api/vaccination";
+import { toast } from "sonner";
+
+// Validation function for Saudi phone numbers
+const validateSaudiPhone = (phone: string): boolean => {
+  const saudiPhoneRegex = /^(\+966|966|05)[0-9]{8}$/;
+  return saudiPhoneRegex.test(phone.replace(/\s/g, ''));
+};
 
 const formSchema = z.object({
   date: z.string().min(1, { message: "يجب إدخال التاريخ" }),
@@ -70,7 +70,11 @@ const formSchema = z.object({
   }),
   supervisor: z.string().min(2, { message: "يجب إدخال اسم المشرف (أكثر من حرفين)" }),
   vehicleNo: z.string().min(1, { message: "يجب إدخال رقم المركبة" }),
+  // New fields from database schema
+  farmLocation: z.string().min(1, { message: "يجب إدخال موقع المزرعة" }),
+  team: z.string().min(1, { message: "يجب إدخال اسم الفريق" }),
   vaccineType: z.string().min(1, { message: "يجب اختيار نوع المصل" }),
+  vaccineCategory: z.string().min(1, { message: "يجب اختيار فئة المصل" }),
   herd: z.object({
     sheep: z.object({
       total: z.number().min(0, { message: "يجب أن يكون الرقم أكبر من أو يساوي 0" }),
@@ -98,9 +102,9 @@ const formSchema = z.object({
     }),
   }),
   herdHealth: z.string().min(1, { message: "يجب اختيار حالة القطيع" }),
-  animalsHandling: z.string().min(1, { message: "يجب اختيار معاملة الحيوانات" }),
-  labours: z.number().min(1, { message: "يجب إدخال عدد العمال (أكثر من 0)" }),
-  reachableLocation: z.boolean().default(true),
+  animalsHandling: z.enum(["Easy", "Difficult"], { message: "يجب اختيار معاملة الحيوانات" }),
+  labours: z.string().min(1, { message: "يجب اختيار حالة العمال" }),
+  reachableLocation: z.string().min(1, { message: "يجب اختيار سهولة الوصول للموقع" }),
   request: z.object({
     date: z.string().min(1, { message: "يجب إدخال تاريخ الطلب" }),
     situation: z.string().min(1, { message: "يجب اختيار حالة الطلب" }),
@@ -141,7 +145,11 @@ export function VaccinationDialog({
       location: { e: null, n: null },
       supervisor: "",
       vehicleNo: "",
+      // New fields from database schema
+      farmLocation: "",
+      team: "",
       vaccineType: "",
+      vaccineCategory: "",
       herd: {
         sheep: { total: 0, young: 0, female: 0, vaccinated: 0 },
         goats: { total: 0, young: 0, female: 0, vaccinated: 0 },
@@ -149,9 +157,9 @@ export function VaccinationDialog({
         cattle: { total: 0, young: 0, female: 0, vaccinated: 0 },
       },
       herdHealth: "Healthy",
-      animalsHandling: "Good",
-      labours: 1,
-      reachableLocation: true,
+      animalsHandling: "Easy",
+      labours: "Available",
+      reachableLocation: "Easy",
       request: {
         date: new Date().toISOString().split("T")[0],
         situation: "Open",
@@ -170,10 +178,42 @@ export function VaccinationDialog({
         const formattedItem = {
           ...item,
           date: item.date.split("T")[0],
+          // Map new structure to old form structure for compatibility
+          owner: item.client ? {
+            name: item.client.name || '',
+            id: item.client.nationalId || '',
+            birthDate: item.client.birthDate ? item.client.birthDate.split("T")[0] : '',
+            phone: item.client.phone || '',
+          } : (item.owner ? {
+            name: item.owner.name || '',
+            id: item.owner.id || '',
+            birthDate: item.owner.birthDate ? item.owner.birthDate.split("T")[0] : '',
+            phone: item.owner.phone || '',
+          } : {
+            name: '',
+            id: '',
+            birthDate: '',
+            phone: '',
+          }),
+          location: item.coordinates ? {
+            e: item.coordinates.longitude,
+            n: item.coordinates.latitude,
+          } : (item.location || { e: null, n: null }),
+          herd: item.herdCounts ? {
+            sheep: item.herdCounts.sheep || { total: 0, young: 0, female: 0, vaccinated: 0 },
+            goats: item.herdCounts.goats || { total: 0, young: 0, female: 0, vaccinated: 0 },
+            camel: item.herdCounts.camel || { total: 0, young: 0, female: 0, vaccinated: 0 },
+            cattle: item.herdCounts.cattle || { total: 0, young: 0, female: 0, vaccinated: 0 },
+          } : (item.herd || {
+            sheep: { total: 0, young: 0, female: 0, vaccinated: 0 },
+            goats: { total: 0, young: 0, female: 0, vaccinated: 0 },
+            camel: { total: 0, young: 0, female: 0, vaccinated: 0 },
+            cattle: { total: 0, young: 0, female: 0, vaccinated: 0 },
+          }),
           request: {
             ...item.request,
-            date: item.request.date.split("T")[0],
-            fulfillingDate: item.request.fulfillingDate 
+            date: item.request?.date?.split("T")[0] || new Date().toISOString().split("T")[0],
+            fulfillingDate: item.request?.fulfillingDate 
               ? item.request.fulfillingDate.split("T")[0] 
               : undefined,
           },
@@ -197,13 +237,45 @@ export function VaccinationDialog({
     try {
       setIsSubmitting(true);
 
+      // Transform form data to match backend structure
+      const transformedData = {
+        ...data,
+        // Convert owner to client structure
+        client: {
+          name: data.owner?.name || '',
+          nationalId: data.owner?.id || '',
+          phone: data.owner?.phone || '',
+          village: '', // Not available in form
+          detailedAddress: '', // Not available in form
+          birthDate: data.owner?.birthDate || '',
+        },
+        // Convert location to coordinates
+        coordinates: data.location ? {
+          longitude: data.location.e || 0,
+          latitude: data.location.n || 0,
+        } : undefined,
+        // Convert herd to herdCounts
+        herdCounts: data.herd ? {
+          sheep: data.herd.sheep || { total: 0, young: 0, female: 0, vaccinated: 0 },
+          goats: data.herd.goats || { total: 0, young: 0, female: 0, vaccinated: 0 },
+          camel: data.herd.camel || { total: 0, young: 0, female: 0, vaccinated: 0 },
+          cattle: data.herd.cattle || { total: 0, young: 0, female: 0, vaccinated: 0 },
+          horse: { total: 0, young: 0, female: 0, vaccinated: 0 }, // Default
+        } : undefined,
+        // Remove old structure fields
+        owner: undefined,
+        location: undefined,
+        herd: undefined,
+      };
+
       if (item) {
         // Update existing item
-        await vaccinationApi.update(item.serialNo, data);
+        const updateId = item._id || item.serialNo;
+        await vaccinationApi.update(updateId, transformedData);
         toast.success("تم تحديث سجل التحصين بنجاح");
       } else {
         // Create new item
-        await vaccinationApi.create(data);
+        await vaccinationApi.create(transformedData);
         toast.success("تم إضافة سجل التحصين بنجاح");
       }
 
@@ -255,42 +327,18 @@ export function VaccinationDialog({
                 </SelectContent>
               </Select>
             ) : type === "date" ? (
-              <Popover>
-                <PopoverTrigger asChild>
-                  <FormControl>
-                    <Button
-                      variant={"outline"}
-                      className={cn(
-                        "w-full pl-3 text-right font-normal border-2 border-gray-400 focus:border-blue-500 transition-colors duration-200",
-                        !field.value && "text-muted-foreground"
-                      )}
-                    >
-                      {field.value ? (
-                        format(new Date(field.value), "yyyy-MM-dd")
-                      ) : (
-                        <span>اختر تاريخًا</span>
-                      )}
-                      <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                    </Button>
-                  </FormControl>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={field.value ? new Date(field.value) : undefined}
-                    onSelect={(date) => {
-                      if (date) {
-                        field.onChange(date.toISOString().split("T")[0]);
-                      }
-                    }}
-                    disabled={(date) =>
-                      date > new Date() || date < new Date("1900-01-01")
-                    }
-                    initialFocus
-                    locale={arEG}
-                  />
-                </PopoverContent>
-              </Popover>
+              <ModernDatePicker
+                placeholder="اختر التاريخ"
+                value={field.value}
+                onChange={(date) => {
+                  const dateString = date ? date.toISOString().split('T')[0] : '';
+                  field.onChange(dateString);
+                }}
+                variant="modern"
+                size="md"
+                maxDate={new Date()}
+                minDate={new Date(1900, 0, 1)}
+              />
             ) : type === "checkbox" ? (
               <div className="flex items-center space-x-2">
                 <Checkbox
@@ -434,16 +482,28 @@ export function VaccinationDialog({
                     {renderFormField("date", "تاريخ التحصين", "date")}
                     {renderFormField("supervisor", "اسم المشرف")}
                     {renderFormField("vehicleNo", "رقم المركبة")}
+                    {renderFormField("farmLocation", "موقع المزرعة")}
+                    {renderFormField("team", "اسم الفريق")}
                     {renderFormField(
                       "vaccineType",
                       "نوع المصل",
                       "select",
                       [
-                        { value: "FMD Vaccine", label: "لقاح الحمى القلاعية" },
-                        { value: "PPR Vaccine", label: "لقاح طاعون المجترات الصغيرة" },
-                        { value: "Brucella Vaccine", label: "لقاح البروسيلا" },
-                        { value: "Rabies Vaccine", label: "لقاح السعار" },
-                        { value: "Anthrax Vaccine", label: "لقاح الجمرة الخبيثة" },
+                        { value: "HS", label: "لقاح الحمى القلاعية (HS)" },
+                        { value: "SG-Pox", label: "لقاح طاعون المجترات الصغيرة (SG-Pox)" },
+                        { value: "ET", label: "لقاح الإسهال الوبائي (ET)" },
+                        { value: "Brucella", label: "لقاح البروسيلا" },
+                        { value: "Rabies", label: "لقاح السعار" },
+                        { value: "Anthrax", label: "لقاح الجمرة الخبيثة" },
+                      ]
+                    )}
+                    {renderFormField(
+                      "vaccineCategory",
+                      "فئة المصل",
+                      "select",
+                      [
+                        { value: "Preventive", label: "وقائي" },
+                        { value: "Emergency", label: "طوارئ" },
                       ]
                     )}
                     {renderFormField(
@@ -461,16 +521,27 @@ export function VaccinationDialog({
                       "معاملة الحيوانات",
                       "select",
                       [
-                        { value: "Good", label: "جيدة" },
-                        { value: "Fair", label: "متوسطة" },
-                        { value: "Poor", label: "سيئة" },
+                        { value: "Easy", label: "سهلة" },
+                        { value: "Difficult", label: "صعبة" },
                       ]
                     )}
-                    {renderFormField("labours", "عدد العمال", "number", undefined, true)}
+                    {renderFormField(
+                      "labours",
+                      "حالة العمال",
+                      "select",
+                      [
+                        { value: "Available", label: "متوفر" },
+                        { value: "Not Available", label: "غير متوفر" },
+                      ]
+                    )}
                     {renderFormField(
                       "reachableLocation",
-                      "الموقع قابل للوصول",
-                      "checkbox"
+                      "سهولة الوصول للموقع",
+                      "select",
+                      [
+                        { value: "Easy", label: "سهل" },
+                        { value: "Hard to reach", label: "صعب الوصول" },
+                      ]
                     )}
                   </div>
                 </div>

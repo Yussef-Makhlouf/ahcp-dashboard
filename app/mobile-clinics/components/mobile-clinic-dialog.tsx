@@ -21,12 +21,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { Calendar } from "@/components/ui/calendar";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+import { ModernDatePicker } from "@/components/ui/modern-date-picker";
 import { CalendarIcon, MapPin, Stethoscope, Plus, Trash2, User, Heart, Shield, Activity } from "lucide-react";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
@@ -94,8 +89,49 @@ interface Treatment {
 export function MobileClinicDialog({ open, onOpenChange, clinic, onSave }: MobileClinicDialogProps) {
   const [activeTab, setActiveTab] = useState("basic");
   const [formData, setFormData] = useState({
-    serialNo: 0,
+    serialNo: "",
     date: undefined as Date | undefined,
+    client: {
+      _id: "",
+      name: "",
+      nationalId: "",
+      phone: "",
+      village: "",
+      detailedAddress: "",
+    },
+    coordinates: { 
+      latitude: null as number | null, 
+      longitude: null as number | null 
+    },
+    supervisor: "",
+    vehicleNo: "",
+    farmLocation: "",
+    animalCounts: {
+      sheep: 0,
+      goats: 0,
+      camel: 0,
+      horse: 0,
+      cattle: 0,
+    },
+    diagnosis: "",
+    interventionCategory: "",
+    treatment: "",
+    medicationsUsed: [] as {
+      name: string;
+      dosage: string;
+      quantity: number;
+      route: string;
+    }[],
+    request: {
+      date: "",
+      situation: "Open" as "Open" | "Closed" | "Pending",
+      fulfillingDate: "",
+    },
+    followUpRequired: false,
+    followUpDate: undefined as Date | undefined,
+    remarks: "",
+    
+    // Legacy fields for backward compatibility
     owner: {
       name: "",
       id: "",
@@ -103,25 +139,12 @@ export function MobileClinicDialog({ open, onOpenChange, clinic, onSave }: Mobil
       phone: "",
     },
     location: { e: null as number | null, n: null as number | null },
-    supervisor: "",
-    vehicleNo: "",
     sheep: 0,
     goats: 0,
     camel: 0,
     horse: 0,
     cattle: 0,
-    diagnosis: "",
-    interventionCategory: "",
-    treatment: "",
     treatments: [] as Treatment[],
-    request: {
-      date: "",
-      situation: "Open" as "Open" | "Closed" | "Pending",
-      fulfillingDate: "",
-    },
-    category: "عيادة متنقلة",
-    remarks: "",
-    followUpDate: undefined as Date | undefined,
     prescriptions: [] as string[],
   });
 
@@ -138,22 +161,104 @@ export function MobileClinicDialog({ open, onOpenChange, clinic, onSave }: Mobil
   useEffect(() => {
     if (clinic) {
       setFormData({
-        ...clinic,
+        serialNo: clinic.serialNo || "",
         date: clinic.date ? new Date(clinic.date) : undefined,
-        followUpDate: undefined,
+        client: {
+          _id: clinic.client?._id || "",
+          name: clinic.client?.name || "",
+          nationalId: clinic.client?.nationalId || "",
+          phone: clinic.client?.phone || "",
+          village: clinic.client?.village || "",
+          detailedAddress: clinic.client?.detailedAddress || "",
+        },
+        coordinates: {
+          latitude: clinic.coordinates?.latitude || null,
+          longitude: clinic.coordinates?.longitude || null,
+        },
+        supervisor: clinic.supervisor || "",
+        vehicleNo: clinic.vehicleNo || "",
+        farmLocation: clinic.farmLocation || "",
+        animalCounts: {
+          sheep: clinic.animalCounts?.sheep || clinic.sheep || 0,
+          goats: clinic.animalCounts?.goats || clinic.goats || 0,
+          camel: clinic.animalCounts?.camel || clinic.camel || 0,
+          horse: clinic.animalCounts?.horse || clinic.horse || 0,
+          cattle: clinic.animalCounts?.cattle || clinic.cattle || 0,
+        },
+        diagnosis: clinic.diagnosis || "",
+        interventionCategory: clinic.interventionCategory || "",
+        treatment: clinic.treatment || "",
+        medicationsUsed: clinic.medicationsUsed || [],
+        request: {
+          date: clinic.request?.date || "",
+          situation: clinic.request?.situation || "Open",
+          fulfillingDate: clinic.request?.fulfillingDate || "",
+        },
+        followUpRequired: clinic.followUpRequired || false,
+        followUpDate: clinic.followUpDate ? new Date(clinic.followUpDate) : undefined,
+        remarks: clinic.remarks || "",
+        
+        // Legacy fields for backward compatibility
+        owner: {
+          name: clinic.owner?.name || clinic.client?.name || "",
+          id: clinic.owner?.id || clinic.client?.nationalId || "",
+          birthDate: clinic.owner?.birthDate || "",
+          phone: clinic.owner?.phone || clinic.client?.phone || "",
+        },
+        location: clinic.location || { 
+          e: clinic.coordinates?.longitude || null, 
+          n: clinic.coordinates?.latitude || null 
+        },
+        sheep: clinic.animalCounts?.sheep || clinic.sheep || 0,
+        goats: clinic.animalCounts?.goats || clinic.goats || 0,
+        camel: clinic.animalCounts?.camel || clinic.camel || 0,
+        horse: clinic.animalCounts?.horse || clinic.horse || 0,
+        cattle: clinic.animalCounts?.cattle || clinic.cattle || 0,
         treatments: [],
         prescriptions: [],
-        request: {
-          ...clinic.request,
-          fulfillingDate: clinic.request.fulfillingDate || "",
-        },
       });
     } else {
       // Generate new serial number
-      const newSerialNo = Math.floor(Math.random() * 10000);
+      const newSerialNo = `MC-${Date.now()}`;
       setFormData({
         serialNo: newSerialNo,
         date: new Date(),
+        client: {
+          _id: "",
+          name: "",
+          nationalId: "",
+          phone: "",
+          village: "",
+          detailedAddress: "",
+        },
+        coordinates: { 
+          latitude: null, 
+          longitude: null 
+        },
+        supervisor: "",
+        vehicleNo: "",
+        farmLocation: "",
+        animalCounts: {
+          sheep: 0,
+          goats: 0,
+          camel: 0,
+          horse: 0,
+          cattle: 0,
+        },
+        diagnosis: "",
+        interventionCategory: "",
+        treatment: "",
+        medicationsUsed: [],
+        request: {
+          date: format(new Date(), "yyyy-MM-dd"),
+          situation: "Open",
+          fulfillingDate: "",
+        },
+        followUpRequired: false,
+        followUpDate: undefined,
+        remarks: "",
+        
+        // Legacy fields for backward compatibility
         owner: {
           name: "",
           id: "",
@@ -161,25 +266,12 @@ export function MobileClinicDialog({ open, onOpenChange, clinic, onSave }: Mobil
           phone: "",
         },
         location: { e: null, n: null },
-        supervisor: "",
-        vehicleNo: "",
         sheep: 0,
         goats: 0,
         camel: 0,
         horse: 0,
         cattle: 0,
-        diagnosis: "",
-        interventionCategory: "",
-        treatment: "",
         treatments: [],
-        request: {
-          date: format(new Date(), "yyyy-MM-dd"),
-          situation: "Open",
-          fulfillingDate: "",
-        },
-        category: "عيادة متنقلة",
-        remarks: "",
-        followUpDate: undefined,
         prescriptions: [],
       });
     }
@@ -191,21 +283,21 @@ export function MobileClinicDialog({ open, onOpenChange, clinic, onSave }: Mobil
     const newErrors: Record<string, string> = {};
     
     // Required fields validation
-    if (!formData.owner.name.trim()) {
+    if (!formData.client?.name?.trim()) {
       newErrors.ownerName = "اسم المربي مطلوب";
-    } else if (formData.owner.name.trim().length < 2) {
+    } else if (formData.client.name.trim().length < 2) {
       newErrors.ownerName = "اسم المربي يجب أن يكون أكثر من حرفين";
     }
     
-    if (!formData.owner.id.trim()) {
+    if (!formData.client?.nationalId?.trim()) {
       newErrors.ownerId = "رقم هوية المربي مطلوب";
-    } else if (formData.owner.id.trim().length < 3) {
+    } else if (formData.client.nationalId.trim().length < 3) {
       newErrors.ownerId = "رقم هوية المربي يجب أن يكون أكثر من 3 أحرف";
     }
     
-    if (!formData.owner.phone.trim()) {
+    if (!formData.client?.phone?.trim()) {
       newErrors.ownerPhone = "رقم الهاتف مطلوب";
-    } else if (!validateSaudiPhone(formData.owner.phone)) {
+    } else if (!validateSaudiPhone(formData.client.phone)) {
       newErrors.ownerPhone = "رقم الهاتف غير صحيح. يجب أن يبدأ بـ +966 أو 05";
     }
     
@@ -215,6 +307,10 @@ export function MobileClinicDialog({ open, onOpenChange, clinic, onSave }: Mobil
     
     if (!formData.vehicleNo) {
       newErrors.vehicleNo = "رقم المركبة مطلوب";
+    }
+    
+    if (!formData.farmLocation.trim()) {
+      newErrors.farmLocation = "موقع المزرعة مطلوب";
     }
     
     if (!formData.diagnosis) {
@@ -304,7 +400,7 @@ export function MobileClinicDialog({ open, onOpenChange, clinic, onSave }: Mobil
   };
 
   const getTotalAnimals = () => {
-    return formData.sheep + formData.goats + formData.camel + formData.horse + formData.cattle;
+    return formData.animalCounts.sheep + formData.animalCounts.goats + formData.animalCounts.camel + formData.animalCounts.horse + formData.animalCounts.cattle;
   };
 
   return (
@@ -359,48 +455,31 @@ export function MobileClinicDialog({ open, onOpenChange, clinic, onSave }: Mobil
                   <Label>الرقم المسلسل</Label>
                   <Input
                     value={formData.serialNo}
-                    onChange={(e) => setFormData({ ...formData, serialNo: parseInt(e.target.value) || 0 })}
-                    type="number"
+                    onChange={(e) => setFormData({ ...formData, serialNo: e.target.value })}
+                    type="text"
                     disabled={!!clinic}
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <Label>التاريخ *</Label>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        className={cn(
-                          "w-full justify-start text-right",
-                          !formData.date && "text-muted-foreground"
-                        )}
-                      >
-                        <CalendarIcon className="ml-2 h-4 w-4" />
-                        {formData.date ? (
-                          format(formData.date, "PPP", { locale: ar })
-                        ) : (
-                          <span>اختر التاريخ</span>
-                        )}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0">
-                      <Calendar
-                        mode="single"
-                        selected={formData.date}
-                        onSelect={(date) => setFormData({ ...formData, date })}
-                        initialFocus
-                      />
-                    </PopoverContent>
-                  </Popover>
+                  <ModernDatePicker
+                    label="التاريخ"
+                    placeholder="اختر التاريخ"
+                    value={formData.date}
+                    onChange={(date) => setFormData({ ...formData, date: date || undefined })}
+                    required
+                    variant="modern"
+                    size="md"
+                  />
                 </div>
 
                 <div className="space-y-2">
                   <Label>اسم المربي *</Label>
                   <Input
-                    value={formData.owner.name}
+                    value={formData.client?.name || ""}
                     onChange={(e) => setFormData({
                       ...formData,
+                      client: { ...formData.client, name: e.target.value },
                       owner: { ...formData.owner, name: e.target.value }
                     })}
                     required
@@ -411,22 +490,24 @@ export function MobileClinicDialog({ open, onOpenChange, clinic, onSave }: Mobil
                 <div className="space-y-2">
                   <Label>رقم هوية المربي *</Label>
                   <Input
-                    value={formData.owner.id}
+                    value={formData.client?.nationalId || ""}
                     onChange={(e) => setFormData({
                       ...formData,
+                      client: { ...formData.client, nationalId: e.target.value },
                       owner: { ...formData.owner, id: e.target.value }
                     })}
                     required
-                    placeholder="C001"
+                    placeholder="1234567890"
                   />
                 </div>
 
                 <div className="space-y-2">
                   <Label>رقم الهاتف *</Label>
                   <Input
-                    value={formData.owner.phone}
+                    value={formData.client?.phone || ""}
                     onChange={(e) => setFormData({
                       ...formData,
+                      client: { ...formData.client, phone: e.target.value },
                       owner: { ...formData.owner, phone: e.target.value }
                     })}
                     required
@@ -436,14 +517,14 @@ export function MobileClinicDialog({ open, onOpenChange, clinic, onSave }: Mobil
                 </div>
 
                 <div className="space-y-2">
-                  <Label>تاريخ ميلاد المربي</Label>
+                  <Label>القرية</Label>
                   <Input
-                    type="date"
-                    value={formData.owner.birthDate}
+                    value={formData.client?.village || ""}
                     onChange={(e) => setFormData({
                       ...formData,
-                      owner: { ...formData.owner, birthDate: e.target.value }
+                      client: { ...formData.client, village: e.target.value }
                     })}
+                    placeholder="اسم القرية"
                   />
                 </div>
 
@@ -484,36 +565,60 @@ export function MobileClinicDialog({ open, onOpenChange, clinic, onSave }: Mobil
                     </SelectContent>
                   </Select>
                 </div>
+
+                <div className="space-y-2">
+                  <Label>موقع المزرعة *</Label>
+                  <Input
+                    value={formData.farmLocation}
+                    onChange={(e) => setFormData({ ...formData, farmLocation: e.target.value })}
+                    required
+                    placeholder="أدخل موقع المزرعة"
+                  />
+                </div>
               </div>
 
               <Separator />
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label>خط الطول (E)</Label>
+                  <Label>خط الطول (Longitude)</Label>
                   <Input
                     type="number"
                     step="0.000001"
-                    value={formData.location.e || ""}
+                    value={formData.coordinates?.longitude || ""}
                     onChange={(e) => setFormData({
                       ...formData,
-                      location: { ...formData.location, e: parseFloat(e.target.value) || null }
+                      coordinates: { 
+                        ...formData.coordinates, 
+                        longitude: parseFloat(e.target.value) || null 
+                      },
+                      location: { 
+                        ...formData.location, 
+                        e: parseFloat(e.target.value) || null 
+                      }
                     })}
-                    placeholder="30.123456"
+                    placeholder="46.123456"
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <Label>خط العرض (N)</Label>
+                  <Label>خط العرض (Latitude)</Label>
                   <Input
                     type="number"
                     step="0.000001"
-                    value={formData.location.n || ""}
+                    value={formData.coordinates?.latitude || ""}
                     onChange={(e) => setFormData({
                       ...formData,
-                      location: { ...formData.location, n: parseFloat(e.target.value) || null }
+                      coordinates: { 
+                        ...formData.coordinates, 
+                        latitude: parseFloat(e.target.value) || null 
+                      },
+                      location: { 
+                        ...formData.location, 
+                        n: parseFloat(e.target.value) || null 
+                      }
                     })}
-                    placeholder="31.123456"
+                    placeholder="24.123456"
                   />
                 </div>
               </div>
@@ -538,8 +643,15 @@ export function MobileClinicDialog({ open, onOpenChange, clinic, onSave }: Mobil
                       <Input
                         type="number"
                         min="0"
-                        value={formData.sheep}
-                        onChange={(e) => setFormData({ ...formData, sheep: parseInt(e.target.value) || 0 })}
+                        value={formData.animalCounts.sheep}
+                        onChange={(e) => setFormData({ 
+                          ...formData, 
+                          animalCounts: { 
+                            ...formData.animalCounts, 
+                            sheep: parseInt(e.target.value) || 0 
+                          },
+                          sheep: parseInt(e.target.value) || 0
+                        })}
                       />
                     </div>
 
@@ -548,8 +660,15 @@ export function MobileClinicDialog({ open, onOpenChange, clinic, onSave }: Mobil
                       <Input
                         type="number"
                         min="0"
-                        value={formData.goats}
-                        onChange={(e) => setFormData({ ...formData, goats: parseInt(e.target.value) || 0 })}
+                        value={formData.animalCounts.goats}
+                        onChange={(e) => setFormData({ 
+                          ...formData, 
+                          animalCounts: { 
+                            ...formData.animalCounts, 
+                            goats: parseInt(e.target.value) || 0 
+                          },
+                          goats: parseInt(e.target.value) || 0
+                        })}
                       />
                     </div>
 
@@ -558,8 +677,15 @@ export function MobileClinicDialog({ open, onOpenChange, clinic, onSave }: Mobil
                       <Input
                         type="number"
                         min="0"
-                        value={formData.camel}
-                        onChange={(e) => setFormData({ ...formData, camel: parseInt(e.target.value) || 0 })}
+                        value={formData.animalCounts.camel}
+                        onChange={(e) => setFormData({ 
+                          ...formData, 
+                          animalCounts: { 
+                            ...formData.animalCounts, 
+                            camel: parseInt(e.target.value) || 0 
+                          },
+                          camel: parseInt(e.target.value) || 0
+                        })}
                       />
                     </div>
 
@@ -568,8 +694,15 @@ export function MobileClinicDialog({ open, onOpenChange, clinic, onSave }: Mobil
                       <Input
                         type="number"
                         min="0"
-                        value={formData.horse}
-                        onChange={(e) => setFormData({ ...formData, horse: parseInt(e.target.value) || 0 })}
+                        value={formData.animalCounts.horse}
+                        onChange={(e) => setFormData({ 
+                          ...formData, 
+                          animalCounts: { 
+                            ...formData.animalCounts, 
+                            horse: parseInt(e.target.value) || 0 
+                          },
+                          horse: parseInt(e.target.value) || 0
+                        })}
                       />
                     </div>
 
@@ -578,8 +711,15 @@ export function MobileClinicDialog({ open, onOpenChange, clinic, onSave }: Mobil
                       <Input
                         type="number"
                         min="0"
-                        value={formData.cattle}
-                        onChange={(e) => setFormData({ ...formData, cattle: parseInt(e.target.value) || 0 })}
+                        value={formData.animalCounts.cattle}
+                        onChange={(e) => setFormData({ 
+                          ...formData, 
+                          animalCounts: { 
+                            ...formData.animalCounts, 
+                            cattle: parseInt(e.target.value) || 0 
+                          },
+                          cattle: parseInt(e.target.value) || 0
+                        })}
                       />
                     </div>
 
@@ -764,33 +904,15 @@ export function MobileClinicDialog({ open, onOpenChange, clinic, onSave }: Mobil
                 </div>
 
                 <div className="space-y-2">
-                  <Label>تاريخ المتابعة</Label>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        className={cn(
-                          "w-full justify-start text-right",
-                          !formData.followUpDate && "text-muted-foreground"
-                        )}
-                      >
-                        <CalendarIcon className="ml-2 h-4 w-4" />
-                        {formData.followUpDate ? (
-                          format(formData.followUpDate, "PPP", { locale: ar })
-                        ) : (
-                          <span>اختر تاريخ المتابعة</span>
-                        )}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0">
-                      <Calendar
-                        mode="single"
-                        selected={formData.followUpDate}
-                        onSelect={(date) => setFormData({ ...formData, followUpDate: date })}
-                        initialFocus
-                      />
-                    </PopoverContent>
-                  </Popover>
+                  <ModernDatePicker
+                    label="تاريخ المتابعة"
+                    placeholder="اختر تاريخ المتابعة"
+                    value={formData.followUpDate}
+                    onChange={(date) => setFormData({ ...formData, followUpDate: date || undefined })}
+                    variant="modern"
+                    size="md"
+                    minDate={new Date()}
+                  />
                 </div>
               </div>
 

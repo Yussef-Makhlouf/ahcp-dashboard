@@ -15,6 +15,12 @@ export function AuthGuard({ children }: AuthGuardProps) {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    // في بيئة التطوير، نسمح بالوصول مباشرة
+    if (process.env.NODE_ENV === 'development') {
+      setIsLoading(false);
+      return;
+    }
+
     const checkAuthentication = () => {
       const isAuth = checkAuth();
       
@@ -41,6 +47,11 @@ export function AuthGuard({ children }: AuthGuardProps) {
         </div>
       </div>
     );
+  }
+
+  // في بيئة التطوير، نسمح بالوصول بدون مصادقة
+  if (process.env.NODE_ENV === 'development') {
+    return <>{children}</>;
   }
 
   if (!isAuthenticated || !user) {

@@ -1,71 +1,68 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { MainLayout } from "@/components/layout/main-layout";
 import { DataTable } from "@/components/data-table/data-table";
 import { Button } from "@/components/ui/button";
 import { Plus, FileDown, Upload } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { mockVaccinationData } from "@/lib/mock/vaccination-data";
 import type { Vaccination } from "@/types";
 import { formatDate, formatPhoneNumber } from "@/lib/utils";
 import { VaccinationDialog } from "./components/vaccination-dialog";
 import { getColumns } from "./components/columns";
+import { vaccinationApi } from "@/lib/api/vaccination";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { ImportExportManager } from "@/components/import-export/import-export-manager";
 
 export default function VaccinationPage() {
-  const [data, setData] = useState<Vaccination[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState<Vaccination | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const queryClient = useQueryClient();
 
-  // محاكاة تحميل البيانات
-  useEffect(() => {
-    setIsLoading(true);
-    setTimeout(() => {
-      setData(mockVaccinationData);
-      setIsLoading(false);
-    }, 1500);
-  }, []);
+  // Fetch vaccination data using React Query
+  const { data: vaccinationData, isLoading } = useQuery({
+    queryKey: ['vaccination'],
+    queryFn: () => vaccinationApi.getList(),
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+
+  // Fetch statistics
+  const { data: stats } = useQuery({
+    queryKey: ['vaccination-stats'],
+    queryFn: () => vaccinationApi.getStatistics(),
+    staleTime: 10 * 60 * 1000, // 10 minutes
+  });
+
+  const data = vaccinationData?.data || [];
 
   const handleExport = async (type: "csv" | "pdf") => {
     if (type === "csv") {
-      // Create CSV content
-      const headers = ["الرقم المسلسل", "التاريخ", "اسم المربي", "رقم الهاتف", "نوع اللقاح", "الحيوانات المحصنة", "حالة القطيع", "حالة الطلب"];
-      const rows = data.map(vaccination => [
-        vaccination.serialNo,
-        vaccination.date,
-        vaccination.owner.name,
-        vaccination.owner.phone,
-        vaccination.vaccineType,
-        (vaccination.herd.sheep.vaccinated || 0) + (vaccination.herd.goats.vaccinated || 0) + (vaccination.herd.camel.vaccinated || 0) + (vaccination.herd.cattle.vaccinated || 0),
-        vaccination.herdHealth,
-        vaccination.request.situation,
-      ]);
-      
-      const csvContent = [
-        headers.join(","),
-        ...rows.map(row => row.join(","))
-      ].join("\n");
-      
-      // Add BOM for UTF-8
-      const blob = new Blob(["\ufeff" + csvContent], { type: "text/csv;charset=utf-8;" });
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `vaccination-records-${new Date().toISOString().split("T")[0]}.csv`;
-      a.click();
+      try {
+        const blob = await vaccinationApi.exportToCsv();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `vaccination-records-${new Date().toISOString().split("T")[0]}.csv`;
+        a.click();
+        window.URL.revokeObjectURL(url);
+      } catch (error) {
+        console.error('Export failed:', error);
+        alert('فشل في تصدير البيانات');
+      }
     }
   };
 
   const handleDelete = async (item: Vaccination) => {
     if (confirm("هل أنت متأكد من حذف هذا السجل؟")) {
-      setIsLoading(true);
-      // محاكاة عملية الحذف
-      setTimeout(() => {
-        setData(data.filter(dataItem => dataItem.serialNo !== item.serialNo));
-        setIsLoading(false);
-      }, 1000);
+      try {
+        await vaccinationApi.delete(item.serialNo);
+        queryClient.invalidateQueries({ queryKey: ['vaccination'] });
+        queryClient.invalidateQueries({ queryKey: ['vaccination-stats'] });
+      } catch (error) {
+        console.error('Delete failed:', error);
+        alert('فشل في حذف السجل');
+      }
     }
   };
 
@@ -86,10 +83,15 @@ export default function VaccinationPage() {
             </p>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" size="sm" className="border-blue-300 hover:bg-blue-50 hover:border-blue-400 text-blue-700 hover:text-blue-800">
-              <Upload className="ml-2 h-4 w-4" />
-              استيراد
-            </Button>
+            <ImportExportManager
+              exportEndpoint="/vaccination/export"
+              importEndpoint="/vaccination/import"
+              templateEndpoint="/vaccination/template"
+              title="التحصينات"
+              queryKey="vaccination"
+              acceptedFormats={[".csv", ".xlsx"]}
+              maxFileSize={10}
+            />
             <Button 
               onClick={() => {
                 setSelectedItem(null);
@@ -112,30 +114,30 @@ export default function VaccinationPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{data.length}</div>
+              <div className="text-2xl font-bold">{stats?.totalRecords || 0}</div>
             </CardContent>
           </Card>
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
-                تحصينات مكتملة
+                تحصينات وقائية
               </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-green-600">
-                {data.filter(d => d.request.situation === "Closed").length}
+                {stats?.preventiveVaccinations || 0}
               </div>
             </CardContent>
           </Card>
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
-                قيد التنفيذ
+                تحصينات طوارئ
               </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-yellow-600">
-                {data.filter(d => d.request.situation === "Open").length}
+                {stats?.emergencyVaccinations || 0}
               </div>
             </CardContent>
           </Card>
@@ -147,14 +149,7 @@ export default function VaccinationPage() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-blue-600">
-                {data.reduce((sum, d) => {
-                  const herd = d.herd;
-                  return sum + 
-                    (herd.sheep.vaccinated || 0) + 
-                    (herd.goats.vaccinated || 0) + 
-                    (herd.camel.vaccinated || 0) + 
-                    (herd.cattle.vaccinated || 0);
-                }, 0)}
+                {stats?.totalAnimalsVaccinated || 0}
               </div>
             </CardContent>
           </Card>
@@ -176,6 +171,8 @@ export default function VaccinationPage() {
           onSuccess={() => {
             setIsDialogOpen(false);
             setSelectedItem(null);
+            queryClient.invalidateQueries({ queryKey: ['vaccination'] });
+            queryClient.invalidateQueries({ queryKey: ['vaccination-stats'] });
           }}
         />
       </div>

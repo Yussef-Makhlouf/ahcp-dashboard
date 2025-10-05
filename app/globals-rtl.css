@@ -251,6 +251,63 @@
     @apply w-full caption-bottom text-sm;
   }
 
+  /* Mobile table scrolling enhancements */
+  .table-container {
+    @apply overflow-x-auto;
+    scrollbar-width: thin;
+    scrollbar-color: #d1d5db #f3f4f6;
+  }
+
+  .table-container::-webkit-scrollbar {
+    height: 6px;
+  }
+
+  .table-container::-webkit-scrollbar-track {
+    @apply bg-gray-100 rounded-full;
+  }
+
+  .table-container::-webkit-scrollbar-thumb {
+    @apply bg-gray-300 rounded-full hover:bg-gray-400;
+  }
+
+  /* Mobile-specific table improvements */
+  @media (max-width: 768px) {
+    .table-container {
+      @apply -mx-4 mx-0;
+      @apply border-l-0 border-r-0 rounded-none;
+    }
+
+    .table th,
+    .table td {
+      @apply min-w-[120px] px-2 py-3 text-xs;
+      @apply whitespace-nowrap;
+    }
+
+    .table th:first-child,
+    .table td:first-child {
+      @apply sticky right-0 bg-white z-10;
+      @apply border-l border-gray-200;
+      @apply shadow-lg;
+    }
+
+    /* Ensure table doesn't break on very small screens */
+    .table {
+      @apply min-w-[600px];
+    }
+  }
+
+  /* Very small screens - further optimizations */
+  @media (max-width: 480px) {
+    .table th,
+    .table td {
+      @apply min-w-[100px] px-1 py-2 text-xs;
+    }
+
+    .table {
+      @apply min-w-[500px];
+    }
+  }
+
   .table thead {
     @apply bg-muted/50;
   }

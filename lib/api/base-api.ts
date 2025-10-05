@@ -1,40 +1,85 @@
 import axios, { AxiosInstance, AxiosRequestConfig } from 'axios';
 import { useAuthStore } from '@/lib/store/auth-store';
 
-// Base API configuration
+// Base API configuration - إنتاج
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
 
 // Create axios instance
 const apiClient: AxiosInstance = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 30000,
+  timeout: 30000, // 30 seconds timeout
   headers: {
     'Content-Type': 'application/json',
+    'Accept': 'application/json',
   },
+  withCredentials: false, // تجنب مشاكل CORS
 });
 
-// Request interceptor
+// Request interceptor - مع المصادقة
 apiClient.interceptors.request.use(
   (config) => {
-    const { user } = useAuthStore.getState();
-    if (user) {
-      config.headers.Authorization = `Bearer ${user.id}`;
+    console.log(`🔗 API Request: ${config.method?.toUpperCase()} ${config.baseURL}${config.url}`);
+    
+    // تأكد من أن BASE URL صحيح
+    if (!config.baseURL || config.baseURL.includes('undefined')) {
+      config.baseURL = 'http://localhost:3001/api';
+      console.log('🔧 Fixed BASE URL to:', config.baseURL);
     }
+    
+    // إضافة token للمصادقة
+    const { token } = useAuthStore.getState();
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+      console.log('🔒 Added auth token to request');
+    }
+    
     return config;
   },
   (error) => {
+    console.error('❌ Request Error:', error);
     return Promise.reject(error);
   }
 );
 
 // Response interceptor
 apiClient.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    return response;
+  },
   (error) => {
-    if (error.response?.status === 401) {
-      useAuthStore.getState().logout();
-      window.location.href = '/login';
+    // معالجة أخطاء الشبكة والاتصال
+    if (error.code === 'ECONNREFUSED' || error.code === 'ERR_NETWORK') {
+      console.error('❌ فشل الاتصال بالخادم:', error.message);
+      error.message = 'فشل الاتصال بالخادم. تأكد من تشغيل الخادم الخلفي على localhost:3001';
     }
+    
+    // معالجة أخطاء CORS
+    if (error.message?.includes('CORS')) {
+      console.error('❌ خطأ CORS:', error.message);
+      error.message = 'خطأ في إعدادات CORS. تحقق من إعدادات الخادم الخلفي';
+    }
+    
+    // معالجة timeout
+    if (error.code === 'ECONNABORTED') {
+      console.error('❌ انتهت مهلة الطلب:', error.message);
+      error.message = 'انتهت مهلة الطلب. الخادم قد يكون بطيئاً أو غير متاح';
+    }
+    
+    // معالجة 401 Unauthorized
+    if (error.response?.status === 401) {
+      console.warn('⚠️ 401 Unauthorized - إعادة توجيه للدخول');
+      useAuthStore.getState().logout();
+      if (typeof window !== 'undefined') {
+        window.location.href = '/login';
+      }
+    }
+    
+    // معالجة 0 status code (مشكلة الشبكة)
+    if (error.response?.status === 0 || !error.response) {
+      console.error('❌ مشكلة في الشبكة أو CORS:', error);
+      error.message = 'مشكلة في الاتصال. تحقق من تشغيل الخادم الخلفي وإعدادات CORS';
+    }
+    
     return Promise.reject(error);
   }
 );

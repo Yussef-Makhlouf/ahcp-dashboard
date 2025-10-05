@@ -1,142 +1,141 @@
-import { mockEquineHealthData } from "@/lib/mock/equine-health-data";
+import { api } from "./base-api";
 import type { EquineHealth, ApiResponse, PaginatedResponse } from "@/types";
+import { handleAPIResponse, handleStatisticsResponse } from './api-response-handler';
 
-class EquineHealthApiService {
-  private baseUrl = "/api/equine-health";
-
-  async getList(params?: {
+export const equineHealthApi = {
+  // Get paginated list
+  getList: async (params?: {
     page?: number;
     limit?: number;
     search?: string;
-  }): Promise<PaginatedResponse<EquineHealth>> {
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 500));
+    filter?: Record<string, any>;
+  }): Promise<PaginatedResponse<EquineHealth>> => {
+    try {
+      // Filter out empty search parameters to avoid validation errors
+      const cleanParams: Record<string, any> = {
+        page: params?.page || 1,
+        limit: params?.limit || 20,
+      };
+      
+      if (params?.search && params.search.trim()) {
+        cleanParams.search = params.search.trim();
+      }
+      
+      if (params?.filter) {
+        Object.entries(params.filter).forEach(([key, value]) => {
+          if (value !== undefined && value !== null && value !== '') {
+            cleanParams[key] = value;
+          }
+        });
+      }
 
-    let filteredData = [...mockEquineHealthData];
+      const response = await api.get('/equine-health/', {
+        params: cleanParams,
+        timeout: 30000,
+      });
 
-    // Apply search filter if provided
-    if (params?.search) {
-      const searchTerm = params.search.toLowerCase();
-      filteredData = filteredData.filter(item =>
-        item.owner.name.toLowerCase().includes(searchTerm) ||
-        item.diagnosis.toLowerCase().includes(searchTerm) ||
-        item.interventionCategory.toLowerCase().includes(searchTerm) ||
-        item.serialNo.toString().includes(searchTerm)
-      );
+      // Use the universal response handler
+      return handleAPIResponse<EquineHealth>(response, params?.limit || 20);
+    } catch (error: any) {
+      console.error('Error fetching equine health list:', error);
+      throw new Error(`Failed to fetch records: ${error.message || 'Unknown error'}`);
     }
+  },
 
-    // Apply pagination
-    const page = params?.page || 1;
-    const limit = params?.limit || 20;
-    const startIndex = (page - 1) * limit;
-    const endIndex = startIndex + limit;
-
-    const paginatedData = filteredData.slice(startIndex, endIndex);
-
-    return {
-      data: paginatedData,
-      total: filteredData.length,
-      page,
-      limit,
-      totalPages: Math.ceil(filteredData.length / limit)
-    };
-  }
-
-  async getById(id: number): Promise<EquineHealth | null> {
-    await new Promise(resolve => setTimeout(resolve, 300));
-
-    const item = mockEquineHealthData.find(item => item.serialNo === id);
-    return item || null;
-  }
-
-  async create(data: Omit<EquineHealth, 'serialNo'>): Promise<EquineHealth> {
-    await new Promise(resolve => setTimeout(resolve, 500));
-
-    const newItem: EquineHealth = {
-      ...data,
-      serialNo: Math.max(...mockEquineHealthData.map(item => item.serialNo)) + 1
-    };
-
-    mockEquineHealthData.push(newItem);
-    return newItem;
-  }
-
-  async update(id: number, data: Partial<EquineHealth>): Promise<EquineHealth> {
-    await new Promise(resolve => setTimeout(resolve, 500));
-
-    const index = mockEquineHealthData.findIndex(item => item.serialNo === id);
-    if (index === -1) {
-      throw new Error("Item not found");
+  // Get single record
+  getById: async (id: string | number): Promise<EquineHealth> => {
+    try {
+      const response = await api.get(`/equine-health/${id}`, {
+        timeout: 30000,
+      });
+      // Handle response structure: { success: true, data: {...} }
+      const recordData = (response as any).data || response;
+      return recordData;
+    } catch (error: any) {
+      console.error('Error fetching record by ID:', error);
+      throw new Error(`Failed to fetch record: ${error.message || 'Unknown error'}`);
     }
+  },
 
-    mockEquineHealthData[index] = { ...mockEquineHealthData[index], ...data };
-    return mockEquineHealthData[index];
-  }
-
-  async delete(id: number): Promise<void> {
-    await new Promise(resolve => setTimeout(resolve, 300));
-
-    const index = mockEquineHealthData.findIndex(item => item.serialNo === id);
-    if (index === -1) {
-      throw new Error("Item not found");
+  // Create new record
+  create: async (data: Omit<EquineHealth, 'serialNo'>): Promise<EquineHealth> => {
+    try {
+      const response = await api.post('/equine-health/', data, {
+        timeout: 30000,
+      });
+      // Handle response structure: { success: true, data: {...} }
+      const recordData = (response as any).data || response;
+      return recordData;
+    } catch (error: any) {
+      console.error('Error creating record:', error);
+      throw new Error(`Failed to create record: ${error.message || 'Unknown error'}`);
     }
+  },
 
-    mockEquineHealthData.splice(index, 1);
-  }
+  // Update record
+  update: async (id: string | number, data: Partial<EquineHealth>): Promise<EquineHealth> => {
+    try {
+      const response = await api.put(`/equine-health/${id}`, data, {
+        timeout: 30000,
+      });
+      // Handle response structure: { success: true, data: {...} }
+      const recordData = (response as any).data || response;
+      return recordData;
+    } catch (error: any) {
+      console.error('Error updating record:', error);
+      throw new Error(`Failed to update record: ${error.message || 'Unknown error'}`);
+    }
+  },
 
-  async exportToCsv(): Promise<Blob> {
-    await new Promise(resolve => setTimeout(resolve, 1000));
+  // Delete record
+  delete: async (id: string | number): Promise<void> => {
+    try {
+      await api.delete(`/equine-health/${id}`, {
+        timeout: 30000,
+      });
+    } catch (error: any) {
+      console.error('Error deleting record:', error);
+      throw new Error(`Failed to delete record: ${error.message || 'Unknown error'}`);
+    }
+  },
 
-    const headers = [
-      "رقم التسلسل",
-      "التاريخ",
-      "اسم المالك",
-      "رقم الهوية",
-      "تاريخ الميلاد",
-      "رقم الهاتف",
-      "خط الطول (E)",
-      "خط العرض (N)",
-      "المشرف",
-      "رقم المركبة",
-      "عدد الخيول",
-      "التشخيص",
-      "فئة التدخل",
-      "العلاج",
-      "تاريخ الطلب",
-      "حالة الطلب",
-      "تاريخ الإنجاز",
-      "الفئة",
-      "الملاحظات"
-    ];
+  // Export to CSV
+  exportToCsv: async (ids?: (string | number)[]): Promise<Blob> => {
+    try {
+      const response = await api.post('/equine-health/export/csv', { ids }, {
+        responseType: 'blob',
+        timeout: 60000,
+      });
+      return response as Blob;
+    } catch (error: any) {
+      console.error('Error exporting CSV:', error);
+      throw new Error(`Failed to export CSV: ${error.message || 'Unknown error'}`);
+    }
+  },
 
-    const csvData = mockEquineHealthData.map(item => [
-      item.serialNo,
-      item.date,
-      item.owner.name,
-      item.owner.id,
-      item.owner.birthDate,
-      item.owner.phone,
-      item.location.e,
-      item.location.n,
-      item.supervisor,
-      item.vehicleNo,
-      item.horseCount,
-      item.diagnosis,
-      item.interventionCategory,
-      item.treatment,
-      item.request.date,
-      item.request.situation,
-      item.request.fulfillingDate || "",
-      item.category,
-      item.remarks
-    ]);
-
-    const csvContent = [headers, ...csvData]
-      .map(row => row.map(field => `"${field}"`).join(","))
-      .join("\n");
-
-    return new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-  }
-}
-
-export const equineHealthApi = new EquineHealthApiService();
+  // Get statistics
+  getStatistics: async (): Promise<{
+    totalRecords: number;
+    recordsThisMonth: number;
+    clinicalExaminations: number;
+    surgicalOperations: number;
+    labAnalyses: number;
+  }> => {
+    try {
+      const response = await api.get('/equine-health/statistics', {
+        timeout: 30000,
+      });
+      return handleStatisticsResponse(response);
+    } catch (error: any) {
+      console.error('Error fetching statistics:', error);
+      // Return default values if API fails
+      return {
+        totalRecords: 0,
+        recordsThisMonth: 0,
+        clinicalExaminations: 0,
+        surgicalOperations: 0,
+        labAnalyses: 0,
+      };
+    }
+  },
+};

@@ -196,8 +196,8 @@ export function DataTable<TData, TValue>({
 
       {/* Enhanced Table */}
       <div className="table-container">
-        <div className="overflow-x-auto min-h-[400px]">
-          <table className="table">
+        <div className="overflow-x-auto overflow-y-auto min-h-[400px] max-h-[600px] scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100 mobile-table-container">
+          <table className="table min-w-full mobile-table" style={{ minWidth: '1200px' }}>
             <thead>
               {table.getHeaderGroups().map((headerGroup) => (
                 <tr key={headerGroup.id}>
