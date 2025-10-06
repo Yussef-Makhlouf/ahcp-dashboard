@@ -42,12 +42,12 @@ export default function LoginPage() {
       console.log('Current pathname:', window.location.pathname);
       router.push(returnUrl);
       // إضافة تأخير للتأكد من التوجيه
-      setTimeout(() => {
-        if (window.location.pathname === '/login') {
-          console.log('Still on login page, forcing redirect...');
-          window.location.href = returnUrl;
-        }
-      }, 1000);
+      // setTimeout(() => {
+      //   if (window.location.pathname === '/login') {
+      //     console.log('Still on login page, forcing redirect...');
+      //     window.location.href = returnUrl;
+      //   }
+      // }, 1000);
     }
   }, [isAuthenticated, router, returnUrl]);
 
@@ -168,12 +168,40 @@ export default function LoginPage() {
       await login({ email, password });
       
       setSuccess('تم تسجيل الدخول بنجاح! جاري التوجيه...');
-      console.log('✅ Login successful, redirecting to:', returnUrl);
       
-      // تأخير قصير لإظهار رسالة النجاح
-      setTimeout(() => {
-        router.push(returnUrl);
-      }, 1500);
+      // الحصول على بيانات المستخدم من localStorage
+      const userStr = localStorage.getItem('user');
+      if (userStr) {
+        const user = JSON.parse(userStr);
+        console.log('✅ Login successful for:', user.name, '- Role:', user.role, '- Section:', user.section);
+        
+        // التوجيه حسب الدور والقسم
+        let redirectPath = returnUrl;
+        
+        if (returnUrl === '/') {
+          // فقط إذا كان returnUrl هو الصفحة الرئيسية، نوجه حسب الدور
+          if (user.role === 'super_admin') {
+            redirectPath = '/';
+          } else if (user.section === 'Parasite Control') {
+            redirectPath = '/parasite-control';
+          } else if (user.section === 'Vaccination') {
+            redirectPath = '/vaccination';
+          } else if (user.section === 'Equine Health') {
+            redirectPath = '/equine-health';
+          } else if (user.section === 'Mobile Clinic') {
+            redirectPath = '/mobile-clinic';
+          } else if (user.section === 'Laboratory') {
+            redirectPath = '/laboratories';
+          } else {
+            redirectPath = '/';
+          }
+        }
+        
+        console.log('📍 Redirecting to:', redirectPath);
+        router.replace(redirectPath);
+      } else {
+        router.replace(returnUrl);
+      }
       
     } catch (error: any) {
       console.error('❌ Login error:', error);

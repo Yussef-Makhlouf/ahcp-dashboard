@@ -6,6 +6,7 @@ import { authApi, type LoginRequest } from '@/lib/api/auth';
 interface AuthState {
   user: User | null;
   token: string | null;
+  refreshToken: string | null;
   isAuthenticated: boolean;
   isLoading: boolean;
   error: string | null;
@@ -14,40 +15,68 @@ interface AuthState {
   updateUser: (user: Partial<User>) => void;
   checkAuth: () => boolean;
   clearError: () => void;
+  initializeAuth: () => void;
 }
-
 export const useAuthStore = create<AuthState>()(
   persist(
     (set, get) => ({
       user: null,
       token: null,
+      refreshToken: null,
       isAuthenticated: false,
       isLoading: false,
       error: null,
       login: async (credentials: LoginRequest) => {
         try {
           set({ isLoading: true, error: null });
+          console.log(' Attempting login to backend API...');
+          
           const response = await authApi.login(credentials);
           
-          if (response.success) {
+          if (response.success && response.data) {
+            const { user, token, refreshToken } = response.data;
+            
+            // حفظ البيانات في localStorage
+            if (typeof window !== 'undefined') {
+              localStorage.setItem('token', token);
+              localStorage.setItem('user', JSON.stringify(user));
+              if (refreshToken) {
+                localStorage.setItem('refreshToken', refreshToken);
+              }
+            }
+            
             set({
-              user: response.data.user,
-              token: response.data.token,
+              user,
+              token,
+              refreshToken: refreshToken || null,
               isAuthenticated: true,
               isLoading: false,
               error: null
             });
-          } else {
-            set({
-              error: response.message || 'فشل في تسجيل الدخول',
-              isLoading: false
+            
+            console.log(' Login successful:', { 
+              userName: user.name, 
+              role: user.role, 
+              section: user.section 
             });
+          } else {
+            const errorMsg = response.message || 'فشل في تسجيل الدخول';
+            set({
+              error: errorMsg,
+              isLoading: false,
+              isAuthenticated: false
+            });
+            throw new Error(errorMsg);
           }
         } catch (error: any) {
+          console.error('Login error:', error);
+          const errorMsg = error.response?.data?.message || error.message || 'حدث خطأ أثناء تسجيل الدخول';
           set({
-            error: error.response?.data?.message || 'حدث خطأ أثناء تسجيل الدخول',
-            isLoading: false
+            error: errorMsg,
+            isLoading: false,
+            isAuthenticated: false
           });
+          throw error;
         }
       },
       logout: async () => {
@@ -57,14 +86,18 @@ export const useAuthStore = create<AuthState>()(
           console.error('Logout error:', error);
         } finally {
           set({ 
-            user: null, 
-            token: null, 
+            user: null,
+            token: null,
+            refreshToken: null,
             isAuthenticated: false,
             error: null 
           });
           // مسح البيانات من localStorage
           if (typeof window !== 'undefined') {
             localStorage.removeItem('auth-storage');
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            localStorage.removeItem('refreshToken');
           }
         }
       },
@@ -77,6 +110,34 @@ export const useAuthStore = create<AuthState>()(
         return state.isAuthenticated && state.user !== null && state.token !== null;
       },
       clearError: () => set({ error: null }),
+      initializeAuth: () => {
+        // تحميل البيانات من localStorage عند بدء التطبيق
+        if (typeof window !== 'undefined') {
+          const token = localStorage.getItem('token');
+          const userStr = localStorage.getItem('user');
+          const refreshToken = localStorage.getItem('refreshToken');
+          
+          if (token && userStr) {
+            try {
+              const user = JSON.parse(userStr);
+              set({
+                user,
+                token,
+                refreshToken,
+                isAuthenticated: true,
+                isLoading: false,
+                error: null
+              });
+              console.log('✅ Auth initialized from localStorage');
+            } catch (error) {
+              console.error('Failed to parse user from localStorage:', error);
+              localStorage.removeItem('token');
+              localStorage.removeItem('user');
+              localStorage.removeItem('refreshToken');
+            }
+          }
+        }
+      },
     }),
     {
       name: 'auth-storage',
@@ -115,7 +176,7 @@ export const mockLogin = async (role: User['role'] = 'super_admin') => {
       name: 'إبراهيم أحمد',
       email: 'ibrahim@ahcp.gov.eg',
       role,
-      section: role === 'section_supervisor' ? 'parasite_control' : undefined,
+      section: role === 'section_supervisor' ? 'Parasite Control' : undefined,
     };
     
     useAuthStore.setState({

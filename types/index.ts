@@ -341,21 +341,60 @@ export interface MobileClinic {
   cattle?: number;
 }
 
-// Equine Health Types
+// Equine Health Types - Updated to match backend structure
+export interface HorseDetail {
+  id: string;
+  breed: string;
+  age: number;
+  gender: string;
+  color: string;
+  healthStatus: string;
+}
+
 export interface EquineHealth {
-  serialNo: number;
+  _id?: string;
+  id?: string;
+  serialNo: string;
   date: string;
-  owner: Owner;
-  location: Location;
+  client: {
+    _id: string;
+    name: string;
+    nationalId: string;
+    phone: string;
+    village?: string;
+    totalAnimals?: number;
+    healthyAnimalsCount?: number;
+    id?: string;
+  };
+  farmLocation: string;
   supervisor: string;
   vehicleNo: string;
   horseCount: number;
+  horseDetails: HorseDetail[];
   diagnosis: string;
-  interventionCategory: string;
+  interventionCategory: "Clinical Examination" | "Surgical Operation" | "Ultrasonography" | "Lab Analysis" | "Farriery" | "Routine";
   treatment: string;
-  request: Request;
-  category: string;
-  remarks: string;
+  request: {
+    date: string;
+    situation: "Open" | "Closed" | "Pending";
+    fulfillingDate?: string;
+  };
+  followUpRequired?: boolean;
+  remarks?: string;
+  createdBy?: string;
+  medicationsUsed?: any[];
+  createdAt?: string;
+  updatedAt?: string;
+  __v?: number;
+  healthyHorsesCount?: number;
+  sickHorsesCount?: number;
+  underTreatmentCount?: number;
+  totalMedications?: number;
+  
+  // Legacy fields for backward compatibility
+  owner?: Owner;
+  location?: Location;
+  category?: string;
 }
 
 // Laboratory Types
@@ -378,12 +417,18 @@ export interface Laboratory {
 
 // User/Auth Types
 export interface User {
-  id: string;
+  _id?: string;
+  id?: string;
   name: string;
   email: string;
+  password?: string; // Only for registration, not returned in queries
   role: "super_admin" | "section_supervisor" | "field_worker";
-  section?: string;
+  section?: "Mobile Clinic" | "Vaccination" | "Parasite Control" | "Equine Health" | "Laboratory" | "Administration";
   avatar?: string;
+  isActive?: boolean;
+  lastLogin?: Date | string;
+  createdAt?: Date | string;
+  updatedAt?: Date | string;
 }
 
 // API Response Types

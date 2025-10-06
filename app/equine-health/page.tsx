@@ -43,7 +43,7 @@ export default function EquineHealthPage() {
     setIsDialogOpen(true);
   };
 
-  const handleDelete = async (id: number) => {
+  const handleDelete = async (id: string) => {
     if (confirm("هل أنت متأكد من حذف هذا السجل؟")) {
       await equineHealthApi.delete(id);
       refetch();

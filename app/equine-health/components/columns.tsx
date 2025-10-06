@@ -14,7 +14,7 @@ import type { EquineHealth } from "@/types";
 
 interface GetColumnsProps {
   onEdit: (item: EquineHealth) => void;
-  onDelete: (id: number) => void;
+  onDelete: (id: string) => void;
   onView?: (item: EquineHealth) => void;
 }
 
@@ -40,10 +40,19 @@ export function getColumns({
       },
     },
     {
-      accessorKey: "owner.name",
-      header: "اسم المالك",
+      accessorKey: "client.name",
+      header: "اسم العميل",
       cell: ({ row }) => (
-        <div className="font-medium">{row.original.owner.name}</div>
+        <div className="font-medium">{row.original.client.name}</div>
+      ),
+    },
+    {
+      accessorKey: "farmLocation",
+      header: "موقع المزرعة",
+      cell: ({ row }) => (
+        <div className="max-w-[150px] truncate" title={row.getValue("farmLocation")}>
+          {row.getValue("farmLocation")}
+        </div>
       ),
     },
     {
@@ -73,6 +82,7 @@ export function getColumns({
           "Ultrasonography": "bg-green-500 text-white border-green-600",
           "Lab Analysis": "bg-purple-500 text-white border-purple-600",
           "Farriery": "bg-orange-500 text-white border-orange-600",
+          "Routine": "bg-teal-500 text-white border-teal-600",
         };
 
         return (
@@ -82,6 +92,7 @@ export function getColumns({
             {category === "Ultrasonography" && "موجات فوق صوتية"}
             {category === "Lab Analysis" && "تحليل مخبري"}
             {category === "Farriery" && "حداء وعلاج الحوافر"}
+            {category === "Routine" && "روتيني"}
           </Badge>
         );
       },
@@ -129,7 +140,7 @@ export function getColumns({
               تعديل
             </DropdownMenuItem>
             <DropdownMenuItem
-              onClick={() => onDelete(row.original.serialNo)}
+              onClick={() => onDelete(row.original._id || row.original.id || row.original.serialNo)}
               className="text-red-600"
             >
               <Trash2 className="mr-2 h-4 w-4" />

@@ -15,16 +15,18 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const { user, isAuthenticated, login, logout } = useAuthStore();
+  const { user, isAuthenticated, login, logout, initializeAuth } = useAuthStore();
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // تهيئة المصادقة بدون تسجيل دخول تلقائي
+    // تهيئة المصادقة من localStorage
     const initAuth = async () => {
       try {
-        // فقط تحديد حالة التحميل
+        console.log('🔐 Initializing auth from localStorage...');
+        // تحميل البيانات من localStorage إلى Zustand state
+        initializeAuth();
         setLoading(false);
-        console.log('🔐 نظام المصادقة جاهز - يرجى تسجيل الدخول');
+        console.log('✅ Auth system ready');
       } catch (error) {
         console.error('❌ خطأ في تهيئة المصادقة:', error);
         setLoading(false);
@@ -32,7 +34,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
 
     initAuth();
-  }, []);
+  }, [initializeAuth]);
 
   const handleLogin = async (credentials: any) => {
     try {

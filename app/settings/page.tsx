@@ -25,13 +25,12 @@ import {
   Moon,
   Sun,
   Globe,
-  Save,
   Plus,
   UserPlus,
-  Building,
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import { toast } from "sonner";
+import { authApi } from "@/lib/api/auth";
 
 export default function SettingsPage() {
   const { theme, setTheme } = useTheme();
@@ -39,11 +38,20 @@ export default function SettingsPage() {
   const [isLoading, setIsLoading] = useState(false);
   
   // User Management State
-  const [newUser, setNewUser] = useState({
+  const [newUser, setNewUser] = useState<{
+    name: string;
+    email: string;
+    role: "super_admin" | "section_supervisor" | "field_worker";
+    section: "Mobile Clinic" | "Vaccination" | "Parasite Control" | "Equine Health" | "Laboratory" | "Administration" | "";
+    password: string;
+    isActive: boolean;
+  }>({
     name: "",
     email: "",
-    role: "supervisor",
+    role: "field_worker",
+    section: "",
     password: "",
+    isActive: true,
   });
 
   // Village Management State
@@ -57,19 +65,56 @@ export default function SettingsPage() {
   const [language, setLanguage] = useState("ar");
 
   const handleAddUser = async () => {
+    // Validation
     if (!newUser.name || !newUser.email || !newUser.password) {
       toast.error("يرجى ملء جميع الحقول المطلوبة");
       return;
     }
 
+    if (newUser.name.length < 2 || newUser.name.length > 50) {
+      toast.error("يجب أن يكون الاسم بين 2 و 50 حرفاً");
+      return;
+    }
+
+    if (newUser.password.length < 6) {
+      toast.error("يجب أن تكون كلمة المرور 6 أحرف على الأقل");
+      return;
+    }
+
+    if (newUser.role === "section_supervisor" && !newUser.section) {
+      toast.error("يرجى اختيار القسم لمشرف القسم");
+      return;
+    }
+
     setIsLoading(true);
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      const userData: any = {
+        name: newUser.name,
+        email: newUser.email,
+        password: newUser.password,
+        role: newUser.role,
+        isActive: newUser.isActive,
+      };
+
+      // Only add section if role is section_supervisor
+      if (newUser.role === "section_supervisor" && newUser.section) {
+        userData.section = newUser.section;
+      }
+
+      await authApi.register(userData);
       toast.success("تم إضافة المستخدم بنجاح");
-      setNewUser({ name: "", email: "", role: "supervisor", password: "" });
-    } catch (error) {
-      toast.error("حدث خطأ أثناء إضافة المستخدم");
+      setNewUser({ 
+        name: "", 
+        email: "", 
+        role: "field_worker", 
+        section: "",
+        password: "",
+        isActive: true,
+      });
+    } catch (error: any) {
+      const errorMessage = error?.response?.data?.message || error?.message || "حدث خطأ أثناء إضافة المستخدم";
+      toast.error(errorMessage);
+      console.error("Error adding user:", error);
     } finally {
       setIsLoading(false);
     }
@@ -165,16 +210,16 @@ export default function SettingsPage() {
 
                   <div className="space-y-2">
                     <Label htmlFor="userRole" className="text-right">الدور</Label>
-                    <Select value={newUser.role} onValueChange={(value) => 
-                      setNewUser({ ...newUser, role: value })
+                    <Select value={newUser.role} onValueChange={(value: any) => 
+                      setNewUser({ ...newUser, role: value, section: value !== "section_supervisor" ? "" : newUser.section })
                     }>
                       <SelectTrigger className="text-right">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="admin">مدير</SelectItem>
-                        <SelectItem value="supervisor">مشرف</SelectItem>
-                        <SelectItem value="user">مستخدم</SelectItem>
+                        <SelectItem value="super_admin">مدير عام</SelectItem>
+                        <SelectItem value="section_supervisor">مشرف قسم</SelectItem>
+                        <SelectItem value="field_worker">عامل ميداني</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -186,10 +231,45 @@ export default function SettingsPage() {
                       type="password"
                       value={newUser.password}
                       onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
-                      placeholder="أدخل كلمة المرور"
+                      placeholder="أدخل كلمة المرور (6 أحرف على الأقل)"
                       className="text-right"
                     />
                   </div>
+
+                  {newUser.role === "section_supervisor" && (
+                    <div className="space-y-2 md:col-span-2">
+                      <Label htmlFor="userSection" className="text-right">القسم <span className="text-red-500">*</span></Label>
+                      <Select value={newUser.section} onValueChange={(value: any) => 
+                        setNewUser({ ...newUser, section: value })
+                      }>
+                        <SelectTrigger className="text-right">
+                          <SelectValue placeholder="اختر القسم" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Mobile Clinic">العيادة المتنقلة</SelectItem>
+                          <SelectItem value="Vaccination">التطعيم</SelectItem>
+                          <SelectItem value="Parasite Control">مكافحة الطفيليات</SelectItem>
+                          <SelectItem value="Equine Health">صحة الخيول</SelectItem>
+                          <SelectItem value="Laboratory">المختبر</SelectItem>
+                          <SelectItem value="Administration">الإدارة</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex items-center justify-between p-4 rounded-lg border bg-card">
+                  <div className="space-y-0.5 text-right">
+                    <Label htmlFor="userActive" className="text-sm font-medium">حساب نشط</Label>
+                    <div className="text-sm text-muted-foreground">
+                      تفعيل أو تعطيل حساب المستخدم
+                    </div>
+                  </div>
+                  <Switch 
+                    id="userActive"
+                    checked={newUser.isActive} 
+                    onCheckedChange={(checked) => setNewUser({ ...newUser, isActive: checked })}
+                  />
                 </div>
 
                 <Button 
