@@ -142,22 +142,20 @@ export const laboratoriesApi = {
     positiveCases: number;
     negativeCases: number;
     positivityRate: number;
+    pendingTests: number;
+    completedTests: number;
+    inProgressTests: number;
+    totalTestSamples: number;
     samplesByType?: Array<{ type: string; count: number }>;
     resultsByMonth?: Array<{ month: string; positive: number; negative: number }>;
   }> => {
     try {
-      const response = await api.get<{
-        totalSamples: number;
-        samplesThisMonth: number;
-        positiveCases: number;
-        negativeCases: number;
-        positivityRate: number;
-        samplesByType?: Array<{ type: string; count: number }>;
-        resultsByMonth?: Array<{ month: string; positive: number; negative: number }>;
-      }>('/laboratories/statistics', {
+      const response = await api.get('/laboratories/statistics', {
         timeout: 30000,
       });
-      return response;
+      
+      // Use the statistics response handler to extract data correctly
+      return handleStatisticsResponse(response);
     } catch (error: any) {
       console.error('Error fetching laboratories statistics:', error);
       // Return default values if API fails
@@ -167,6 +165,10 @@ export const laboratoriesApi = {
         positiveCases: 0,
         negativeCases: 0,
         positivityRate: 0,
+        pendingTests: 0,
+        completedTests: 0,
+        inProgressTests: 0,
+        totalTestSamples: 0,
       };
     }
   },

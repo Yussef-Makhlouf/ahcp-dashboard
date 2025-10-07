@@ -51,20 +51,38 @@ export const useAuthStore = create<AuthState>()(
         }
       },
       logout: async () => {
+        const currentState = get();
+        
+        // منع logout المتعدد إذا كان المستخدم مسجل خروج بالفعل
+        if (!currentState.isAuthenticated && !currentState.token) {
+          console.log('🔄 المستخدم مسجل خروج بالفعل');
+          return;
+        }
+        
+        console.log('🚪 تسجيل خروج...');
+        
         try {
-          await authApi.logout();
-        } catch (error) {
-          console.error('Logout error:', error);
+          // محاولة إعلام الخادم بتسجيل الخروج (اختياري)
+          if (currentState.token) {
+            await authApi.logout();
+          }
+        } catch (error: any) {
+          console.error('⚠️ خطأ في إعلام الخادم بتسجيل الخروج:', error?.message || 'خطأ غير معروف');
+          // لا توقف عملية تسجيل الخروج بسبب خطأ في الخادم
         } finally {
+          // مسح حالة المصادقة محلياً
           set({ 
             user: null, 
             token: null, 
             isAuthenticated: false,
-            error: null 
+            error: null,
+            isLoading: false
           });
+          
           // مسح البيانات من localStorage
           if (typeof window !== 'undefined') {
             localStorage.removeItem('auth-storage');
+            console.log('🗑️ تم مسح بيانات الجلسة');
           }
         }
       },
@@ -102,8 +120,8 @@ export const useAuthStore = create<AuthState>()(
 // Mock login function for development
 export const mockLogin = async (role: User['role'] = 'super_admin') => {
   const mockCredentials: LoginRequest = {
-    email: 'ibrahim@ahcp.gov.eg',
-    password: 'admin123'
+    email: 'admin@ahcp.gov.sa',
+    password: 'Admin@123456'
   };
   
   try {
@@ -112,10 +130,12 @@ export const mockLogin = async (role: User['role'] = 'super_admin') => {
     // If API login fails, use local mock data
     const mockUser: User = {
       id: '1',
-      name: 'إبراهيم أحمد',
-      email: 'ibrahim@ahcp.gov.eg',
+      name: 'مدير النظام',
+      email: 'admin@ahcp.gov.sa',
       role,
-      section: role === 'section_supervisor' ? 'parasite_control' : undefined,
+      section: role === 'section_supervisor' ? 'parasite_control' : '',
+      roleNameAr: role === 'super_admin' ? 'مدير عام' : 'مشرف قسم',
+      isActive: true
     };
     
     useAuthStore.setState({

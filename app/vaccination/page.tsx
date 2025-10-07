@@ -56,7 +56,9 @@ export default function VaccinationPage() {
   const handleDelete = async (item: Vaccination) => {
     if (confirm("هل أنت متأكد من حذف هذا السجل؟")) {
       try {
-        await vaccinationApi.delete(item.serialNo);
+        // Use _id for deletion, fallback to serialNo if _id is not available
+        const deleteId = item._id || item.id || item.serialNo;
+        await vaccinationApi.delete(deleteId);
         queryClient.invalidateQueries({ queryKey: ['vaccination'] });
         queryClient.invalidateQueries({ queryKey: ['vaccination-stats'] });
       } catch (error) {

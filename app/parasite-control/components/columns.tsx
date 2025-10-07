@@ -14,7 +14,7 @@ import type { ParasiteControl } from "@/types";
 
 interface GetColumnsProps {
   onEdit: (item: ParasiteControl) => void;
-  onDelete: (id: number) => void;
+  onDelete: (id: string | number) => void;
   onView?: (item: ParasiteControl) => void;
 }
 
@@ -42,9 +42,23 @@ export function getColumns({
     {
       accessorKey: "owner.name",
       header: "اسم المربي",
-      cell: ({ row }) => (
-        <div className="font-medium">{row.original.owner.name}</div>
-      ),
+      cell: ({ row }) => {
+        const name = row.original.owner?.name || '-';
+        const nationalId = row.original.owner?.nationalId || '';
+        const phone = row.original.owner?.phone || '';
+        
+        return (
+          <div className="space-y-1">
+            <div className="font-medium">{name}</div>
+            {nationalId && (
+              <div className="text-xs text-gray-500">هوية: {nationalId}</div>
+            )}
+            {phone && (
+              <div className="text-xs text-gray-500">{phone}</div>
+            )}
+          </div>
+        );
+      },
     },
     {
       accessorKey: "supervisor",
@@ -71,14 +85,44 @@ export function getColumns({
       id: "animals",
       header: "عدد الحيوانات",
       cell: ({ row }) => {
-        const herd = row.original.herd;
-        const total = 
-          herd.sheep.total + 
-          herd.goats.total + 
-          herd.camel.total + 
-          herd.cattle.total;
+        // Use virtual field from backend first
+        const totalFromBackend = row.original.totalHerdCount;
+        
+        // Calculate from herdCounts if available
+        let totalFromHerdCounts = 0;
+        if (row.original.herdCounts) {
+          const counts = row.original.herdCounts;
+          totalFromHerdCounts = 
+            (counts.sheep?.total || 0) + 
+            (counts.goats?.total || 0) + 
+            (counts.camel?.total || 0) + 
+            (counts.cattle?.total || 0) + 
+            (counts.horse?.total || 0);
+        }
+        
+        // Fallback to legacy herd structure
+        let totalFromHerd = 0;
+        if (row.original.herd) {
+          const herd = row.original.herd;
+          totalFromHerd = 
+            (herd.sheep?.total || 0) + 
+            (herd.goats?.total || 0) + 
+            (herd.camel?.total || 0) + 
+            (herd.cattle?.total || 0);
+        }
+        
+        const total = totalFromBackend || totalFromHerdCounts || totalFromHerd;
+        const treated = row.original.totalTreated || 0;
+        
         return (
-          <Badge variant="secondary">{total}</Badge>
+          <div className="space-y-1">
+            <Badge variant="secondary">المجموع: {total}</Badge>
+            {treated > 0 && (
+              <Badge variant="outline" className="text-green-600 border-green-600">
+                المعالج: {treated}
+              </Badge>
+            )}
+          </div>
         );
       },
     },
@@ -185,7 +229,7 @@ export function getColumns({
               تعديل
             </DropdownMenuItem>
             <DropdownMenuItem
-              onClick={() => onDelete(row.original.serialNo)}
+              onClick={() => onDelete(row.original._id || row.original.serialNo)}
               className="text-red-600"
             >
               <Trash2 className="mr-2 h-4 w-4" />

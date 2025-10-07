@@ -398,7 +398,7 @@ export default function ParasiteControlPage() {
     }
   };
 
-  const handleDelete = async (id: number) => {
+  const handleDelete = async (id: string | number) => {
     if (confirm("هل أنت متأكد من حذف هذا السجل؟")) {
       try {
         await parasiteControlApi.delete(id);
@@ -411,23 +411,24 @@ export default function ParasiteControlPage() {
     }
   };
 
-  const handleSave = async (data: any) => {
-    try {
-      if (selectedItem) {
-        await parasiteControlApi.update(selectedItem.serialNo, data);
-        alert('تم تحديث السجل بنجاح');
-      } else {
-        await parasiteControlApi.create(data);
-        alert('تم إضافة السجل بنجاح');
-      }
-      refetch(); // Refresh data
-      setIsDialogOpen(false);
-      setSelectedItem(null);
-    } catch (error) {
-      console.error('Save failed:', error);
-      alert('فشل في حفظ السجل');
-    }
-  };
+  // This function is now handled in the dialog component
+  // const handleSave = async (data: any) => {
+  //   try {
+  //     if (selectedItem) {
+  //       await parasiteControlApi.update(selectedItem._id || selectedItem.serialNo, data);
+  //       alert('تم تحديث السجل بنجاح');
+  //     } else {
+  //       await parasiteControlApi.create(data);
+  //       alert('تم إضافة السجل بنجاح');
+  //     }
+  //     refetch(); // Refresh data
+  //     setIsDialogOpen(false);
+  //     setSelectedItem(null);
+  //   } catch (error) {
+  //     console.error('Save failed:', error);
+  //     alert('فشل في حفظ السجل');
+  //   }
+  // };
 
   const handleEdit = (item: ParasiteControl) => {
     setSelectedItem(item);

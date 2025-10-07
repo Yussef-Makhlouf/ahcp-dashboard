@@ -265,7 +265,9 @@ export default function MobileClinicsPage() {
   const handleDelete = async (item: MobileClinic) => {
     if (confirm("هل أنت متأكد من حذف هذا السجل؟")) {
       try {
-        await mobileClinicsApi.delete(item.serialNo);
+        // استخدام _id أو serialNo للحذف
+        const deleteId = item._id || item.serialNo;
+        await mobileClinicsApi.delete(deleteId);
         refetch(); // Refresh data after deletion
         alert('تم حذف السجل بنجاح');
       } catch (error) {
@@ -278,7 +280,9 @@ export default function MobileClinicsPage() {
   const handleSave = async (data: any) => {
     try {
       if (selectedItem) {
-        await mobileClinicsApi.update(selectedItem.serialNo, data);
+        // استخدام _id أو serialNo للتحديث
+        const updateId = selectedItem._id || selectedItem.serialNo;
+        await mobileClinicsApi.update(updateId, data);
         alert('تم تحديث السجل بنجاح');
       } else {
         await mobileClinicsApi.create(data);

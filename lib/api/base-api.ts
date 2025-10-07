@@ -65,12 +65,36 @@ apiClient.interceptors.response.use(
       error.message = 'انتهت مهلة الطلب. الخادم قد يكون بطيئاً أو غير متاح';
     }
     
-    // معالجة 401 Unauthorized
+    // معالجة 401 Unauthorized - فقط للـ endpoints الحساسة
     if (error.response?.status === 401) {
-      console.warn('⚠️ 401 Unauthorized - إعادة توجيه للدخول');
-      useAuthStore.getState().logout();
-      if (typeof window !== 'undefined') {
-        window.location.href = '/login';
+      const url = error.config?.url || '';
+      const isAuthEndpoint = url.includes('/auth/login') || url.includes('/auth/register') || url.includes('/auth/refresh');
+      const isSupervisorsEndpoint = url.includes('/auth/supervisors');
+      
+      // لا تقم بتسجيل الخروج إذا كان الخطأ من endpoint المشرفين
+      if (isSupervisorsEndpoint) {
+        console.warn('⚠️ 401 من endpoint المشرفين - المستخدم غير مسجل الدخول');
+        // لا تقم بتسجيل الخروج، فقط أرجع الخطأ
+        return Promise.reject(error);
+      }
+      
+      // تسجيل الخروج فقط للـ endpoints الأخرى (ليس auth endpoints)
+      if (!isAuthEndpoint) {
+        console.warn('⚠️ 401 Unauthorized - تسجيل خروج تلقائي');
+        const authStore = useAuthStore.getState();
+        
+        // تحقق من وجود token قبل تسجيل الخروج
+        if (authStore.token) {
+          console.log('🔄 تسجيل خروج بسبب token منتهي الصلاحية');
+          authStore.logout();
+          
+          if (typeof window !== 'undefined') {
+            // تأخير قصير قبل إعادة التوجيه
+            setTimeout(() => {
+              window.location.href = '/login';
+            }, 100);
+          }
+        }
       }
     }
     

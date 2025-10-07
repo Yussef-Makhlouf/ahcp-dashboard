@@ -42,6 +42,7 @@ import { validateEgyptianPhone, validateSaudiPhone } from "@/lib/utils";
 import { User, Heart, Shield, Activity } from "lucide-react";
 import { useState } from "react";
 import { ModernDatePicker } from "@/components/ui/modern-date-picker";
+import { SupervisorSelect } from "@/components/ui/supervisor-select";
 
 const formSchema = z.object({
   date: z.string().min(1, "التاريخ مطلوب"),
@@ -218,7 +219,11 @@ export function EquineHealthDialog({
                       <FormItem>
                         <FormLabel>المشرف</FormLabel>
                         <FormControl>
-                          <Input placeholder="اسم المشرف" {...field} />
+                          <SupervisorSelect
+                            value={field.value}
+                            onValueChange={field.onChange}
+                            placeholder="اختر المشرف"
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>

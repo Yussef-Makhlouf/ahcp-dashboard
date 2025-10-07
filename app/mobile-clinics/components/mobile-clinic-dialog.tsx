@@ -22,16 +22,16 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { ModernDatePicker } from "@/components/ui/modern-date-picker";
-import { CalendarIcon, MapPin, Stethoscope, Plus, Trash2, User, Heart, Shield, Activity } from "lucide-react";
+import { SupervisorSelect } from "@/components/ui/supervisor-select";
+import { CalendarIcon, MapPin, Stethoscope, Plus, Trash2, Activity } from "lucide-react";
 import { format } from "date-fns";
-import { ar } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { validateSaudiPhone } from "@/lib/utils";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { EnhancedMobileTabs } from "@/components/ui/mobile-tabs";
-import { Card, CardContent, CardHeader, CardTitle, StatsCard } from "@/components/ui/card-modern";
-import { Badge, StatusBadge } from "@/components/ui/badge-modern";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import React, { useCallback } from "react";
 import { Separator } from "@/components/ui/separator";
 import type { MobileClinic } from "@/types";
 
@@ -42,13 +42,7 @@ interface MobileClinicDialogProps {
   onSave: (data: any) => void;
 }
 
-const supervisors = [
-  "د. محمد علي",
-  "د. سارة محمود",
-  "د. أحمد حسن",
-  "د. فاطمة عبدالله",
-  "د. خالد إبراهيم",
-];
+// Removed static supervisors array - now using API
 
 const vehicles = [
   { id: "MC1", name: "عيادة متنقلة 1" },
@@ -70,12 +64,10 @@ const diagnoses = [
 ];
 
 const interventionCategories = [
-  "علاج",
-  "وقاية",
-  "علاج طارئ",
-  "فحص روتيني",
-  "تطعيم",
-  "جراحة بسيطة",
+  { value: "Emergency", label: "طوارئ" },
+  { value: "Routine", label: "روتيني" },
+  { value: "Preventive", label: "وقائي" },
+  { value: "Follow-up", label: "متابعة" },
 ];
 
 interface Treatment {
@@ -88,6 +80,7 @@ interface Treatment {
 
 export function MobileClinicDialog({ open, onOpenChange, clinic, onSave }: MobileClinicDialogProps) {
   const [activeTab, setActiveTab] = useState("basic");
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     serialNo: "",
     date: undefined as Date | undefined,
@@ -160,6 +153,7 @@ export function MobileClinicDialog({ open, onOpenChange, clinic, onSave }: Mobil
 
   useEffect(() => {
     if (clinic) {
+      // تحويل البيانات من الخادم إلى بنية النموذج
       setFormData({
         serialNo: clinic.serialNo || "",
         date: clinic.date ? new Date(clinic.date) : undefined,
@@ -190,9 +184,9 @@ export function MobileClinicDialog({ open, onOpenChange, clinic, onSave }: Mobil
         treatment: clinic.treatment || "",
         medicationsUsed: clinic.medicationsUsed || [],
         request: {
-          date: clinic.request?.date || "",
+          date: clinic.request?.date ? format(new Date(clinic.request.date), "yyyy-MM-dd") : format(new Date(), "yyyy-MM-dd"),
           situation: clinic.request?.situation || "Open",
-          fulfillingDate: clinic.request?.fulfillingDate || "",
+          fulfillingDate: clinic.request?.fulfillingDate ? format(new Date(clinic.request.fulfillingDate), "yyyy-MM-dd") : "",
         },
         followUpRequired: clinic.followUpRequired || false,
         followUpDate: clinic.followUpDate ? new Date(clinic.followUpDate) : undefined,
@@ -200,10 +194,10 @@ export function MobileClinicDialog({ open, onOpenChange, clinic, onSave }: Mobil
         
         // Legacy fields for backward compatibility
         owner: {
-          name: clinic.owner?.name || clinic.client?.name || "",
-          id: clinic.owner?.id || clinic.client?.nationalId || "",
+          name: clinic.client?.name || clinic.owner?.name || "",
+          id: clinic.client?.nationalId || clinic.owner?.id || "",
           birthDate: clinic.owner?.birthDate || "",
-          phone: clinic.owner?.phone || clinic.client?.phone || "",
+          phone: clinic.client?.phone || clinic.owner?.phone || "",
         },
         location: clinic.location || { 
           e: clinic.coordinates?.longitude || null, 
@@ -219,7 +213,7 @@ export function MobileClinicDialog({ open, onOpenChange, clinic, onSave }: Mobil
       });
     } else {
       // Generate new serial number
-      const newSerialNo = `MC-${Date.now()}`;
+      const newSerialNo = generateSerialNo();
       setFormData({
         serialNo: newSerialNo,
         date: new Date(),
@@ -313,12 +307,19 @@ export function MobileClinicDialog({ open, onOpenChange, clinic, onSave }: Mobil
       newErrors.farmLocation = "موقع المزرعة مطلوب";
     }
     
-    if (!formData.diagnosis) {
-      newErrors.diagnosis = "التشخيص مطلوب";
+    // Validate date
+    if (!formData.date) {
+      newErrors.date = "يجب اختيار التاريخ";
+    } else if (formData.date > new Date()) {
+      newErrors.date = "لا يمكن اختيار تاريخ في المستقبل";
     }
     
     if (!formData.interventionCategory) {
       newErrors.interventionCategory = "نوع التدخل مطلوب";
+    }
+    
+    if (!formData.diagnosis) {
+      newErrors.diagnosis = "التشخيص مطلوب";
     }
     
     // Validate animal counts
@@ -336,27 +337,72 @@ export function MobileClinicDialog({ open, onOpenChange, clinic, onSave }: Mobil
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!validateForm()) return;
     
-    const treatmentText = formData.treatments.length > 0
-      ? formData.treatments.map(t => `${t.medicine} - ${t.dosage}`).join(", ")
-      : formData.treatment;
+    setIsSubmitting(true);
     
-    onSave({
-      ...formData,
-      date: formData.date ? format(formData.date, "yyyy-MM-dd") : "",
-      treatment: treatmentText,
-      request: {
-        ...formData.request,
-        fulfillingDate: formData.request.situation === "Closed" 
-          ? format(new Date(), "yyyy-MM-dd") 
-          : formData.request.fulfillingDate,
-      },
-    });
-    onOpenChange(false);
+    try {
+      const treatmentText = formData.treatments.length > 0
+        ? formData.treatments.map(t => `${t.medicine} - ${t.dosage}`).join(", ")
+        : formData.treatment;
+
+      // تحويل البيانات للشكل المطلوب من الباك إند
+      const submitData = {
+        serialNo: formData.serialNo,
+        date: formData.date ? format(formData.date, "yyyy-MM-dd") : "",
+        // إرسال بيانات العميل للباك إند ليتعامل معها
+        client: formData.client._id || {
+          name: formData.client.name.trim(),
+          nationalId: formData.client.nationalId.trim(),
+          phone: formData.client.phone.trim(),
+          village: formData.client.village || '',
+          detailedAddress: formData.client.detailedAddress || '',
+        },
+        farmLocation: formData.farmLocation,
+        coordinates: {
+          latitude: formData.coordinates.latitude || 0,
+          longitude: formData.coordinates.longitude || 0,
+        },
+        supervisor: formData.supervisor,
+        vehicleNo: formData.vehicleNo,
+        animalCounts: {
+          sheep: formData.animalCounts.sheep || 0,
+          goats: formData.animalCounts.goats || 0,
+          camel: formData.animalCounts.camel || 0,
+          cattle: formData.animalCounts.cattle || 0,
+          horse: formData.animalCounts.horse || 0,
+        },
+        diagnosis: formData.diagnosis,
+        interventionCategory: formData.interventionCategory,
+        treatment: treatmentText,
+        medicationsUsed: formData.medicationsUsed.map(med => ({
+          name: med.name,
+          dosage: med.dosage,
+          quantity: med.quantity,
+          route: med.route,
+        })),
+        request: {
+          date: formData.request.date || format(new Date(), "yyyy-MM-dd"),
+          situation: formData.request.situation,
+          fulfillingDate: formData.request.situation === "Closed" 
+            ? format(new Date(), "yyyy-MM-dd") 
+            : formData.request.fulfillingDate || null,
+        },
+        followUpRequired: formData.followUpRequired,
+        followUpDate: formData.followUpDate ? format(formData.followUpDate, "yyyy-MM-dd") : null,
+        remarks: formData.remarks || '',
+      };
+      
+      await onSave(submitData);
+      onOpenChange(false);
+    } catch (error) {
+      console.error('Error submitting form:', error);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const addTreatment = () => {
@@ -403,6 +449,14 @@ export function MobileClinicDialog({ open, onOpenChange, clinic, onSave }: Mobil
     return formData.animalCounts.sheep + formData.animalCounts.goats + formData.animalCounts.camel + formData.animalCounts.horse + formData.animalCounts.cattle;
   };
 
+
+  // توليد رقم تسلسلي جديد
+  const generateSerialNo = useCallback(() => {
+    const timestamp = Date.now();
+    const randomNum = Math.floor(Math.random() * 1000);
+    return `MC-${timestamp}-${randomNum}`;
+  }, []);
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto p-2 sm:p-4 lg:p-6">
@@ -417,48 +471,37 @@ export function MobileClinicDialog({ open, onOpenChange, clinic, onSave }: Mobil
 
         <DialogBody>
           <form id="mobile-clinic-form" onSubmit={handleSubmit}>
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="tabs-modern" dir="rtl">
-              <EnhancedMobileTabs
-                value={activeTab}
-                onValueChange={setActiveTab}
-                tabs={[
-                  {
-                    value: "basic",
-                    label: "البيانات الأساسية",
-                    shortLabel: "أساسية",
-                    icon: <User className="w-4 h-4" />
-                  },
-                  {
-                    value: "animals",
-                    label: "الحيوانات",
-                    shortLabel: "حيوانات",
-                    icon: <Heart className="w-4 h-4" />
-                  },
-                  {
-                    value: "diagnosis",
-                    label: "التشخيص والعلاج",
-                    shortLabel: "تشخيص",
-                    icon: <Shield className="w-4 h-4" />
-                  },
-                  {
-                    value: "followup",
-                    label: "المتابعة",
-                    shortLabel: "متابعة",
-                    icon: <Activity className="w-4 h-4" />
-                  }
-                ]}
-              />
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full" dir="rtl">
+              <TabsList className="grid w-full grid-cols-4">
+                <TabsTrigger value="basic">البيانات الأساسية</TabsTrigger>
+                <TabsTrigger value="animals">الحيوانات</TabsTrigger>
+                <TabsTrigger value="diagnosis">التشخيص والعلاج</TabsTrigger>
+                <TabsTrigger value="followup">المتابعة</TabsTrigger>
+              </TabsList>
 
-            <TabsContent value="basic" className="tabs-content-modern">
+            <TabsContent value="basic" className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>الرقم المسلسل</Label>
-                  <Input
-                    value={formData.serialNo}
-                    onChange={(e) => setFormData({ ...formData, serialNo: e.target.value })}
-                    type="text"
-                    disabled={!!clinic}
-                  />
+                  <div className="flex gap-2">
+                    <Input
+                      value={formData.serialNo}
+                      onChange={(e) => setFormData({ ...formData, serialNo: e.target.value })}
+                      type="text"
+                      disabled={!!clinic}
+                      placeholder="سيتم توليده تلقائياً"
+                    />
+                    {!clinic && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => setFormData({ ...formData, serialNo: generateSerialNo() })}
+                        className="whitespace-nowrap"
+                      >
+                        توليد رقم
+                      </Button>
+                    )}
+                  </div>
                 </div>
 
                 <div className="space-y-2">
@@ -470,6 +513,7 @@ export function MobileClinicDialog({ open, onOpenChange, clinic, onSave }: Mobil
                     required
                     variant="modern"
                     size="md"
+                    maxDate={new Date()} // منع اختيار تواريخ مستقبلية
                   />
                 </div>
 
@@ -530,21 +574,11 @@ export function MobileClinicDialog({ open, onOpenChange, clinic, onSave }: Mobil
 
                 <div className="space-y-2">
                   <Label>المشرف *</Label>
-                  <Select
+                  <SupervisorSelect
                     value={formData.supervisor}
                     onValueChange={(value) => setFormData({ ...formData, supervisor: value })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="اختر المشرف" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {supervisors.map((supervisor) => (
-                        <SelectItem key={supervisor} value={supervisor}>
-                          {supervisor}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                    placeholder="اختر المشرف"
+                  />
                 </div>
 
                 <div className="space-y-2">
@@ -631,7 +665,7 @@ export function MobileClinicDialog({ open, onOpenChange, clinic, onSave }: Mobil
               </div>
             </TabsContent>
 
-            <TabsContent value="animals" className="tabs-content-modern">
+            <TabsContent value="animals" className="space-y-4">
               <Card>
                 <CardHeader>
                   <CardTitle className="text-lg">عدد الحيوانات المعالجة</CardTitle>
@@ -742,7 +776,7 @@ export function MobileClinicDialog({ open, onOpenChange, clinic, onSave }: Mobil
               </div>
             </TabsContent>
 
-            <TabsContent value="diagnosis" className="tabs-content-modern">
+            <TabsContent value="diagnosis" className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>التشخيص *</Label>
@@ -774,8 +808,8 @@ export function MobileClinicDialog({ open, onOpenChange, clinic, onSave }: Mobil
                     </SelectTrigger>
                     <SelectContent>
                       {interventionCategories.map((category) => (
-                        <SelectItem key={category} value={category}>
-                          {category}
+                        <SelectItem key={category.value} value={category.value}>
+                          {category.label}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -879,7 +913,7 @@ export function MobileClinicDialog({ open, onOpenChange, clinic, onSave }: Mobil
               </div>
             </TabsContent>
 
-            <TabsContent value="followup" className="tabs-content-modern">
+            <TabsContent value="followup" className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>حالة الطلب</Label>
@@ -990,6 +1024,7 @@ export function MobileClinicDialog({ open, onOpenChange, clinic, onSave }: Mobil
             form="mobile-clinic-form"
             variant="default"
             leftIcon={<Activity className="w-4 h-4" />}
+            loading={isSubmitting}
           >
             {clinic ? "حفظ التعديلات" : "إضافة الزيارة"}
           </LoadingButton>

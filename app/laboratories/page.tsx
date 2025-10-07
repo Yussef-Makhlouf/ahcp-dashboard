@@ -7,13 +7,13 @@ import { ImportExportManager } from "@/components/import-export/import-export-ma
 import { getColumns } from "./components/columns";
 import { LaboratoryDialog } from "./components/laboratory-dialog";
 import { Button } from "@/components/ui/button";
-import { Plus, FlaskConical, TestTube, TrendingUp, Activity } from "lucide-react";
+import { Plus, FlaskConical, TestTube, TrendingUp, Activity, Clock } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import type { Laboratory } from "@/types";
 import { formatDate } from "@/lib/utils";
 import { laboratoriesApi } from "@/lib/api/laboratories";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 // تعريف حقول النموذج
 const formFields = [
@@ -199,6 +199,7 @@ const tableFilters = [
 export default function LaboratoriesPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState<Laboratory | null>(null);
+  const queryClient = useQueryClient();
 
   // Fetch laboratories data using React Query
   const { data: laboratoriesData, isLoading, refetch } = useQuery({
@@ -208,7 +209,7 @@ export default function LaboratoriesPage() {
   });
 
   // Fetch statistics
-  const { data: stats } = useQuery({
+  const { data: stats, isLoading: statsLoading } = useQuery({
     queryKey: ['laboratories-stats'],
     queryFn: () => laboratoriesApi.getStatistics(),
     staleTime: 10 * 60 * 1000, // 10 minutes
@@ -238,6 +239,8 @@ export default function LaboratoriesPage() {
       try {
         await laboratoriesApi.delete(item.sampleCode);
         refetch(); // Refresh data after deletion
+        // Refresh statistics as well
+        queryClient.invalidateQueries({ queryKey: ['laboratories-stats'] });
         alert('تم حذف السجل بنجاح');
       } catch (error) {
         console.error('Delete failed:', error);
@@ -256,6 +259,8 @@ export default function LaboratoriesPage() {
         alert('تم إضافة السجل بنجاح');
       }
       refetch(); // Refresh data
+      // Refresh statistics as well
+      queryClient.invalidateQueries({ queryKey: ['laboratories-stats'] });
       setIsDialogOpen(false);
       setSelectedItem(null);
     } catch (error) {
@@ -308,8 +313,8 @@ export default function LaboratoriesPage() {
         </div>
 
         {/* Stats Cards */}
-        <div className="grid gap-4 md:grid-cols-4">
-          <Card>
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5">
+          <Card className="hover:shadow-md transition-shadow">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
                 إجمالي العينات
@@ -317,14 +322,18 @@ export default function LaboratoriesPage() {
               <FlaskConical className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats?.totalSamples || 0}</div>
+              {statsLoading ? (
+                <div className="text-2xl font-bold animate-pulse bg-gray-200 h-8 w-16 rounded"></div>
+              ) : (
+                <div className="text-2xl font-bold">{stats?.totalSamples || 0}</div>
+              )}
               <p className="text-xs text-muted-foreground">
-                +8.2% من الشهر الماضي
+                جميع العينات المسجلة
               </p>
             </CardContent>
           </Card>
           
-          <Card>
+          <Card className="hover:shadow-md transition-shadow">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
                 العينات هذا الشهر
@@ -332,16 +341,20 @@ export default function LaboratoriesPage() {
               <TestTube className="h-4 w-4 text-blue-600" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-blue-600">
-                {stats?.samplesThisMonth || 0}
-              </div>
+              {statsLoading ? (
+                <div className="text-2xl font-bold animate-pulse bg-blue-200 h-8 w-16 rounded"></div>
+              ) : (
+                <div className="text-2xl font-bold text-blue-600">
+                  {stats?.samplesThisMonth || 0}
+                </div>
+              )}
               <p className="text-xs text-muted-foreground">
                 عينة هذا الشهر
               </p>
             </CardContent>
           </Card>
           
-          <Card>
+          <Card className="hover:shadow-md transition-shadow">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
                 الحالات الإيجابية
@@ -349,16 +362,20 @@ export default function LaboratoriesPage() {
               <TrendingUp className="h-4 w-4 text-red-600" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-red-600">
-                {stats?.positiveCases || 0}
-              </div>
+              {statsLoading ? (
+                <div className="text-2xl font-bold animate-pulse bg-red-200 h-8 w-16 rounded"></div>
+              ) : (
+                <div className="text-2xl font-bold text-red-600">
+                  {stats?.positiveCases || 0}
+                </div>
+              )}
               <p className="text-xs text-muted-foreground">
-                حالة إيجابية
+                من {stats?.totalSamples || 0} عينة
               </p>
             </CardContent>
           </Card>
           
-          <Card>
+          <Card className="hover:shadow-md transition-shadow">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
                 معدل الإيجابية
@@ -366,11 +383,39 @@ export default function LaboratoriesPage() {
               <Activity className="h-4 w-4 text-orange-600" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-orange-600">
-                {stats?.positivityRate ? `${Math.round(stats.positivityRate)}%` : '0%'}
-              </div>
+              {statsLoading ? (
+                <div className="text-2xl font-bold animate-pulse bg-orange-200 h-8 w-16 rounded"></div>
+              ) : (
+                <div className={`text-2xl font-bold ${
+                  (stats?.positivityRate || 0) > 20 ? 'text-red-600' : 
+                  (stats?.positivityRate || 0) > 10 ? 'text-orange-600' : 'text-green-600'
+                }`}>
+                  {stats?.positivityRate ? `${Math.round(stats.positivityRate)}%` : '0%'}
+                </div>
+              )}
               <p className="text-xs text-muted-foreground">
-                من إجمالي العينات
+                {stats?.negativeCases || 0} حالة سلبية
+              </p>
+            </CardContent>
+          </Card>
+          
+          <Card className="hover:shadow-md transition-shadow">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">
+                الفحوصات المعلقة
+              </CardTitle>
+              <Clock className="h-4 w-4 text-yellow-600" />
+            </CardHeader>
+            <CardContent>
+              {statsLoading ? (
+                <div className="text-2xl font-bold animate-pulse bg-yellow-200 h-8 w-16 rounded"></div>
+              ) : (
+                <div className="text-2xl font-bold text-yellow-600">
+                  {stats?.pendingTests || 0}
+                </div>
+              )}
+              <p className="text-xs text-muted-foreground">
+                {stats?.inProgressTests || 0} قيد التنفيذ
               </p>
             </CardContent>
           </Card>

@@ -41,6 +41,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { EnhancedMobileTabs } from "@/components/ui/mobile-tabs";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ModernDatePicker } from "@/components/ui/modern-date-picker";
+import { SupervisorSelect } from "@/components/ui/supervisor-select";
 import { CalendarIcon, Loader2, User, Heart, Shield } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Vaccination } from "@/types";
@@ -54,28 +55,30 @@ const validateSaudiPhone = (phone: string): boolean => {
 };
 
 const formSchema = z.object({
+  serialNo: z.string().min(1, { message: "يجب إدخال رقم السجل" }),
   date: z.string().min(1, { message: "يجب إدخال التاريخ" }),
-  owner: z.object({
-    name: z.string().min(2, { message: "يجب إدخال اسم المالك (أكثر من حرفين)" }),
-    id: z.string().min(3, { message: "يجب إدخال رقم الهوية (أكثر من 3 أحرف)" }),
-    birthDate: z.string().optional(),
+  client: z.object({
+    name: z.string().min(2, { message: "يجب إدخال اسم العميل (أكثر من حرفين)" }),
+    nationalId: z.string().min(10, { message: "يجب إدخال رقم الهوية الوطنية (10 أرقام على الأقل)" }),
     phone: z.string().min(1, { message: "يجب إدخال رقم الهاتف" }).refine(
       (phone) => validateSaudiPhone(phone),
       { message: "رقم الهاتف غير صحيح. يجب أن يبدأ بـ +966 أو 05" }
     ),
+    village: z.string().optional(),
+    detailedAddress: z.string().optional(),
+    birthDate: z.string().optional(),
   }),
-  location: z.object({
-    e: z.union([z.number(), z.null()]).optional(),
-    n: z.union([z.number(), z.null()]).optional(),
-  }),
+  coordinates: z.object({
+    latitude: z.union([z.number(), z.null()]).optional(),
+    longitude: z.union([z.number(), z.null()]).optional(),
+  }).optional(),
   supervisor: z.string().min(2, { message: "يجب إدخال اسم المشرف (أكثر من حرفين)" }),
   vehicleNo: z.string().min(1, { message: "يجب إدخال رقم المركبة" }),
-  // New fields from database schema
   farmLocation: z.string().min(1, { message: "يجب إدخال موقع المزرعة" }),
   team: z.string().min(1, { message: "يجب إدخال اسم الفريق" }),
   vaccineType: z.string().min(1, { message: "يجب اختيار نوع المصل" }),
   vaccineCategory: z.string().min(1, { message: "يجب اختيار فئة المصل" }),
-  herd: z.object({
+  herdCounts: z.object({
     sheep: z.object({
       total: z.number().min(0, { message: "يجب أن يكون الرقم أكبر من أو يساوي 0" }),
       young: z.number().min(0, { message: "يجب أن يكون الرقم أكبر من أو يساوي 0" }),
@@ -95,6 +98,12 @@ const formSchema = z.object({
       vaccinated: z.number().min(0, { message: "يجب أن يكون الرقم أكبر من أو يساوي 0" }),
     }),
     cattle: z.object({
+      total: z.number().min(0, { message: "يجب أن يكون الرقم أكبر من أو يساوي 0" }),
+      young: z.number().min(0, { message: "يجب أن يكون الرقم أكبر من أو يساوي 0" }),
+      female: z.number().min(0, { message: "يجب أن يكون الرقم أكبر من أو يساوي 0" }),
+      vaccinated: z.number().min(0, { message: "يجب أن يكون الرقم أكبر من أو يساوي 0" }),
+    }),
+    horse: z.object({
       total: z.number().min(0, { message: "يجب أن يكون الرقم أكبر من أو يساوي 0" }),
       young: z.number().min(0, { message: "يجب أن يكون الرقم أكبر من أو يساوي 0" }),
       female: z.number().min(0, { message: "يجب أن يكون الرقم أكبر من أو يساوي 0" }),
@@ -132,29 +141,42 @@ export function VaccinationDialog({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [activeTab, setActiveTab] = useState("info");
 
+  // Function to generate serial number
+  const generateSerialNo = () => {
+    const now = new Date();
+    const year = now.getFullYear().toString().slice(-2);
+    const month = (now.getMonth() + 1).toString().padStart(2, '0');
+    const day = now.getDate().toString().padStart(2, '0');
+    const time = now.getHours().toString().padStart(2, '0') + now.getMinutes().toString().padStart(2, '0');
+    return `V${year}${month}${day}-${time}`;
+  };
+
   const form = useForm({
     resolver: zodResolver(formSchema),
     defaultValues: {
+      serialNo: "",
       date: new Date().toISOString().split("T")[0],
-      owner: {
+      client: {
         name: "",
-        id: "",
-        birthDate: "",
+        nationalId: "",
         phone: "",
+        village: "",
+        detailedAddress: "",
+        birthDate: "",
       },
-      location: { e: null, n: null },
+      coordinates: { latitude: null, longitude: null },
       supervisor: "",
       vehicleNo: "",
-      // New fields from database schema
       farmLocation: "",
       team: "",
       vaccineType: "",
       vaccineCategory: "",
-      herd: {
+      herdCounts: {
         sheep: { total: 0, young: 0, female: 0, vaccinated: 0 },
         goats: { total: 0, young: 0, female: 0, vaccinated: 0 },
         camel: { total: 0, young: 0, female: 0, vaccinated: 0 },
         cattle: { total: 0, young: 0, female: 0, vaccinated: 0 },
+        horse: { total: 0, young: 0, female: 0, vaccinated: 0 },
       },
       herdHealth: "Healthy",
       animalsHandling: "Easy",
@@ -177,39 +199,41 @@ export function VaccinationDialog({
         // Convert dates to YYYY-MM-DD format for input[type="date"]
         const formattedItem = {
           ...item,
+          serialNo: item.serialNo || '',
           date: item.date.split("T")[0],
-          // Map new structure to old form structure for compatibility
-          owner: item.client ? {
+          // Map client data from backend
+          client: item.client ? {
             name: item.client.name || '',
-            id: item.client.nationalId || '',
-            birthDate: item.client.birthDate ? item.client.birthDate.split("T")[0] : '',
+            nationalId: item.client.nationalId || '',
             phone: item.client.phone || '',
-          } : (item.owner ? {
-            name: item.owner.name || '',
-            id: item.owner.id || '',
-            birthDate: item.owner.birthDate ? item.owner.birthDate.split("T")[0] : '',
-            phone: item.owner.phone || '',
+            village: item.client.village || '',
+            detailedAddress: item.client.detailedAddress || '',
+            birthDate: item.client.birthDate ? item.client.birthDate.split("T")[0] : '',
           } : {
             name: '',
-            id: '',
-            birthDate: '',
+            nationalId: '',
             phone: '',
-          }),
-          location: item.coordinates ? {
-            e: item.coordinates.longitude,
-            n: item.coordinates.latitude,
-          } : (item.location || { e: null, n: null }),
-          herd: item.herdCounts ? {
+            village: '',
+            detailedAddress: '',
+            birthDate: '',
+          },
+          coordinates: item.coordinates ? {
+            latitude: item.coordinates.latitude,
+            longitude: item.coordinates.longitude,
+          } : { latitude: null, longitude: null },
+          herdCounts: item.herdCounts ? {
             sheep: item.herdCounts.sheep || { total: 0, young: 0, female: 0, vaccinated: 0 },
             goats: item.herdCounts.goats || { total: 0, young: 0, female: 0, vaccinated: 0 },
             camel: item.herdCounts.camel || { total: 0, young: 0, female: 0, vaccinated: 0 },
             cattle: item.herdCounts.cattle || { total: 0, young: 0, female: 0, vaccinated: 0 },
-          } : (item.herd || {
+            horse: item.herdCounts.horse || { total: 0, young: 0, female: 0, vaccinated: 0 },
+          } : {
             sheep: { total: 0, young: 0, female: 0, vaccinated: 0 },
             goats: { total: 0, young: 0, female: 0, vaccinated: 0 },
             camel: { total: 0, young: 0, female: 0, vaccinated: 0 },
             cattle: { total: 0, young: 0, female: 0, vaccinated: 0 },
-          }),
+            horse: { total: 0, young: 0, female: 0, vaccinated: 0 },
+          },
           request: {
             ...item.request,
             date: item.request?.date?.split("T")[0] || new Date().toISOString().split("T")[0],
@@ -221,13 +245,41 @@ export function VaccinationDialog({
         form.reset(formattedItem);
       } else {
         form.reset({
-          ...form.getValues(),
+          serialNo: generateSerialNo(),
           date: new Date().toISOString().split("T")[0],
+          client: {
+            name: "",
+            nationalId: "",
+            phone: "",
+            village: "",
+            detailedAddress: "",
+            birthDate: "",
+          },
+          coordinates: { latitude: null, longitude: null },
+          supervisor: "",
+          vehicleNo: "",
+          farmLocation: "",
+          team: "",
+          vaccineType: "",
+          vaccineCategory: "",
+          herdCounts: {
+            sheep: { total: 0, young: 0, female: 0, vaccinated: 0 },
+            goats: { total: 0, young: 0, female: 0, vaccinated: 0 },
+            camel: { total: 0, young: 0, female: 0, vaccinated: 0 },
+            cattle: { total: 0, young: 0, female: 0, vaccinated: 0 },
+            horse: { total: 0, young: 0, female: 0, vaccinated: 0 },
+          },
+          herdHealth: "Healthy",
+          animalsHandling: "Easy",
+          labours: "Available",
+          reachableLocation: "Easy",
           request: {
             date: new Date().toISOString().split("T")[0],
             situation: "Open",
             fulfillingDate: undefined,
           },
+          category: "التحصين",
+          remarks: "",
         });
       }
     }
@@ -237,35 +289,59 @@ export function VaccinationDialog({
     try {
       setIsSubmitting(true);
 
-      // Transform form data to match backend structure
+      // First, find or create client to get ObjectId
+      let clientId: string;
+      
+      if (item && item.client && typeof item.client === 'object' && item.client._id) {
+        // Existing client - use the ID
+        clientId = item.client._id;
+      } else {
+        // For now, we'll send the client data and let backend handle it
+        // In a real scenario, we'd need to create/find the client first
+        clientId = 'temp-client-id'; // This should be handled by backend
+      }
+
+      // Transform form data to match backend validation schema exactly
       const transformedData = {
-        ...data,
-        // Convert owner to client structure
-        client: {
-          name: data.owner?.name || '',
-          nationalId: data.owner?.id || '',
-          phone: data.owner?.phone || '',
-          village: '', // Not available in form
-          detailedAddress: '', // Not available in form
-          birthDate: data.owner?.birthDate || '',
+        serialNo: data.serialNo,
+        date: new Date(data.date).toISOString(),
+        client: clientId, // Backend expects ObjectId string
+        farmLocation: data.farmLocation,
+        coordinates: data.coordinates && (data.coordinates.latitude || data.coordinates.longitude) ? {
+          latitude: data.coordinates.latitude || 0,
+          longitude: data.coordinates.longitude || 0,
+        } : undefined,
+        supervisor: data.supervisor,
+        team: data.team,
+        vehicleNo: data.vehicleNo,
+        vaccineType: data.vaccineType,
+        vaccineCategory: data.vaccineCategory,
+        herdCounts: {
+          sheep: data.herdCounts.sheep || { total: 0, young: 0, female: 0, vaccinated: 0 },
+          goats: data.herdCounts.goats || { total: 0, young: 0, female: 0, vaccinated: 0 },
+          camel: data.herdCounts.camel || { total: 0, young: 0, female: 0, vaccinated: 0 },
+          cattle: data.herdCounts.cattle || { total: 0, young: 0, female: 0, vaccinated: 0 },
+          horse: data.herdCounts.horse || { total: 0, young: 0, female: 0, vaccinated: 0 },
         },
-        // Convert location to coordinates
-        coordinates: data.location ? {
-          longitude: data.location.e || 0,
-          latitude: data.location.n || 0,
-        } : undefined,
-        // Convert herd to herdCounts
-        herdCounts: data.herd ? {
-          sheep: data.herd.sheep || { total: 0, young: 0, female: 0, vaccinated: 0 },
-          goats: data.herd.goats || { total: 0, young: 0, female: 0, vaccinated: 0 },
-          camel: data.herd.camel || { total: 0, young: 0, female: 0, vaccinated: 0 },
-          cattle: data.herd.cattle || { total: 0, young: 0, female: 0, vaccinated: 0 },
-          horse: { total: 0, young: 0, female: 0, vaccinated: 0 }, // Default
-        } : undefined,
-        // Remove old structure fields
-        owner: undefined,
-        location: undefined,
-        herd: undefined,
+        herdHealth: data.herdHealth,
+        animalsHandling: data.animalsHandling,
+        labours: data.labours,
+        reachableLocation: data.reachableLocation,
+        request: {
+          date: new Date(data.request.date).toISOString(),
+          situation: data.request.situation,
+          fulfillingDate: data.request.fulfillingDate ? new Date(data.request.fulfillingDate).toISOString() : undefined,
+        },
+        remarks: data.remarks || '',
+        // Include client data for backend to handle client creation/update
+        clientData: {
+          name: data.client.name,
+          nationalId: data.client.nationalId,
+          phone: data.client.phone,
+          village: data.client.village || '',
+          detailedAddress: data.client.detailedAddress || '',
+          birthDate: data.client.birthDate ? new Date(data.client.birthDate).toISOString() : undefined,
+        },
       };
 
       if (item) {
@@ -383,31 +459,32 @@ export function VaccinationDialog({
         {animal === "goats" && "الماعز"}
         {animal === "camel" && "الإبل"}
         {animal === "cattle" && "الأبقار"}
+        {animal === "horse" && "الخيول"}
       </h4>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
         {renderFormField(
-          `herd.${animal}.total`,
+          `herdCounts.${animal}.total`,
           "العدد الكلي",
           "number",
           undefined,
           true
         )}
         {renderFormField(
-          `herd.${animal}.young`,
+          `herdCounts.${animal}.young`,
           "عدد الصغار",
           "number",
           undefined,
           true
         )}
         {renderFormField(
-          `herd.${animal}.female`,
+          `herdCounts.${animal}.female`,
           "عدد الإناث",
           "number",
           undefined,
           true
         )}
         {renderFormField(
-          `herd.${animal}.vaccinated`,
+          `herdCounts.${animal}.vaccinated`,
           "عدد المحصنة",
           "number",
           undefined,
@@ -467,23 +544,117 @@ export function VaccinationDialog({
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-8">
                   <div className="space-y-6">
                     <h3 className="text-xl font-semibold text-blue-700 border-b-2 border-blue-400 pb-3">
-                      معلومات المالك
+                      معلومات العميل
                     </h3>
-                    {renderFormField("owner.name", "اسم المالك")}
-                    {renderFormField("owner.id", "رقم الهوية")}
-                    {renderFormField("owner.phone", "رقم الهاتف")}
-                    {renderFormField("owner.birthDate", "تاريخ الميلاد", "date")}
+                    {renderFormField("client.name", "اسم العميل")}
+                    {renderFormField("client.nationalId", "رقم الهوية الوطنية")}
+                    {renderFormField("client.phone", "رقم الهاتف")}
+                    {renderFormField("client.village", "القرية")}
+                    {renderFormField("client.detailedAddress", "العنوان التفصيلي")}
+                    <FormField
+                      control={form.control}
+                      name="client.birthDate"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>تاريخ الميلاد</FormLabel>
+                          <FormControl>
+                            <ModernDatePicker
+                              placeholder="اختر تاريخ الميلاد"
+                              value={field.value ? new Date(field.value) : undefined}
+                              onChange={(date) => {
+                                const dateString = date ? date.toISOString().split('T')[0] : '';
+                                field.onChange(dateString);
+                              }}
+                              maxDate={new Date()}
+                              minDate={new Date(1900, 0, 1)}
+                              variant="modern"
+                              size="md"
+                              clearable
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
                   </div>
 
                   <div className="space-y-6">
                     <h3 className="text-xl font-semibold text-blue-700 border-b-2 border-blue-400 pb-3">
                       معلومات التحصين
                     </h3>
-                    {renderFormField("date", "تاريخ التحصين", "date")}
-                    {renderFormField("supervisor", "اسم المشرف")}
+                    <FormField
+                      control={form.control}
+                      name="serialNo"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>رقم السجل</FormLabel>
+                          <div className="flex gap-2">
+                            <FormControl>
+                              <Input {...field} placeholder="رقم السجل" />
+                            </FormControl>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => field.onChange(generateSerialNo())}
+                              className="whitespace-nowrap"
+                            >
+                              توليد تلقائي
+                            </Button>
+                          </div>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="date"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>تاريخ التحصين</FormLabel>
+                          <FormControl>
+                            <ModernDatePicker
+                              placeholder="اختر تاريخ التحصين"
+                              value={field.value ? new Date(field.value) : undefined}
+                              onChange={(date) => {
+                                const dateString = date ? date.toISOString().split('T')[0] : '';
+                                field.onChange(dateString);
+                              }}
+                              maxDate={new Date()}
+                              variant="modern"
+                              size="md"
+                              clearable
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="supervisor"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>اسم المشرف</FormLabel>
+                          <FormControl>
+                            <SupervisorSelect
+                              value={field.value}
+                              onValueChange={field.onChange}
+                              placeholder="اختر المشرف"
+                              section="تحصين"
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
                     {renderFormField("vehicleNo", "رقم المركبة")}
                     {renderFormField("farmLocation", "موقع المزرعة")}
                     {renderFormField("team", "اسم الفريق")}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      {renderFormField("coordinates.latitude", "خط العرض", "number", undefined, true)}
+                      {renderFormField("coordinates.longitude", "خط الطول", "number", undefined, true)}
+                    </div>
                     {renderFormField(
                       "vaccineType",
                       "نوع المصل",
@@ -556,6 +727,7 @@ export function VaccinationDialog({
                   {renderHerdInputs("goats")}
                   {renderHerdInputs("camel")}
                   {renderHerdInputs("cattle")}
+                  {renderHerdInputs("horse")}
                 </div>
               </TabsContent>
 
@@ -565,7 +737,30 @@ export function VaccinationDialog({
                 </h3>
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-8">
                   <div className="space-y-4">
-                    {renderFormField("request.date", "تاريخ الطلب", "date")}
+                    <FormField
+                      control={form.control}
+                      name="request.date"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>تاريخ الطلب</FormLabel>
+                          <FormControl>
+                            <ModernDatePicker
+                              placeholder="اختر تاريخ الطلب"
+                              value={field.value ? new Date(field.value) : undefined}
+                              onChange={(date) => {
+                                const dateString = date ? date.toISOString().split('T')[0] : '';
+                                field.onChange(dateString);
+                              }}
+                              maxDate={new Date()}
+                              variant="modern"
+                              size="md"
+                              clearable
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
                     {renderFormField(
                       "request.situation",
                       "حالة الطلب",
@@ -576,12 +771,32 @@ export function VaccinationDialog({
                         { value: "Pending", label: "معلق" },
                       ]
                     )}
-                    {form.watch("request.situation") === "Closed" &&
-                      renderFormField(
-                        "request.fulfillingDate",
-                        "تاريخ الإنجاز",
-                        "date"
-                      )}
+                    {form.watch("request.situation") === "Closed" && (
+                      <FormField
+                        control={form.control}
+                        name="request.fulfillingDate"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>تاريخ الإنجاز</FormLabel>
+                            <FormControl>
+                              <ModernDatePicker
+                                placeholder="اختر تاريخ الإنجاز"
+                                value={field.value ? new Date(field.value) : undefined}
+                                onChange={(date) => {
+                                  const dateString = date ? date.toISOString().split('T')[0] : '';
+                                  field.onChange(dateString);
+                                }}
+                                minDate={form.watch("request.date") ? new Date(form.watch("request.date")) : undefined}
+                                variant="modern"
+                                size="md"
+                                clearable
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    )}
                   </div>
                   <div className="space-y-4">
                     {renderFormField("category", "الفئة")}

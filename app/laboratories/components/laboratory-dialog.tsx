@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { ModernDatePicker } from "@/components/ui/modern-date-picker";
+import { SupervisorSelect } from "@/components/ui/supervisor-select";
 import { CalendarIcon, Plus, Trash2, AlertCircle, CheckCircle2, User, Heart, Shield, Activity } from "lucide-react";
 import { useState } from "react";
 import { format } from "date-fns";
@@ -57,13 +58,7 @@ const sampleTypes = [
   "سائل مفصلي",
 ];
 
-const collectors = [
-  "د. محمد علي",
-  "د. سارة محمود",
-  "د. أحمد حسن",
-  "د. فاطمة عبدالله",
-  "د. خالد إبراهيم",
-];
+// Removed static collectors array - now using API
 
 const testTypes = [
   "فحص بكتيري",
@@ -353,21 +348,11 @@ export function LaboratoryDialog({ open, onOpenChange, laboratory, onSave }: Lab
 
                 <div className="space-y-2">
                   <Label>جامع العينة *</Label>
-                  <Select
+                  <SupervisorSelect
                     value={formData.collector}
                     onValueChange={(value) => setFormData({ ...formData, collector: value })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="اختر جامع العينة" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {collectors.map((collector) => (
-                        <SelectItem key={collector} value={collector}>
-                          {collector}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                    placeholder="اختر جامع العينة"
+                  />
                 </div>
 
                 <div className="space-y-2">

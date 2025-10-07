@@ -168,34 +168,82 @@ export interface ParasiteControlAPIResponse {
   __v: number;
 }
 
-// Legacy interface for backward compatibility
+// Updated ParasiteControl interface to match backend structure
 export interface ParasiteControl {
   _id?: string; // MongoDB ID from API
-  serialNo: number;
+  serialNo: string; // Backend uses string, not number
   date: string;
-  owner: Owner;
-  location: Location;
+  // Support both old and new structures
+  owner?: Owner; // Legacy support
+  client: string | {  // Backend expects string ID, but can also be populated object
+    _id?: string;
+    name: string;
+    nationalId: string;
+    phone: string;
+    village?: string;
+    detailedAddress?: string;
+    birthDate?: string;
+  };
+  location?: Location; // Legacy support
+  coordinates?: {
+    latitude: number;
+    longitude: number;
+  };
   supervisor: string;
   vehicleNo: string;
-  herd: Herd;
-  insecticide: Insecticide;
-  barns: Barn[];
-  breedingSites: BreedingSite[];
-  // New fields from database schema
-  herdLocation: string; // Herd_Location
-  animalBarnSizeSqM: number; // Animal_Barn_Size_sqM
-  parasiteControlVolume: number; // Parasite_Control_Volume
-  parasiteControlStatus: string; // Parasite_Control_Status
+  // Support both old and new herd structures
+  herd?: Herd; // Legacy support
+  herdCounts?: {
+    sheep: AnimalCount;
+    goats: AnimalCount;
+    camel: AnimalCount;
+    cattle: AnimalCount;
+    horse?: AnimalCount;
+  };
+  insecticide: {
+    type: string;
+    method: string;
+    volume_ml?: number; // Legacy support
+    volumeMl?: number; // Backend field
+    status: "Sprayed" | "Not Sprayed";
+    category: string;
+  };
+  barns?: Barn[]; // Legacy support
+  // Backend fields
+  herdLocation: string;
+  animalBarnSizeSqM: number;
+  breedingSites: string; // Backend expects string
+  parasiteControlVolume: number;
+  parasiteControlStatus: string;
   herdHealthStatus: "Healthy" | "Sick" | "Under Treatment";
-  complying: "Comply" | "Not Comply";
+  complying?: "Comply" | "Not Comply"; // Legacy support
+  complyingToInstructions: boolean; // Backend field
   request: Request;
-  category: string;
-  remarks: string;
+  category?: string;
+  remarks?: string;
+  // Virtual fields from backend
+  totalHerdCount?: number;
+  totalTreated?: number;
+  treatmentEfficiency?: number;
+  // Timestamps
+  createdAt?: string;
+  updatedAt?: string;
+  createdBy?: {
+    _id: string;
+    name: string;
+    email: string;
+  };
+  updatedBy?: {
+    _id: string;
+    name: string;
+    email: string;
+  };
 }
 
 // Vaccination Types - Updated to match backend structure
 export interface Vaccination {
-  _id?: string;
+  _id?: string; // MongoDB ID
+  id?: string; // Alternative ID field for compatibility
   serialNo: string; // Backend uses string, not number
   date: string;
   client: {
@@ -381,16 +429,21 @@ export interface User {
   id: string;
   name: string;
   email: string;
-  role: "super_admin" | "section_supervisor" | "field_worker";
-  section?: string;
-  avatar?: string;
+  role: 'super_admin' | 'section_supervisor' | 'field_worker';
+  roleNameAr: string;
+  section: string;
+  isActive: boolean;
+  lastLogin?: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
-// API Response Types
-export interface ApiResponse<T> {
-  data: T;
-  message?: string;
-  success: boolean;
+export interface Supervisor {
+  _id: string;
+  name: string;
+  email: string;
+  role: 'super_admin' | 'section_supervisor';
+  section?: string;
 }
 
 export interface PaginatedResponse<T> {

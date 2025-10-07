@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import {
   Home,
@@ -49,7 +49,7 @@ const menuItems = [
   },
   {
     title: "المختبرات",
-    href: "/laboratories",
+    href: "/laboratory",
     icon: FlaskConical,
   },
   {
@@ -83,6 +83,11 @@ interface SidebarProps {
 
 export function Sidebar({ isOpen, onToggle, isCollapsed = false, onCollapse }: SidebarProps) {
   const pathname = usePathname();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   return (
     <>
@@ -119,8 +124,9 @@ export function Sidebar({ isOpen, onToggle, isCollapsed = false, onCollapse }: S
             <ul className="space-y-1">
               {menuItems.map((item) => {
                 const Icon = item.icon;
-                const isActive = pathname === item.href || 
-                  (item.href !== "/" && pathname.startsWith(item.href));
+                // Prevent hydration mismatch by checking if mounted
+                const isActive = mounted && (pathname === item.href || 
+                  (item.href !== "/" && pathname.startsWith(item.href)));
                 
                 return (
                   <li key={item.href}>
@@ -128,7 +134,7 @@ export function Sidebar({ isOpen, onToggle, isCollapsed = false, onCollapse }: S
                       href={item.href}
                       onClick={() => {
                         // Close mobile sidebar when navigating
-                        if (window.innerWidth < 1024) {
+                        if (typeof window !== 'undefined' && window.innerWidth < 1024) {
                           onToggle();
                         }
                       }}
