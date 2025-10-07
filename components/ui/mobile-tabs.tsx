@@ -40,6 +40,7 @@ export function MobileTabs({
           {tabs.map((tab) => (
             <button
               key={tab.value}
+              type="button"
               onClick={() => onValueChange(tab.value)}
               className={cn(
                 "tabs-trigger-modern",
@@ -58,6 +59,7 @@ export function MobileTabs({
         <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
           <DropdownMenuTrigger asChild>
             <Button
+              type="button"
               variant="outline"
               className="w-full justify-between h-12 px-4 py-3 bg-white border-2 border-gray-200 hover:border-blue-300 hover:bg-blue-50 transition-all duration-200"
             >
@@ -124,6 +126,7 @@ export function EnhancedMobileTabs({
           {tabs.map((tab) => (
             <button
               key={tab.value}
+              type="button"
               onClick={() => onValueChange(tab.value)}
               className={cn(
                 "tabs-trigger-modern",
@@ -143,6 +146,7 @@ export function EnhancedMobileTabs({
           <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
             <DropdownMenuTrigger asChild>
               <Button
+                type="button"
                 variant="outline"
                 className="w-full justify-between h-14 px-4 py-4 bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-200 hover:border-blue-400 hover:from-blue-100 hover:to-indigo-100 transition-all duration-300 shadow-sm"
               >

@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Edit, MoreHorizontal, Trash2, Eye } from "lucide-react";
 import type { ParasiteControl } from "@/types";
+import { usePermissions } from "@/lib/hooks/usePermissions";
 
 interface GetColumnsProps {
   onEdit: (item: ParasiteControl) => void;
@@ -23,6 +24,8 @@ export function getColumns({
   onDelete,
   onView
 }: GetColumnsProps): ColumnDef<ParasiteControl>[] {
+  const { checkPermission } = usePermissions();
+  
   return [
     {
       accessorKey: "serialNo",
@@ -209,35 +212,49 @@ export function getColumns({
     {
       id: "actions",
       header: "الإجراءات",
-      cell: ({ row }) => (
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="h-8 w-8 p-0">
-              <span className="sr-only">فتح القائمة</span>
-              <MoreHorizontal className="h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            {onView && (
-              <DropdownMenuItem onClick={() => onView(row.original)}>
-                <Eye className="mr-2 h-4 w-4" />
-                عرض
-              </DropdownMenuItem>
-            )}
-            <DropdownMenuItem onClick={() => onEdit(row.original)}>
-              <Edit className="mr-2 h-4 w-4" />
-              تعديل
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={() => onDelete(row.original._id || row.original.serialNo)}
-              className="text-red-600"
-            >
-              <Trash2 className="mr-2 h-4 w-4" />
-              حذف
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      ),
+      cell: ({ row }) => {
+        const canEdit = checkPermission({ module: 'parasite-control', action: 'edit' });
+        const canDelete = checkPermission({ module: 'parasite-control', action: 'delete' });
+        
+        // إذا لم يكن لديه صلاحيات التعديل أو الحذف، لا تظهر خانة الإجراءات
+        if (!canEdit && !canDelete) {
+          return null;
+        }
+        
+        return (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" className="h-8 w-8 p-0">
+                <span className="sr-only">فتح القائمة</span>
+                <MoreHorizontal className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              {onView && (
+                <DropdownMenuItem onClick={() => onView(row.original)}>
+                  <Eye className="mr-2 h-4 w-4" />
+                  عرض
+                </DropdownMenuItem>
+              )}
+              {canEdit && (
+                <DropdownMenuItem onClick={() => onEdit(row.original)}>
+                  <Edit className="mr-2 h-4 w-4" />
+                  تعديل
+                </DropdownMenuItem>
+              )}
+              {canDelete && (
+                <DropdownMenuItem
+                  onClick={() => onDelete(row.original._id || row.original.serialNo)}
+                  className="text-red-600"
+                >
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  حذف
+                </DropdownMenuItem>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        );
+      },
     },
   ];
 }

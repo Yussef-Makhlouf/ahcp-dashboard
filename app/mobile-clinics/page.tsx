@@ -14,6 +14,7 @@ import type { MobileClinic } from "@/types";
 import { formatDate } from "@/lib/utils";
 import { mobileClinicsApi } from "@/lib/api/mobile-clinics";
 import { useQuery } from "@tanstack/react-query";
+import { usePermissions } from "@/lib/hooks/usePermissions";
 
 // تعريف حقول النموذج
 const formFields = [
@@ -228,6 +229,7 @@ const tableFilters = [
 export default function MobileClinicsPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState<MobileClinic | null>(null);
+  const { checkPermission } = usePermissions();
 
   // Fetch mobile clinics data using React Query
   const { data: mobileClinicsData, isLoading, refetch } = useQuery({
@@ -333,10 +335,12 @@ export default function MobileClinicsPage() {
               acceptedFormats={[".csv", ".xlsx"]}
               maxFileSize={10}
             />
-            <Button onClick={handleAdd}>
-              <Plus className="h-4 w-4 mr-2" />
-              إضافة زيارة جديدة
-            </Button>
+            {checkPermission({ module: 'mobile-clinics', action: 'create' }) && (
+              <Button onClick={handleAdd}>
+                <Plus className="h-4 w-4 mr-2" />
+                إضافة زيارة جديدة
+              </Button>
+            )}
           </div>
         </div>
 

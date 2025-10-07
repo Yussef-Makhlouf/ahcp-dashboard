@@ -10,7 +10,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { supervisorsApi } from "@/lib/api/supervisors";
-import type { Supervisor } from "@/types";
+import type { Supervisor, SupervisorResponse } from "@/lib/api/supervisors";
 
 interface SupervisorSelectProps {
   value?: string;
@@ -30,12 +30,12 @@ export function SupervisorSelect({
   section, // معامل القسم للفلترة
 }: SupervisorSelectProps) {
   const {
-    data: supervisors = [],
+    data: apiResponse,
     isLoading,
     error,
     refetch,
     isError,
-  } = useQuery({
+  } = useQuery<SupervisorResponse>({
     queryKey: section ? ["supervisors", "by-section", section] : ["supervisors"],
     queryFn: section ? () => supervisorsApi.getBySection(section) : supervisorsApi.getAll,
     staleTime: 2 * 60 * 1000, // 2 minutes - allow some caching for performance
@@ -45,6 +45,10 @@ export function SupervisorSelect({
     retry: 3, // Retry 3 times on failure
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000), // Exponential backoff
   });
+
+  // استخراج البيانات من الاستجابة
+  const supervisors = apiResponse?.data || [];
+  const isFallback = apiResponse?.fallback || false;
 
   // Function to get supervisor code based on section/role
   const getSupervisorCode = (supervisor: Supervisor): string => {
@@ -77,20 +81,6 @@ export function SupervisorSelect({
     }
   };
 
-  // Log for debugging
-  useEffect(() => {
-    console.log('📊 Supervisors data:', {
-      count: supervisors.length,
-      isLoading,
-      error: error?.message,
-      supervisors: supervisors.map(s => ({ 
-        name: s.name, 
-        role: s.role, 
-        section: s.section,
-        code: getSupervisorCode(s)
-      }))
-    });
-  }, [supervisors, isLoading, error]);
 
   if (error) {
     console.error("❌ Error loading supervisors:", error);
@@ -132,12 +122,12 @@ export function SupervisorSelect({
               onClick={() => refetch()}
               className="text-xs text-blue-600 hover:text-blue-800 underline bg-blue-50 px-2 py-1 rounded"
             >
-              🔄 إعادة المحاولة
+              إعادة المحاولة
             </button>
           </div>
         ) : supervisors.length === 0 ? (
           <div className="px-3 py-2 text-sm text-gray-500 flex flex-col gap-2">
-            <span>لا توجد مشرفين متاحين</span>
+            <span>لا توجد مشرفين متاحين {section ? `لقسم "${section}"` : ''}</span>
             <button 
               onClick={() => refetch()}
               className="text-xs text-blue-600 hover:text-blue-800 underline"
@@ -146,45 +136,52 @@ export function SupervisorSelect({
             </button>
           </div>
         ) : (
-          supervisors.map((supervisor: Supervisor) => {
-            const code = getSupervisorCode(supervisor);
-            const codeColor = getCodeColor(code);
-            
-            return (
-              <SelectItem key={supervisor._id} value={supervisor.name}>
-                <div className="flex items-center gap-3 py-1">
-                  {/* Supervisor Code Badge */}
-                  <div className="flex-shrink-0">
-                    <div className={`w-8 h-6 rounded-md flex items-center justify-center text-xs font-bold ${codeColor}`}>
-                      {code}
+          <>
+            {isFallback && (
+              <div className="px-3 py-2 text-xs bg-yellow-50 text-yellow-700 border-b">
+                ⚠️ لا توجد مشرفين مختصين بهذا القسم، يتم عرض المشرفين العامين
+              </div>
+            )}
+            {supervisors.map((supervisor: Supervisor) => {
+              const code = getSupervisorCode(supervisor);
+              const codeColor = getCodeColor(code);
+              
+              return (
+                <SelectItem key={supervisor._id || supervisor.name} value={supervisor.name}>
+                  <div className="flex items-center gap-3 py-1">
+                    {/* Supervisor Code Badge */}
+                    <div className="flex-shrink-0">
+                      <div className={`w-8 h-6 rounded-md flex items-center justify-center text-xs font-bold ${codeColor}`}>
+                        {code}
+                      </div>
+                    </div>
+                    
+                    {/* Supervisor Info */}
+                    <div className="flex flex-col min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium text-gray-900 truncate">{supervisor.name}</span>
+                        {supervisor.role === 'super_admin' && (
+                          <span className="text-xs bg-red-100 text-red-700 px-1.5 py-0.5 rounded-full font-medium">
+                            مدير عام
+                          </span>
+                        )}
+                      </div>
+                      <span className="text-xs text-gray-500 truncate">
+                        {supervisor.role === 'super_admin' ? 'جميع الأقسام' : (
+                          supervisor.section || 'مشرف قسم'
+                        )}
+                      </span>
+                    </div>
+                    
+                    {/* Status Indicator */}
+                    <div className="flex-shrink-0">
+                      <div className="w-2 h-2 bg-green-500 rounded-full" title="نشط"></div>
                     </div>
                   </div>
-                  
-                  {/* Supervisor Info */}
-                  <div className="flex flex-col min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium text-gray-900 truncate">{supervisor.name}</span>
-                      {supervisor.role === 'super_admin' && (
-                        <span className="text-xs bg-red-100 text-red-700 px-1.5 py-0.5 rounded-full font-medium">
-                          مدير عام
-                        </span>
-                      )}
-                    </div>
-                    <span className="text-xs text-gray-500 truncate">
-                      {supervisor.role === 'super_admin' ? 'جميع الأقسام' : (
-                        supervisor.section || 'مشرف قسم'
-                      )}
-                    </span>
-                  </div>
-                  
-                  {/* Status Indicator */}
-                  <div className="flex-shrink-0">
-                    <div className="w-2 h-2 bg-green-500 rounded-full" title="نشط"></div>
-                  </div>
-                </div>
-              </SelectItem>
-            );
-          })
+                </SelectItem>
+              );
+            })}
+          </>
         )}
       </SelectContent>
     </Select>

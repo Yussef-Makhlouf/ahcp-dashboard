@@ -45,35 +45,40 @@ import { ModernDatePicker } from "@/components/ui/modern-date-picker";
 import { SupervisorSelect } from "@/components/ui/supervisor-select";
 
 const formSchema = z.object({
+  serialNo: z.string().min(1, "رقم السجل مطلوب"),
   date: z.string().min(1, "التاريخ مطلوب"),
-  owner: z.object({
+  client: z.object({
     name: z.string().min(2, "الاسم يجب أن يكون أكثر من حرفين"),
-    id: z.string().min(3, "رقم الهوية يجب أن يكون أكثر من 3 أحرف"),
-    birthDate: z.string().min(1, "تاريخ الميلاد مطلوب"),
+    nationalId: z.string().min(3, "رقم الهوية يجب أن يكون أكثر من 3 أحرف"),
     phone: z.string().refine(validateSaudiPhone, "رقم الهاتف غير صحيح. يجب أن يبدأ بـ +966 أو 05"),
+    village: z.string().optional(),
+    detailedAddress: z.string().optional(),
   }),
-  location: z.object({
-    e: z.number().nullable(),
-    n: z.number().nullable(),
+  farmLocation: z.string().min(1, "موقع المزرعة مطلوب"),
+  coordinates: z.object({
+    latitude: z.number().optional(),
+    longitude: z.number().optional(),
   }),
   supervisor: z.string().min(2, "اسم المشرف يجب أن يكون أكثر من حرفين"),
   vehicleNo: z.string().min(1, "رقم المركبة مطلوب"),
   horseCount: z.number().min(1, "عدد الخيول يجب أن يكون أكبر من صفر"),
   diagnosis: z.string().min(3, "التشخيص يجب أن يكون أكثر من 3 أحرف"),
   interventionCategory: z.enum([
-    "Clinical Examination",
-    "Surgical Operation",
-    "Ultrasonography",
-    "Lab Analysis",
-    "Farriery"
+    "Emergency",
+    "Routine", 
+    "Preventive",
+    "Follow-up",
+    "Breeding",
+    "Performance"
   ]),
   treatment: z.string().min(3, "العلاج يجب أن يكون أكثر من 3 أحرف"),
+  followUpRequired: z.boolean().default(false),
+  followUpDate: z.string().optional(),
   request: z.object({
     date: z.string().min(1, "تاريخ الطلب مطلوب"),
     situation: z.enum(["Open", "Closed", "Pending"]),
     fulfillingDate: z.string().optional(),
   }),
-  category: z.string().default("Equine Health Service"),
   remarks: z.string().optional(),
 });
 
@@ -96,26 +101,33 @@ export function EquineHealthDialog({
   const form = useForm({
     resolver: zodResolver(formSchema),
     defaultValues: {
+      serialNo: "",
       date: new Date().toISOString().split("T")[0],
-      owner: {
+      client: {
         name: "",
-        id: "",
-        birthDate: "",
+        nationalId: "",
         phone: "",
+        village: "",
+        detailedAddress: "",
       },
-      location: { e: null, n: null },
+      farmLocation: "",
+      coordinates: {
+        latitude: 0,
+        longitude: 0,
+      },
       supervisor: "",
       vehicleNo: "",
       horseCount: 1,
       diagnosis: "",
-      interventionCategory: "Clinical Examination",
+      interventionCategory: "Routine",
       treatment: "",
+      followUpRequired: false,
+      followUpDate: "",
       request: {
         date: new Date().toISOString().split("T")[0],
         situation: "Open",
-        fulfillingDate: undefined,
+        fulfillingDate: "",
       },
-      category: "Equine Health Service",
       remarks: "",
     },
   });
@@ -126,12 +138,35 @@ export function EquineHealthDialog({
     }
   }, [item, form]);
 
-  const onSubmit = async (data: any) => {
+  const onSubmit = async (data: FormData) => {
     try {
+      // تحويل البيانات إلى الشكل المطلوب من الباك إند
+      const apiData = {
+        serialNo: data.serialNo,
+        date: data.date,
+        client: data.client,
+        farmLocation: data.farmLocation,
+        coordinates: data.coordinates,
+        supervisor: data.supervisor,
+        vehicleNo: data.vehicleNo,
+        horseCount: data.horseCount,
+        diagnosis: data.diagnosis,
+        interventionCategory: data.interventionCategory,
+        treatment: data.treatment,
+        followUpRequired: data.followUpRequired,
+        followUpDate: data.followUpDate || undefined,
+        request: {
+          date: data.request.date,
+          situation: data.request.situation,
+          fulfillingDate: data.request.fulfillingDate || undefined,
+        },
+        remarks: data.remarks || "",
+      };
+
       if (item) {
-        await equineHealthApi.update(item.serialNo, data as any);
+        await equineHealthApi.update(item.serialNo, apiData);
       } else {
-        await equineHealthApi.create(data as any);
+        await equineHealthApi.create(apiData);
       }
       onSuccess();
       form.reset();
@@ -191,6 +226,19 @@ export function EquineHealthDialog({
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-4 lg:gap-6">
                   <FormField
                     control={form.control as any}
+                    name="serialNo"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>رقم السجل</FormLabel>
+                        <FormControl>
+                          <Input placeholder="EH001" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control as any}
                     name="date"
                     render={({ field }) => (
                       <FormItem className="space-y-3">
@@ -223,6 +271,7 @@ export function EquineHealthDialog({
                             value={field.value}
                             onValueChange={field.onChange}
                             placeholder="اختر المشرف"
+                            section="صحة الخيول"
                           />
                         </FormControl>
                         <FormMessage />
@@ -260,6 +309,19 @@ export function EquineHealthDialog({
                       </FormItem>
                     )}
                   />
+                  <FormField
+                    control={form.control as any}
+                    name="farmLocation"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>موقع المزرعة</FormLabel>
+                        <FormControl>
+                          <Input placeholder="موقع المزرعة" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
                 </div>
               </TabsContent>
 
@@ -267,7 +329,7 @@ export function EquineHealthDialog({
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <FormField
                     control={form.control as any}
-                    name="owner.name"
+                    name="client.name"
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>اسم المالك</FormLabel>
@@ -280,7 +342,7 @@ export function EquineHealthDialog({
                   />
                   <FormField
                     control={form.control as any}
-                    name="owner.id"
+                    name="client.nationalId"
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>رقم الهوية</FormLabel>
@@ -293,24 +355,12 @@ export function EquineHealthDialog({
                   />
                   <FormField
                     control={form.control as any}
-                    name="owner.birthDate"
+                    name="client.village"
                     render={({ field }) => (
                       <FormItem>
+                        <FormLabel>القرية/المدينة</FormLabel>
                         <FormControl>
-                          <ModernDatePicker
-                            label="تاريخ الميلاد"
-                            placeholder="اختر تاريخ الميلاد"
-                            value={field.value}
-                            onChange={(date) => {
-                              const dateString = date ? date.toISOString().split('T')[0] : '';
-                              field.onChange(dateString);
-                            }}
-                            required
-                            variant="modern"
-                            size="md"
-                            maxDate={new Date()}
-                            minDate={new Date(1900, 0, 1)}
-                          />
+                          <Input placeholder="القرية أو المدينة" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -318,7 +368,7 @@ export function EquineHealthDialog({
                   />
                   <FormField
                     control={form.control as any}
-                    name="owner.phone"
+                    name="client.phone"
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>رقم الهاتف</FormLabel>
@@ -333,10 +383,25 @@ export function EquineHealthDialog({
                     )}
                   />
                 </div>
+                <div className="grid grid-cols-1 gap-4">
+                  <FormField
+                    control={form.control as any}
+                    name="client.detailedAddress"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>العنوان التفصيلي</FormLabel>
+                        <FormControl>
+                          <Textarea placeholder="العنوان التفصيلي للمزرعة" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <FormField
                     control={form.control as any}
-                    name="location.e"
+                    name="coordinates.longitude"
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>خط الطول (E)</FormLabel>
@@ -358,7 +423,7 @@ export function EquineHealthDialog({
                   />
                   <FormField
                     control={form.control as any}
-                    name="location.n"
+                    name="coordinates.latitude"
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>خط العرض (N)</FormLabel>
@@ -409,11 +474,12 @@ export function EquineHealthDialog({
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            <SelectItem value="Clinical Examination">فحص سريري</SelectItem>
-                            <SelectItem value="Surgical Operation">عملية جراحية</SelectItem>
-                            <SelectItem value="Ultrasonography">موجات فوق صوتية</SelectItem>
-                            <SelectItem value="Lab Analysis">تحليل مخبري</SelectItem>
-                            <SelectItem value="Farriery">حداء وعلاج الحوافر</SelectItem>
+                            <SelectItem value="Emergency">طوارئ</SelectItem>
+                            <SelectItem value="Routine">روتيني</SelectItem>
+                            <SelectItem value="Preventive">وقائي</SelectItem>
+                            <SelectItem value="Follow-up">متابعة</SelectItem>
+                            <SelectItem value="Breeding">تربية</SelectItem>
+                            <SelectItem value="Performance">أداء</SelectItem>
                           </SelectContent>
                         </Select>
                         <FormMessage />
@@ -430,6 +496,59 @@ export function EquineHealthDialog({
                       <FormControl>
                         <Textarea
                           placeholder="وصف العلاج والإجراءات الطبية..."
+                          className="resize-none"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control as any}
+                    name="followUpRequired"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                        <FormControl>
+                          <input
+                            type="checkbox"
+                            checked={field.value}
+                            onChange={field.onChange}
+                            className="mt-1"
+                          />
+                        </FormControl>
+                        <div className="space-y-1 leading-none">
+                          <FormLabel>يتطلب متابعة</FormLabel>
+                        </div>
+                      </FormItem>
+                    )}
+                  />
+                  {form.watch("followUpRequired") && (
+                    <FormField
+                      control={form.control as any}
+                      name="followUpDate"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>تاريخ المتابعة</FormLabel>
+                          <FormControl>
+                            <Input type="date" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  )}
+                </div>
+                <FormField
+                  control={form.control as any}
+                  name="remarks"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>ملاحظات إضافية</FormLabel>
+                      <FormControl>
+                        <Textarea
+                          placeholder="أي ملاحظات إضافية..."
                           className="resize-none"
                           {...field}
                         />

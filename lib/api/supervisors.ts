@@ -8,9 +8,17 @@ export interface Supervisor {
   section?: string;
 }
 
+export interface SupervisorResponse {
+  data: Supervisor[];
+  fallback?: boolean;
+  section?: string;
+  count?: number;
+  timestamp?: string;
+}
+
 export const supervisorsApi = {
   // Get all supervisors for dropdown - optimized
-  getAll: async (): Promise<Supervisor[]> => {
+  getAll: async (): Promise<SupervisorResponse> => {
     try {
       console.log('🔍 Fetching supervisors from API...');
       
@@ -23,18 +31,24 @@ export const supervisorsApi = {
         // Remove cache control to allow server-side caching
       });
       
+      const apiResponse = response as any;
       console.log('📊 API Response:', {
-        status: (response as any).status,
-        cached: (response as any).data?.cached,
-        count: (response as any).data?.count,
-        timestamp: (response as any).data?.timestamp
+        status: apiResponse.status,
+        cached: apiResponse.data?.cached,
+        count: apiResponse.data?.count,
+        timestamp: apiResponse.data?.timestamp
       });
       
       // معالجة خاصة لـ API المشرفين - يعيد { success: true, data: [...] }
-      const supervisors = Array.isArray((response as any).data) ? (response as any).data : [];
+      const supervisors = Array.isArray(apiResponse.data) ? apiResponse.data : [];
       
       console.log(`✅ Successfully fetched ${supervisors.length} supervisors`);
-      return supervisors;
+      return {
+        data: supervisors,
+        fallback: false,
+        count: supervisors.length,
+        timestamp: apiResponse.data?.timestamp
+      };
     } catch (error: any) {
       console.error('❌ Error fetching supervisors:', {
         message: error.message,
@@ -42,12 +56,16 @@ export const supervisorsApi = {
         data: error.response?.data
       });
       
-      // Return empty array instead of throwing to prevent UI crashes
+      // Return empty response instead of throwing to prevent UI crashes
       if (error.response?.status === 401) {
         console.warn('⚠️ Authentication required for supervisors');
       }
       
-      return [];
+      return {
+        data: [],
+        fallback: false,
+        count: 0
+      };
     }
   },
 
@@ -62,7 +80,7 @@ export const supervisorsApi = {
   },
 
   // Get supervisors by section
-  getBySection: async (section: string): Promise<Supervisor[]> => {
+  getBySection: async (section: string): Promise<SupervisorResponse> => {
     try {
       console.log(`🔍 Fetching supervisors for section: ${section}`);
       
@@ -74,18 +92,27 @@ export const supervisorsApi = {
         },
       });
       
+      const apiResponse = response as any;
       console.log('📊 API Response:', {
-        status: (response as any).status,
-        section: (response as any).data?.section,
-        count: (response as any).data?.count,
-        timestamp: (response as any).data?.timestamp
+        status: apiResponse.status,
+        section: apiResponse.data?.section,
+        count: apiResponse.data?.count,
+        fallback: apiResponse.data?.fallback,
+        timestamp: apiResponse.data?.timestamp
       });
       
-      // معالجة خاصة لـ API المشرفين - يعيد { success: true, data: [...] }
-      const supervisors = Array.isArray((response as any).data) ? (response as any).data : [];
+      // معالجة خاصة لـ API المشرفين - يعيد { success: true, data: [...], fallback?: boolean }
+      const supervisors = Array.isArray(apiResponse.data) ? apiResponse.data : (apiResponse.data?.data || []);
       
       console.log(`✅ Successfully fetched ${supervisors.length} supervisors for section: ${section}`);
-      return supervisors;
+      
+      return {
+        data: supervisors,
+        fallback: apiResponse.data?.fallback || false,
+        section: apiResponse.data?.section || section,
+        count: apiResponse.data?.count || supervisors.length,
+        timestamp: apiResponse.data?.timestamp
+      };
     } catch (error: any) {
       console.error('❌ Error fetching supervisors by section:', {
         section,
@@ -94,8 +121,13 @@ export const supervisorsApi = {
         data: error.response?.data
       });
       
-      // Return empty array instead of throwing to prevent UI crashes
-      return [];
+      // Return empty response instead of throwing to prevent UI crashes
+      return {
+        data: [],
+        fallback: false,
+        section,
+        count: 0
+      };
     }
   },
 };

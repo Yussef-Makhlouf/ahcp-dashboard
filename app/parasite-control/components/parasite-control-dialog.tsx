@@ -1127,7 +1127,6 @@ export function ParasiteControlDialog({
                             }}
                             variant="modern"
                             size="md"
-                            clearable
                           />
                         </FormControl>
                         <FormMessage />
@@ -1143,6 +1142,7 @@ export function ParasiteControlDialog({
 
         <DialogFooter>
           <Button 
+            type="button"
             variant="secondary" 
             onClick={() => onOpenChange(false)}
           >

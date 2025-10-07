@@ -44,6 +44,11 @@ apiClient.interceptors.request.use(
 // Response interceptor
 apiClient.interceptors.response.use(
   (response) => {
+    console.log('📥 API Response:', {
+      status: response.status,
+      url: response.config.url,
+      data: response.data
+    });
     return response;
   },
   (error) => {
@@ -65,35 +70,30 @@ apiClient.interceptors.response.use(
       error.message = 'انتهت مهلة الطلب. الخادم قد يكون بطيئاً أو غير متاح';
     }
     
-    // معالجة 401 Unauthorized - فقط للـ endpoints الحساسة
+    // معالجة 401 Unauthorized
     if (error.response?.status === 401) {
       const url = error.config?.url || '';
       const isAuthEndpoint = url.includes('/auth/login') || url.includes('/auth/register') || url.includes('/auth/refresh');
       const isSupervisorsEndpoint = url.includes('/auth/supervisors');
       
-      // لا تقم بتسجيل الخروج إذا كان الخطأ من endpoint المشرفين
-      if (isSupervisorsEndpoint) {
-        console.warn('⚠️ 401 من endpoint المشرفين - المستخدم غير مسجل الدخول');
-        // لا تقم بتسجيل الخروج، فقط أرجع الخطأ
+      // لا تقم بتسجيل الخروج إذا كان الخطأ من endpoint المشرفين أو auth endpoints
+      if (isSupervisorsEndpoint || isAuthEndpoint) {
+        console.warn('⚠️ 401 من endpoint المصادقة - المستخدم غير مسجل الدخول');
         return Promise.reject(error);
       }
       
-      // تسجيل الخروج فقط للـ endpoints الأخرى (ليس auth endpoints)
-      if (!isAuthEndpoint) {
-        console.warn('⚠️ 401 Unauthorized - تسجيل خروج تلقائي');
-        const authStore = useAuthStore.getState();
+      // تسجيل الخروج للـ endpoints الأخرى
+      console.warn('⚠️ 401 Unauthorized - تسجيل خروج تلقائي');
+      const authStore = useAuthStore.getState();
+      
+      if (authStore.token) {
+        console.log('🔄 تسجيل خروج بسبب token منتهي الصلاحية');
+        authStore.logout();
         
-        // تحقق من وجود token قبل تسجيل الخروج
-        if (authStore.token) {
-          console.log('🔄 تسجيل خروج بسبب token منتهي الصلاحية');
-          authStore.logout();
-          
-          if (typeof window !== 'undefined') {
-            // تأخير قصير قبل إعادة التوجيه
-            setTimeout(() => {
-              window.location.href = '/login';
-            }, 100);
-          }
+        if (typeof window !== 'undefined') {
+          setTimeout(() => {
+            window.location.href = '/login';
+          }, 100);
         }
       }
     }

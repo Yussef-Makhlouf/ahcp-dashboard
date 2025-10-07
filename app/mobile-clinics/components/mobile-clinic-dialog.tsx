@@ -578,6 +578,7 @@ export function MobileClinicDialog({ open, onOpenChange, clinic, onSave }: Mobil
                     value={formData.supervisor}
                     onValueChange={(value) => setFormData({ ...formData, supervisor: value })}
                     placeholder="اختر المشرف"
+                    section=" mobile-clinics"
                   />
                 </div>
 

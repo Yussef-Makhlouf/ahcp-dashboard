@@ -391,37 +391,101 @@ export interface MobileClinic {
 
 // Equine Health Types
 export interface EquineHealth {
-  serialNo: number;
+  _id?: string; // MongoDB ID
+  serialNo: string;
   date: string;
-  owner: Owner;
-  location: Location;
+  client: {
+    _id?: string;
+    name: string;
+    nationalId: string;
+    phone: string;
+    village?: string;
+    detailedAddress?: string;
+  };
+  farmLocation: string;
+  coordinates: {
+    latitude?: number;
+    longitude?: number;
+  };
   supervisor: string;
   vehicleNo: string;
   horseCount: number;
   diagnosis: string;
-  interventionCategory: string;
+  interventionCategory: "Emergency" | "Routine" | "Preventive" | "Follow-up" | "Breeding" | "Performance";
   treatment: string;
+  followUpRequired: boolean;
+  followUpDate?: string;
   request: Request;
-  category: string;
-  remarks: string;
+  remarks?: string;
+  // Timestamps
+  createdAt?: string;
+  updatedAt?: string;
+  createdBy?: {
+    _id: string;
+    name: string;
+    email: string;
+  };
+  updatedBy?: {
+    _id: string;
+    name: string;
+    email: string;
+  };
+  // Legacy fields for backward compatibility
+  owner?: Owner;
+  location?: Location;
+  category?: string;
 }
 
-// Laboratory Types
+// Laboratory Types - Updated to match the table structure exactly
 export interface Laboratory {
-  sampleCode: string;
-  sampleType: string;
-  collector: string;
-  date: string;
-  speciesCounts: {
-    sheep: number;
-    goats: number;
-    camel: number;
-    cattle: number;
-    horse: number;
+  _id?: string; // MongoDB ID
+  serialNo: number; // Serial number from table
+  date: string; // Date column
+  sampleCode: string; // Sample Code column
+  clientName: string; // Name column (client name)
+  clientId: string; // ID column (client ID - 10 digits)
+  clientBirthDate: string; // Birth Date column
+  clientPhone: string; // phone column (9 digits)
+  farmLocation: string; // Location column
+  coordinates: {
+    latitude: number; // N column (North coordinate)
+    longitude: number; // E column (East coordinate)
   };
-  positiveCases: number;
-  negativeCases: number;
-  remarks: string;
+  speciesCounts: {
+    sheep: number; // Sheep column (Mandatory)
+    goats: number; // Goats column (Mandatory)
+    camel: number; // Camel column (Mandatory)
+    cattle: number; // Cattle column (Mandatory)
+    horse: number; // Horse column (Mandatory)
+    other?: string; // Other (Species) column
+  };
+  collector: string; // Sample Collector column
+  sampleType: string; // Sample Type column (Drop List)
+  sampleNumber: string; // Collector Code column (جامع العينة رمز)
+  positiveCases: number; // positive cases column (Mandatory)
+  negativeCases: number; // Negative Cases column (Mandatory)
+  remarks: string; // Remarks column
+  testResults?: Array<{
+    id: string;
+    animalId: string;
+    animalType: string;
+    testType: string;
+    result: string;
+    notes: string;
+  }>;
+  // Timestamps
+  createdAt?: string;
+  updatedAt?: string;
+  createdBy?: {
+    _id: string;
+    name: string;
+    email: string;
+  };
+  updatedBy?: {
+    _id: string;
+    name: string;
+    email: string;
+  };
 }
 
 // User/Auth Types

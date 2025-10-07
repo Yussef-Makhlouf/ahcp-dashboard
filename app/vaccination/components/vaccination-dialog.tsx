@@ -569,7 +569,6 @@ export function VaccinationDialog({
                               minDate={new Date(1900, 0, 1)}
                               variant="modern"
                               size="md"
-                              clearable
                             />
                           </FormControl>
                           <FormMessage />
@@ -623,7 +622,6 @@ export function VaccinationDialog({
                               maxDate={new Date()}
                               variant="modern"
                               size="md"
-                              clearable
                             />
                           </FormControl>
                           <FormMessage />
@@ -754,7 +752,6 @@ export function VaccinationDialog({
                               maxDate={new Date()}
                               variant="modern"
                               size="md"
-                              clearable
                             />
                           </FormControl>
                           <FormMessage />
@@ -789,7 +786,6 @@ export function VaccinationDialog({
                                 minDate={form.watch("request.date") ? new Date(form.watch("request.date")) : undefined}
                                 variant="modern"
                                 size="md"
-                                clearable
                               />
                             </FormControl>
                             <FormMessage />

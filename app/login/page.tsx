@@ -21,7 +21,7 @@ export default function LoginPage() {
   const [passwordError, setPasswordError] = useState('');
   const [touched, setTouched] = useState({ email: false, password: false });
   
-  const { login, isAuthenticated } = useAuthStore();
+  const { login, isAuthenticated, resetAuth } = useAuthStore();
   const router = useRouter();
   const [returnUrl, setReturnUrl] = useState('/');
 
@@ -38,16 +38,11 @@ export default function LoginPage() {
   // التحقق من حالة المصادقة
   useEffect(() => {
     if (isAuthenticated) {
-      console.log('User is authenticated, redirecting to:', returnUrl);
+      console.log('✅ User is authenticated, redirecting to:', returnUrl);
       console.log('Current pathname:', window.location.pathname);
-      router.push(returnUrl);
-      // إضافة تأخير للتأكد من التوجيه
-      setTimeout(() => {
-        if (window.location.pathname === '/login') {
-          console.log('Still on login page, forcing redirect...');
-          window.location.href = returnUrl;
-        }
-      }, 1000);
+      
+      // إعادة توجيه فورية بدون تأخير
+      router.replace(returnUrl);
     }
   }, [isAuthenticated, router, returnUrl]);
 
@@ -164,16 +159,24 @@ export default function LoginPage() {
     try {
       console.log('🔐 Attempting login with:', { email, password: '***' });
       
+      // اختبار الاتصال بالخادم أولاً
+      try {
+        const testResponse = await fetch('http://localhost:3001/health');
+        console.log('🏥 Server health check:', testResponse.status);
+      } catch (testError) {
+        console.warn('⚠️ Server health check failed:', testError);
+      }
+      
       // استدعاء API الحقيقي
       await login({ email, password });
       
       setSuccess('تم تسجيل الدخول بنجاح! جاري التوجيه...');
       console.log('✅ Login successful, redirecting to:', returnUrl);
       
-      // تأخير قصير لإظهار رسالة النجاح
+      // إعادة توجيه فورية بعد نجاح تسجيل الدخول
       setTimeout(() => {
-        router.push(returnUrl);
-      }, 1500);
+        router.replace(returnUrl);
+      }, 500);
       
     } catch (error: any) {
       console.error('❌ Login error:', error);
@@ -332,25 +335,34 @@ export default function LoginPage() {
               </Button>
             </form>
 
-            {/* معلومات تسجيل الدخول للاختبار */}
+            {/* معلومات تسجيل الدخول */}
             <div className="mt-8 p-6 bg-slate-50 rounded-2xl border border-slate-200">
               <h4 className="text-sm font-semibold text-slate-800 mb-4 flex items-center">
                 <Shield className="w-4 h-4 ml-2 text-slate-600" />
-                بيانات تسجيل الدخول:
+                بيانات تسجيل الدخول المتاحة:
               </h4>
               <div className="text-sm text-slate-700 space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="font-medium text-slate-600">البريد الإلكتروني:</span>
-                  <span className="bg-slate-100 px-3 py-2 rounded-lg text-slate-800 font-mono text-sm">admin@ahcp.gov.sa</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="font-medium text-slate-600">كلمة المرور:</span>
-                  <span className="bg-slate-100 px-3 py-2 rounded-lg text-slate-800 font-mono text-sm">Admin@123456</span>
+                <div className="grid grid-cols-1 gap-3">
+                  <div className="flex items-center justify-between p-2 bg-white rounded-lg border">
+                    <span className="font-medium text-slate-600">مدير النظام:</span>
+                    <span className="text-slate-800 font-mono text-xs">admin@ahcp.gov.sa</span>
+                  </div>
+                  <div className="flex items-center justify-between p-2 bg-white rounded-lg border">
+                    <span className="font-medium text-slate-600">مشرف مكافحة الطفيليات:</span>
+                    <span className="text-slate-800 font-mono text-xs">parasite@ahcp.gov.sa</span>
+                  </div>
+                  <div className="flex items-center justify-between p-2 bg-white rounded-lg border">
+                    <span className="font-medium text-slate-600">مشرف التحصينات:</span>
+                    <span className="text-slate-800 font-mono text-xs">vaccination@ahcp.gov.sa</span>
+                  </div>
+                  <div className="flex items-center justify-between p-2 bg-white rounded-lg border">
+                    <span className="font-medium text-slate-600">مشرف العيادة المتنقلة:</span>
+                    <span className="text-slate-800 font-mono text-xs">clinic@ahcp.gov.sa</span>
+                  </div>
                 </div>
                 <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
-                  <p className="text-xs text-blue-700 font-medium">💡 بيانات إضافية للاختبار:</p>
-                  <p className="text-xs text-blue-600 mt-1">ibrahim@ahcp.gov.eg / admin123</p>
-                  <p className="text-xs text-blue-600">supervisor@ahcp.gov.sa / Supervisor@123</p>
+                  <p className="text-xs text-blue-700 font-medium">💡 كلمة المرور الافتراضية: Admin@123456</p>
+                  <p className="text-xs text-blue-600 mt-1">للمستخدمين الآخرين، كلمة المرور هي اسم القسم + 123</p>
                 </div>
               </div>
             </div>

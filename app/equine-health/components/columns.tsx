@@ -10,6 +10,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Edit, MoreHorizontal, Trash2, Eye } from "lucide-react";
+import { usePermissions } from "@/lib/hooks/usePermissions";
 import type { EquineHealth } from "@/types";
 
 interface GetColumnsProps {
@@ -23,6 +24,7 @@ export function getColumns({
   onDelete,
   onView
 }: GetColumnsProps): ColumnDef<EquineHealth>[] {
+  const { checkPermission } = usePermissions();
   return [
     {
       accessorKey: "serialNo",
@@ -40,10 +42,10 @@ export function getColumns({
       },
     },
     {
-      accessorKey: "owner.name",
+      accessorKey: "client.name",
       header: "اسم المالك",
       cell: ({ row }) => (
-        <div className="font-medium">{row.original.owner.name}</div>
+        <div className="font-medium">{row.original.client?.name || 'غير محدد'}</div>
       ),
     },
     {
@@ -68,20 +70,26 @@ export function getColumns({
       cell: ({ row }) => {
         const category = row.getValue("interventionCategory") as string;
         const categoryColors: Record<string, string> = {
-          "Clinical Examination": "bg-blue-500 text-white border-blue-600",
-          "Surgical Operation": "bg-red-500 text-white border-red-600",
-          "Ultrasonography": "bg-green-500 text-white border-green-600",
-          "Lab Analysis": "bg-purple-500 text-white border-purple-600",
-          "Farriery": "bg-orange-500 text-white border-orange-600",
+          "Emergency": "bg-red-500 text-white border-red-600",
+          "Routine": "bg-blue-500 text-white border-blue-600",
+          "Preventive": "bg-green-500 text-white border-green-600",
+          "Follow-up": "bg-yellow-500 text-white border-yellow-600",
+          "Breeding": "bg-purple-500 text-white border-purple-600",
+          "Performance": "bg-orange-500 text-white border-orange-600",
+        };
+
+        const categoryLabels: Record<string, string> = {
+          "Emergency": "طوارئ",
+          "Routine": "روتيني",
+          "Preventive": "وقائي",
+          "Follow-up": "متابعة",
+          "Breeding": "تربية",
+          "Performance": "أداء",
         };
 
         return (
           <Badge className={categoryColors[category] || "bg-gray-500 text-white border-gray-600"}>
-            {category === "Clinical Examination" && "فحص سريري"}
-            {category === "Surgical Operation" && "عملية جراحية"}
-            {category === "Ultrasonography" && "موجات فوق صوتية"}
-            {category === "Lab Analysis" && "تحليل مخبري"}
-            {category === "Farriery" && "حداء وعلاج الحوافر"}
+            {categoryLabels[category] || category}
           </Badge>
         );
       },
@@ -90,18 +98,22 @@ export function getColumns({
       accessorKey: "request.situation",
       header: "حالة الطلب",
       cell: ({ row }) => {
-        const status = row.original.request.situation;
+        const status = row.original.request?.situation || 'Open';
         const statusColors = {
           "Open": "bg-green-500 text-white border-green-600",
           "Closed": "bg-blue-500 text-white border-blue-600",
           "Pending": "bg-yellow-500 text-white border-yellow-600",
         };
 
+        const statusLabels = {
+          "Open": "مفتوح",
+          "Closed": "مغلق",
+          "Pending": "معلق",
+        };
+
         return (
           <Badge className={statusColors[status as keyof typeof statusColors] || "bg-gray-500 text-white border-gray-600"}>
-            {status === "Open" && "مفتوح"}
-            {status === "Closed" && "مغلق"}
-            {status === "Pending" && "معلق"}
+            {statusLabels[status as keyof typeof statusLabels] || status}
           </Badge>
         );
       },
@@ -109,35 +121,49 @@ export function getColumns({
     {
       id: "actions",
       header: "الإجراءات",
-      cell: ({ row }) => (
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="h-8 w-8 p-0">
-              <span className="sr-only">فتح القائمة</span>
-              <MoreHorizontal className="h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            {onView && (
-              <DropdownMenuItem onClick={() => onView(row.original)}>
-                <Eye className="mr-2 h-4 w-4" />
-                عرض
-              </DropdownMenuItem>
-            )}
-            <DropdownMenuItem onClick={() => onEdit(row.original)}>
-              <Edit className="mr-2 h-4 w-4" />
-              تعديل
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={() => onDelete(row.original.serialNo)}
-              className="text-red-600"
-            >
-              <Trash2 className="mr-2 h-4 w-4" />
-              حذف
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      ),
+      cell: ({ row }) => {
+        const canEdit = checkPermission({ module: 'equine-health', action: 'edit' });
+        const canDelete = checkPermission({ module: 'equine-health', action: 'delete' });
+        
+        // إذا لم يكن لديه صلاحيات التعديل أو الحذف، لا تظهر خانة الإجراءات
+        if (!canEdit && !canDelete) {
+          return null;
+        }
+        
+        return (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" className="h-8 w-8 p-0">
+                <span className="sr-only">فتح القائمة</span>
+                <MoreHorizontal className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              {onView && (
+                <DropdownMenuItem onClick={() => onView(row.original)}>
+                  <Eye className="mr-2 h-4 w-4" />
+                  عرض
+                </DropdownMenuItem>
+              )}
+              {canEdit && (
+                <DropdownMenuItem onClick={() => onEdit(row.original)}>
+                  <Edit className="mr-2 h-4 w-4" />
+                  تعديل
+                </DropdownMenuItem>
+              )}
+              {canDelete && (
+                <DropdownMenuItem
+                  onClick={() => onDelete(row.original._id || row.original.serialNo)}
+                  className="text-red-600"
+                >
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  حذف
+                </DropdownMenuItem>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        );
+      },
     },
   ];
 }

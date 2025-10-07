@@ -14,6 +14,7 @@ interface AuthState {
   updateUser: (user: Partial<User>) => void;
   checkAuth: () => boolean;
   clearError: () => void;
+  resetAuth: () => void;
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -26,10 +27,18 @@ export const useAuthStore = create<AuthState>()(
       error: null,
       login: async (credentials: LoginRequest) => {
         try {
+          console.log('🔐 محاولة تسجيل الدخول:', { email: credentials.email });
           set({ isLoading: true, error: null });
-          const response = await authApi.login(credentials);
           
-          if (response.success) {
+          const response = await authApi.login(credentials);
+          console.log('📥 استجابة API:', response);
+          
+          if (response && response.success) {
+            console.log('✅ تسجيل الدخول ناجح:', {
+              user: response.data.user,
+              hasToken: !!response.data.token
+            });
+            
             set({
               user: response.data.user,
               token: response.data.token,
@@ -38,16 +47,42 @@ export const useAuthStore = create<AuthState>()(
               error: null
             });
           } else {
+            console.error('❌ فشل في تسجيل الدخول:', response);
             set({
-              error: response.message || 'فشل في تسجيل الدخول',
+              error: response?.message || 'فشل في تسجيل الدخول',
               isLoading: false
             });
           }
         } catch (error: any) {
-          set({
-            error: error.response?.data?.message || 'حدث خطأ أثناء تسجيل الدخول',
-            isLoading: false
+          console.error('❌ خطأ في تسجيل الدخول:', error);
+          console.error('❌ تفاصيل الخطأ:', {
+            message: error.message,
+            response: error.response?.data,
+            status: error.response?.status
           });
+          
+          // معالجة أنواع مختلفة من الأخطاء
+          if (error.response?.status === 401) {
+            set({
+              error: 'البريد الإلكتروني أو كلمة المرور غير صحيحة',
+              isLoading: false
+            });
+          } else if (error.response?.status === 403) {
+            set({
+              error: 'الحساب غير مفعل أو محظور',
+              isLoading: false
+            });
+          } else if (error.code === 'NETWORK_ERROR' || error.message.includes('Network Error')) {
+            set({
+              error: 'خطأ في الاتصال بالخادم. تأكد من تشغيل الخادم الخلفي',
+              isLoading: false
+            });
+          } else {
+            set({
+              error: error.response?.data?.message || error.message || 'حدث خطأ أثناء تسجيل الدخول',
+              isLoading: false
+            });
+          }
         }
       },
       logout: async () => {
@@ -92,60 +127,69 @@ export const useAuthStore = create<AuthState>()(
         })),
       checkAuth: () => {
         const state = get();
-        return state.isAuthenticated && state.user !== null && state.token !== null;
+        const isValid = state.isAuthenticated && state.user !== null && state.token !== null;
+        console.log('🔍 checkAuth result:', { 
+          isAuthenticated: state.isAuthenticated, 
+          hasUser: !!state.user, 
+          hasToken: !!state.token, 
+          isValid 
+        });
+        return isValid;
       },
       clearError: () => set({ error: null }),
+      resetAuth: () => {
+        console.log('🔄 Resetting auth state...');
+        set({
+          user: null,
+          token: null,
+          isAuthenticated: false,
+          isLoading: false,
+          error: null
+        });
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem('auth-storage');
+        }
+      },
     }),
     {
       name: 'auth-storage',
       storage: {
         getItem: (name) => {
           if (typeof window === 'undefined') return null;
-          const item = localStorage.getItem(name);
-          return item ? JSON.parse(item) : null;
+          try {
+            const item = localStorage.getItem(name);
+            return item ? JSON.parse(item) : null;
+          } catch (error) {
+            console.error('❌ Error reading auth storage:', error);
+            localStorage.removeItem(name);
+            return null;
+          }
         },
         setItem: (name, value) => {
           if (typeof window === 'undefined') return;
-          localStorage.setItem(name, JSON.stringify(value));
+          try {
+            localStorage.setItem(name, JSON.stringify(value));
+          } catch (error) {
+            console.error('❌ Error writing auth storage:', error);
+          }
         },
         removeItem: (name) => {
           if (typeof window === 'undefined') return;
-          localStorage.removeItem(name);
+          try {
+            localStorage.removeItem(name);
+          } catch (error) {
+            console.error('❌ Error removing auth storage:', error);
+          }
         },
+      },
+      onRehydrateStorage: () => (state) => {
+        console.log('🔄 Auth store rehydrated:', {
+          isAuthenticated: state?.isAuthenticated,
+          hasUser: !!state?.user,
+          hasToken: !!state?.token
+        });
       },
     }
   )
 );
 
-// Mock login function for development
-export const mockLogin = async (role: User['role'] = 'super_admin') => {
-  const mockCredentials: LoginRequest = {
-    email: 'admin@ahcp.gov.sa',
-    password: 'Admin@123456'
-  };
-  
-  try {
-    await useAuthStore.getState().login(mockCredentials);
-  } catch (error) {
-    // If API login fails, use local mock data
-    const mockUser: User = {
-      id: '1',
-      name: 'مدير النظام',
-      email: 'admin@ahcp.gov.sa',
-      role,
-      section: role === 'section_supervisor' ? 'parasite_control' : '',
-      roleNameAr: role === 'super_admin' ? 'مدير عام' : 'مشرف قسم',
-      isActive: true
-    };
-    
-    useAuthStore.setState({
-      user: mockUser,
-      token: 'mock-token-' + Date.now(),
-      isAuthenticated: true,
-      isLoading: false,
-      error: null
-    });
-    
-    return mockUser;
-  }
-};

@@ -15,16 +15,29 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const { user, isAuthenticated, login, logout } = useAuthStore();
+  const { user, isAuthenticated, login, logout, checkAuth } = useAuthStore();
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // تهيئة المصادقة بدون تسجيل دخول تلقائي
+    // تهيئة المصادقة مع التحقق من البيانات المحفوظة
     const initAuth = async () => {
       try {
-        // فقط تحديد حالة التحميل
-        setLoading(false);
-        console.log('🔐 نظام المصادقة جاهز - يرجى تسجيل الدخول');
+        console.log('🔐 تهيئة نظام المصادقة...');
+        
+        // التحقق من حالة المصادقة الحالية
+        const isAuth = checkAuth();
+        console.log('🔍 حالة المصادقة الحالية:', {
+          isAuthenticated,
+          hasUser: !!user,
+          isAuth
+        });
+        
+        // تأخير قصير للتأكد من تحميل البيانات من localStorage
+        setTimeout(() => {
+          setLoading(false);
+          console.log('✅ نظام المصادقة جاهز');
+        }, 100);
+        
       } catch (error) {
         console.error('❌ خطأ في تهيئة المصادقة:', error);
         setLoading(false);
@@ -32,7 +45,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
 
     initAuth();
-  }, []);
+  }, [isAuthenticated, user, checkAuth]);
 
   const handleLogin = async (credentials: any) => {
     try {

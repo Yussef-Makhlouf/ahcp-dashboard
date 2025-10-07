@@ -80,13 +80,13 @@ export const laboratoriesApi = {
   },
 
   // Create new record
-  create: async (data: Omit<Laboratory, 'sampleCode'>): Promise<Laboratory> => {
+  create: async (data: any): Promise<Laboratory> => {
     try {
       const response = await api.post('/laboratories', data, {
         timeout: 30000,
       });
-      // Handle response structure: { success: true, data: {...} }
-      const recordData = (response as any).data || response;
+      // Handle response structure: { success: true, data: { record: {...} } }
+      const recordData = (response as any).data?.record || (response as any).data || response;
       return recordData;
     } catch (error: any) {
       console.error('Error creating record:', error);
@@ -95,13 +95,13 @@ export const laboratoriesApi = {
   },
 
   // Update record
-  update: async (sampleCode: string, data: Partial<Laboratory>): Promise<Laboratory> => {
+  update: async (sampleCode: string, data: any): Promise<Laboratory> => {
     try {
       const response = await api.put(`/laboratories/${sampleCode}`, data, {
         timeout: 30000,
       });
-      // Handle response structure: { success: true, data: {...} }
-      const recordData = (response as any).data || response;
+      // Handle response structure: { success: true, data: { record: {...} } }
+      const recordData = (response as any).data?.record || (response as any).data || response;
       return recordData;
     } catch (error: any) {
       console.error('Error updating record:', error);
@@ -110,9 +110,9 @@ export const laboratoriesApi = {
   },
 
   // Delete record
-  delete: async (sampleCode: string): Promise<void> => {
+  delete: async (id: string): Promise<void> => {
     try {
-      await api.delete(`/laboratories/${sampleCode}`, {
+      await api.delete(`/laboratories/${id}`, {
         timeout: 30000,
       });
     } catch (error: any) {

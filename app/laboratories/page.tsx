@@ -14,6 +14,7 @@ import type { Laboratory } from "@/types";
 import { formatDate } from "@/lib/utils";
 import { laboratoriesApi } from "@/lib/api/laboratories";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { usePermissions } from "@/lib/hooks/usePermissions";
 
 // تعريف حقول النموذج
 const formFields = [
@@ -200,6 +201,7 @@ export default function LaboratoriesPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState<Laboratory | null>(null);
   const queryClient = useQueryClient();
+  const { checkPermission } = usePermissions();
 
   // Fetch laboratories data using React Query
   const { data: laboratoriesData, isLoading, refetch } = useQuery({
@@ -237,7 +239,7 @@ export default function LaboratoriesPage() {
   const handleDelete = async (item: Laboratory) => {
     if (confirm("هل أنت متأكد من حذف هذا السجل؟")) {
       try {
-        await laboratoriesApi.delete(item.sampleCode);
+        await laboratoriesApi.delete((item as any)._id || item.sampleCode);
         refetch(); // Refresh data after deletion
         // Refresh statistics as well
         queryClient.invalidateQueries({ queryKey: ['laboratories-stats'] });
@@ -252,7 +254,7 @@ export default function LaboratoriesPage() {
   const handleSave = async (data: any) => {
     try {
       if (selectedItem) {
-        await laboratoriesApi.update(selectedItem.sampleCode, data);
+        await laboratoriesApi.update((selectedItem as any)._id || selectedItem.sampleCode, data);
         alert('تم تحديث السجل بنجاح');
       } else {
         await laboratoriesApi.create(data);
@@ -305,10 +307,12 @@ export default function LaboratoriesPage() {
               acceptedFormats={[".csv", ".xlsx"]}
               maxFileSize={10}
             />
-            <Button onClick={handleAdd}>
-              <Plus className="h-4 w-4 mr-2" />
-              إضافة عينة جديدة
-            </Button>
+            {checkPermission({ module: 'laboratories', action: 'create' }) && (
+              <Button onClick={handleAdd}>
+                <Plus className="h-4 w-4 mr-2" />
+                إضافة عينة جديدة
+              </Button>
+            )}
           </div>
         </div>
 

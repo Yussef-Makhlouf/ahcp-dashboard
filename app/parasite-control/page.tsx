@@ -182,6 +182,7 @@ import { formatDate } from "@/lib/utils";
 import { parasiteControlApi } from "@/lib/api/parasite-control";
 import { useQuery } from "@tanstack/react-query";
 import { z } from "zod";
+import { usePermissions } from "@/lib/hooks/usePermissions";
 
 // تعريف حقول النموذج
 const formFields = [
@@ -364,6 +365,7 @@ const tableFilters = [
 export default function ParasiteControlPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState<ParasiteControl | null>(null);
+  const { checkPermission } = usePermissions();
 
   // Fetch parasite control data using React Query
   const { data: parasiteControlData, isLoading, refetch } = useQuery({
@@ -466,10 +468,12 @@ export default function ParasiteControlPage() {
               acceptedFormats={[".csv", ".xlsx"]}
               maxFileSize={10}
             />
-            <Button onClick={handleAdd}>
-              <Plus className="h-4 w-4 mr-2" />
-              إضافة سجل جديد
-            </Button>
+            {checkPermission({ module: 'parasite-control', action: 'create' }) && (
+              <Button onClick={handleAdd}>
+                <Plus className="h-4 w-4 mr-2" />
+                إضافة سجل جديد
+              </Button>
+            )}
           </div>
         </div>
 

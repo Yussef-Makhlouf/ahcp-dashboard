@@ -28,6 +28,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { ScheduleDialog } from "./components/schedule-dialog";
 import { format, addDays, startOfWeek, endOfWeek, eachDayOfInterval, isSameDay, isToday } from "date-fns";
 import { ar } from "date-fns/locale";
+import { usePermissions } from "@/lib/hooks/usePermissions";
 import { cn } from "@/lib/utils";
 
 interface ScheduleEvent {
@@ -157,6 +158,7 @@ export default function SchedulingPage() {
   const [selectedEvent, setSelectedEvent] = useState<ScheduleEvent | undefined>(undefined);
   const [viewMode, setViewMode] = useState<"day" | "week" | "month">("week");
   const [filterType, setFilterType] = useState<string>("all");
+  const { checkPermission } = usePermissions();
 
   // Get week days
   const weekStart = startOfWeek(selectedDate, { weekStartsOn: 6 }); // Saturday
@@ -226,13 +228,15 @@ export default function SchedulingPage() {
               <Bell className="ml-2 h-4 w-4" />
               التذكيرات
             </Button>
-            <Button onClick={() => {
-              setSelectedEvent(undefined);
-              setIsDialogOpen(true);
-            }}>
-              <Plus className="ml-2 h-4 w-4" />
-              إضافة موعد جديد
-            </Button>
+            {checkPermission({ module: 'scheduling', action: 'create' }) && (
+              <Button onClick={() => {
+                setSelectedEvent(undefined);
+                setIsDialogOpen(true);
+              }}>
+                <Plus className="ml-2 h-4 w-4" />
+                إضافة موعد جديد
+              </Button>
+            )}
           </div>
         </div>
 

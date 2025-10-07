@@ -24,6 +24,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { usePermissions } from "@/lib/hooks/usePermissions";
 import {
   LineChart,
   Line,
@@ -132,6 +133,7 @@ export default function ReportsPage() {
     from: new Date(2025, 8, 1),
     to: new Date(2025, 8, 30),
   });
+  const { checkPermission } = usePermissions();
 
   const handleGenerateReport = (type: string) => {
     console.log("Generating report:", type);

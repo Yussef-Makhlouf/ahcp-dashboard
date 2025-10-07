@@ -14,11 +14,13 @@ import { getColumns } from "./components/columns";
 import { vaccinationApi } from "@/lib/api/vaccination";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ImportExportManager } from "@/components/import-export/import-export-manager";
+import { usePermissions } from "@/lib/hooks/usePermissions";
 
 export default function VaccinationPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState<Vaccination | null>(null);
   const queryClient = useQueryClient();
+  const { checkPermission } = usePermissions();
 
   // Fetch vaccination data using React Query
   const { data: vaccinationData, isLoading } = useQuery({
@@ -94,16 +96,18 @@ export default function VaccinationPage() {
               acceptedFormats={[".csv", ".xlsx"]}
               maxFileSize={10}
             />
-            <Button 
-              onClick={() => {
-                setSelectedItem(null);
-                setIsDialogOpen(true);
-              }}
-              className="bg-blue-600 hover:bg-blue-700 text-white shadow-lg hover:shadow-xl transition-all duration-200"
-            >
-              <Plus className="ml-2 h-4 w-4" />
-              إضافة تحصين جديد
-            </Button>
+            {checkPermission({ module: 'vaccination', action: 'create' }) && (
+              <Button 
+                onClick={() => {
+                  setSelectedItem(null);
+                  setIsDialogOpen(true);
+                }}
+                className="bg-blue-600 hover:bg-blue-700 text-white shadow-lg hover:shadow-xl transition-all duration-200"
+              >
+                <Plus className="ml-2 h-4 w-4" />
+                إضافة تحصين جديد
+              </Button>
+            )}
           </div>
         </div>
 

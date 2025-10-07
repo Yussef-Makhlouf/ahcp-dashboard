@@ -32,6 +32,7 @@ import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { InventoryDialog } from "./components/inventory-dialog";
+import { usePermissions } from "@/lib/hooks/usePermissions";
 import {
   BarChart,
   Bar,
@@ -181,6 +182,7 @@ export default function InventoryPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState<InventoryItem | undefined>(undefined);
   const [activeTab, setActiveTab] = useState("all");
+  const { checkPermission } = usePermissions();
 
   const columns: ColumnDef<InventoryItem>[] = [
     {
@@ -408,13 +410,15 @@ export default function InventoryPage() {
               <ShoppingCart className="ml-2 h-4 w-4" />
               طلب شراء
             </Button>
-            <Button onClick={() => {
-              setSelectedItem(undefined);
-              setIsDialogOpen(true);
-            }}>
-              <Plus className="ml-2 h-4 w-4" />
-              إضافة صنف جديد
-            </Button>
+            {checkPermission({ module: 'clients', action: 'create' }) && (
+              <Button onClick={() => {
+                setSelectedItem(undefined);
+                setIsDialogOpen(true);
+              }}>
+                <Plus className="ml-2 h-4 w-4" />
+                إضافة صنف جديد
+              </Button>
+            )}
           </div>
         </div>
 

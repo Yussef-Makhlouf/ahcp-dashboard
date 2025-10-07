@@ -49,7 +49,7 @@ const menuItems = [
   },
   {
     title: "المختبرات",
-    href: "/laboratory",
+    href: "/laboratories",
     icon: FlaskConical,
   },
   {
