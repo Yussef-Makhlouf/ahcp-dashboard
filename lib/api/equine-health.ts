@@ -63,7 +63,7 @@ export const equineHealthApi = {
         });
       }
 
-      const response = await api.get('/equine-health/', {
+      const response = await api.get('/equine-health', {
         params: cleanParams,
         timeout: 30000,
       });
@@ -94,7 +94,7 @@ export const equineHealthApi = {
   // Create new record
   create: async (data: Partial<EquineHealth>): Promise<EquineHealth> => {
     try {
-      const response = await api.post('/equine-health/', data, {
+      const response = await api.post('/equine-health', data, {
         timeout: 30000,
       });
       // Handle nested response structure: { success: true, data: { record: {...} } }

@@ -420,11 +420,11 @@ export interface EquineHealth {
   // Timestamps
   createdAt?: string;
   updatedAt?: string;
-  createdBy?: {
-    _id: string;
-    name: string;
-    email: string;
-  };
+  // createdBy?: {
+  //   _id: string;
+  //   name: string;
+  //   email: string;
+  // };
   updatedBy?: {
     _id: string;
     name: string;

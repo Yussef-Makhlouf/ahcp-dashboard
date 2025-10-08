@@ -72,8 +72,6 @@ const formSchema = z.object({
     "Performance"
   ]),
   treatment: z.string().min(3, "العلاج يجب أن يكون أكثر من 3 أحرف"),
-  followUpRequired: z.boolean().default(false),
-  followUpDate: z.string().optional(),
   request: z.object({
     date: z.string().min(1, "تاريخ الطلب مطلوب"),
     situation: z.enum(["Open", "Closed", "Pending"]),
@@ -121,8 +119,6 @@ export function EquineHealthDialog({
       diagnosis: "",
       interventionCategory: "Routine",
       treatment: "",
-      followUpRequired: false,
-      followUpDate: "",
       request: {
         date: new Date().toISOString().split("T")[0],
         situation: "Open",
@@ -134,7 +130,36 @@ export function EquineHealthDialog({
 
   useEffect(() => {
     if (item) {
-      form.reset(item as any);
+      // Ensure all values are defined to prevent uncontrolled to controlled input changes
+      const safeItem = {
+        serialNo: item.serialNo || "",
+        date: item.date || new Date().toISOString().split("T")[0],
+        client: {
+          name: item.client?.name || "",
+          nationalId: item.client?.nationalId || "",
+          phone: item.client?.phone || "",
+          village: item.client?.village || "",
+          detailedAddress: item.client?.detailedAddress || "",
+        },
+        farmLocation: item.farmLocation || "",
+        coordinates: {
+          latitude: item.coordinates?.latitude || 0,
+          longitude: item.coordinates?.longitude || 0,
+        },
+        supervisor: item.supervisor || "",
+        vehicleNo: item.vehicleNo || "",
+        horseCount: item.horseCount || 1,
+        diagnosis: item.diagnosis || "",
+        interventionCategory: item.interventionCategory || "Routine",
+        treatment: item.treatment || "",
+        request: {
+          date: item.request?.date || new Date().toISOString().split("T")[0],
+          situation: item.request?.situation || "Open",
+          fulfillingDate: item.request?.fulfillingDate || "",
+        },
+        remarks: item.remarks || "",
+      };
+      form.reset(safeItem);
     }
   }, [item, form]);
 
@@ -153,8 +178,6 @@ export function EquineHealthDialog({
         diagnosis: data.diagnosis,
         interventionCategory: data.interventionCategory,
         treatment: data.treatment,
-        followUpRequired: data.followUpRequired,
-        followUpDate: data.followUpDate || undefined,
         request: {
           date: data.request.date,
           situation: data.request.situation,
@@ -504,42 +527,6 @@ export function EquineHealthDialog({
                     </FormItem>
                   )}
                 />
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control as any}
-                    name="followUpRequired"
-                    render={({ field }) => (
-                      <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                        <FormControl>
-                          <input
-                            type="checkbox"
-                            checked={field.value}
-                            onChange={field.onChange}
-                            className="mt-1"
-                          />
-                        </FormControl>
-                        <div className="space-y-1 leading-none">
-                          <FormLabel>يتطلب متابعة</FormLabel>
-                        </div>
-                      </FormItem>
-                    )}
-                  />
-                  {form.watch("followUpRequired") && (
-                    <FormField
-                      control={form.control as any}
-                      name="followUpDate"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>تاريخ المتابعة</FormLabel>
-                          <FormControl>
-                            <Input type="date" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  )}
-                </div>
                 <FormField
                   control={form.control as any}
                   name="remarks"
@@ -565,10 +552,20 @@ export function EquineHealthDialog({
                     control={form.control as any}
                     name="request.date"
                     render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>تاريخ الطلب</FormLabel>
+                      <FormItem className="space-y-3">
                         <FormControl>
-                          <Input type="date" {...field} />
+                          <ModernDatePicker
+                            label="تاريخ الطلب"
+                            placeholder="اختر تاريخ الطلب"
+                            value={field.value ? new Date(field.value) : undefined}
+                            onChange={(date) => {
+                              const dateString = date ? date.toISOString().split('T')[0] : '';
+                              field.onChange(dateString);
+                            }}
+                            required
+                            variant="modern"
+                            size="md"
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -602,33 +599,26 @@ export function EquineHealthDialog({
                     control={form.control as any}
                     name="request.fulfillingDate"
                     render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>تاريخ إنجاز الطلب</FormLabel>
+                      <FormItem className="space-y-3">
                         <FormControl>
-                          <Input type="date" {...field} />
+                          <ModernDatePicker
+                            label="تاريخ إنجاز الطلب"
+                            placeholder="اختر تاريخ إنجاز الطلب"
+                            value={field.value ? new Date(field.value) : undefined}
+                            onChange={(date) => {
+                              const dateString = date ? date.toISOString().split('T')[0] : '';
+                              field.onChange(dateString);
+                            }}
+                            required
+                            variant="modern"
+                            size="md"
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
                 )}
-                <FormField
-                  control={form.control as any}
-                  name="remarks"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>ملاحظات</FormLabel>
-                      <FormControl>
-                        <Textarea
-                          placeholder="أي ملاحظات إضافية..."
-                          className="resize-none"
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
               </TabsContent>
               </Tabs>
             </form>
