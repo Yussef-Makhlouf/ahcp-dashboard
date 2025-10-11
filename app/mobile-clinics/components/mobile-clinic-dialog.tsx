@@ -23,11 +23,12 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { ModernDatePicker } from "@/components/ui/modern-date-picker";
 import { SupervisorSelect } from "@/components/ui/supervisor-select";
-import { CalendarIcon, MapPin, Stethoscope, Plus, Trash2, Activity } from "lucide-react";
+import { CalendarIcon, MapPin, Stethoscope, Plus, Trash2, Activity, User, Heart, Shield, FileText } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { validateSaudiPhone } from "@/lib/utils";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { EnhancedMobileTabs } from "@/components/ui/mobile-tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -471,13 +472,37 @@ export function MobileClinicDialog({ open, onOpenChange, clinic, onSave }: Mobil
 
         <DialogBody>
           <form id="mobile-clinic-form" onSubmit={handleSubmit}>
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full" dir="rtl">
-              <TabsList className="grid w-full grid-cols-4">
-                <TabsTrigger value="basic">البيانات الأساسية</TabsTrigger>
-                <TabsTrigger value="animals">الحيوانات</TabsTrigger>
-                <TabsTrigger value="diagnosis">التشخيص والعلاج</TabsTrigger>
-                <TabsTrigger value="followup">المتابعة</TabsTrigger>
-              </TabsList>
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full tabs-modern" dir="rtl">
+              <EnhancedMobileTabs
+                value={activeTab}
+                onValueChange={setActiveTab}
+                tabs={[
+                  {
+                    value: "basic",
+                    label: "البيانات الأساسية",
+                    shortLabel: "الأساسية",
+                    icon: <User className="h-4 w-4" />
+                  },
+                  {
+                    value: "animals",
+                    label: "الحيوانات",
+                    shortLabel: "الحيوانات",
+                    icon: <Heart className="h-4 w-4" />
+                  },
+                  {
+                    value: "diagnosis",
+                    label: "التشخيص والعلاج",
+                    shortLabel: "التشخيص",
+                    icon: <Stethoscope className="h-4 w-4" />
+                  },
+                  {
+                    value: "followup",
+                    label: "المتابعة",
+                    shortLabel: "المتابعة",
+                    icon: <FileText className="h-4 w-4" />
+                  }
+                ]}
+              />
 
             <TabsContent value="basic" className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -818,54 +843,122 @@ export function MobileClinicDialog({ open, onOpenChange, clinic, onSave }: Mobil
                 </div>
               </div>
 
+              {/* قسم الأدوية المستخدمة */}
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-lg">الأدوية والعلاجات</CardTitle>
+                  <CardTitle className="text-lg">الأدوية المستخدمة</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label>اسم الدواء</Label>
-                      <Input
-                        value={newTreatment.medicine}
-                        onChange={(e) => setNewTreatment({ ...newTreatment, medicine: e.target.value })}
-                        placeholder="مثال: أموكسيسيلين"
-                      />
+                  {/* عرض الأدوية الموجودة */}
+                  {formData.medicationsUsed && formData.medicationsUsed.length > 0 && (
+                    <div className="space-y-3">
+                      <Label className="text-sm font-medium text-gray-700">الأدوية المستخدمة ({formData.medicationsUsed.length}):</Label>
+                      <div className="space-y-2">
+                        {formData.medicationsUsed.map((medication, index) => (
+                          <div key={index} className="flex items-center justify-between p-3 border border-gray-200 rounded-md bg-gray-50 hover:bg-gray-100 transition-colors">
+                            <div className="flex-1 grid grid-cols-1 sm:grid-cols-4 gap-2 text-sm">
+                              <div className="font-medium text-gray-900">{medication.name}</div>
+                              <div className="text-gray-600">{medication.dosage}</div>
+                              <div className="text-gray-600">{medication.quantity} وحدة</div>
+                              <div className="text-gray-600">
+                                {medication.route === 'Intramuscular' ? 'عضلي' : 
+                                 medication.route === 'Subcutaneous' ? 'تحت الجلد' :
+                                 medication.route === 'Intravenous' ? 'وريدي' :
+                                 medication.route === 'Oral' ? 'فموي' : medication.route}
+                              </div>
+                            </div>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                const updatedMedications = formData.medicationsUsed.filter((_, i) => i !== index);
+                                setFormData({ ...formData, medicationsUsed: updatedMedications });
+                              }}
+                              className="text-red-500 hover:text-red-700 hover:bg-red-50 h-8 w-8 p-0 ml-2"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
                     </div>
+                  )}
+                  
+                  <Separator />
+                  
+                  {/* إضافة دواء جديد */}
+                  <div className="space-y-4">
+                    <Label className="text-base font-semibold">إضافة دواء جديد:</Label>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label>اسم الدواء</Label>
+                        <Input
+                          value={newTreatment.medicine}
+                          onChange={(e) => setNewTreatment({ ...newTreatment, medicine: e.target.value })}
+                          placeholder="مثال: أموكسيسيلين"
+                        />
+                      </div>
 
-                    <div className="space-y-2">
-                      <Label>الجرعة</Label>
-                      <Input
-                        value={newTreatment.dosage}
-                        onChange={(e) => setNewTreatment({ ...newTreatment, dosage: e.target.value })}
-                        placeholder="مثال: 10 مل مرتين يومياً"
-                      />
-                    </div>
+                      <div className="space-y-2">
+                        <Label>الجرعة</Label>
+                        <Input
+                          value={newTreatment.dosage}
+                          onChange={(e) => setNewTreatment({ ...newTreatment, dosage: e.target.value })}
+                          placeholder="مثال: 10 مل مرتين يومياً"
+                        />
+                      </div>
 
-                    <div className="space-y-2">
-                      <Label>المدة</Label>
-                      <Input
-                        value={newTreatment.duration}
-                        onChange={(e) => setNewTreatment({ ...newTreatment, duration: e.target.value })}
-                        placeholder="مثال: 7 أيام"
-                      />
-                    </div>
+                      <div className="space-y-2">
+                        <Label>الكمية</Label>
+                        <Input
+                          type="number"
+                          value={newTreatment.notes}
+                          onChange={(e) => setNewTreatment({ ...newTreatment, notes: e.target.value })}
+                          placeholder="5"
+                        />
+                      </div>
 
-                    <div className="space-y-2">
-                      <Label>ملاحظات</Label>
-                      <Input
-                        value={newTreatment.notes}
-                        onChange={(e) => setNewTreatment({ ...newTreatment, notes: e.target.value })}
-                        placeholder="ملاحظات إضافية"
-                      />
+                      <div className="space-y-2">
+                        <Label>طريقة الإعطاء</Label>
+                        <Select
+                          value={newTreatment.duration}
+                          onValueChange={(value) => setNewTreatment({ ...newTreatment, duration: value })}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="اختر طريقة الإعطاء" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="Intramuscular">عضلي</SelectItem>
+                            <SelectItem value="Subcutaneous">تحت الجلد</SelectItem>
+                            <SelectItem value="Intravenous">وريدي</SelectItem>
+                            <SelectItem value="Oral">فموي</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
                     </div>
                   </div>
 
                   <Button
                     type="button"
-                    onClick={addTreatment}
+                    onClick={() => {
+                      if (newTreatment.medicine && newTreatment.dosage && newTreatment.notes && newTreatment.duration) {
+                        const newMedication = {
+                          name: newTreatment.medicine,
+                          dosage: newTreatment.dosage,
+                          quantity: parseInt(newTreatment.notes) || 1,
+                          route: newTreatment.duration
+                        };
+                        setFormData({
+                          ...formData,
+                          medicationsUsed: [...formData.medicationsUsed, newMedication]
+                        });
+                        setNewTreatment({ id: "", medicine: "", dosage: "", duration: "", notes: "" });
+                      }
+                    }}
                     variant="secondary"
                     className="w-full"
+                    disabled={!newTreatment.medicine || !newTreatment.dosage || !newTreatment.notes || !newTreatment.duration}
                   >
                     <Plus className="ml-2 h-4 w-4" />
                     إضافة دواء
@@ -903,6 +996,7 @@ export function MobileClinicDialog({ open, onOpenChange, clinic, onSave }: Mobil
                 </CardContent>
               </Card>
 
+              {/* ملاحظات العلاج */}
               <div className="space-y-2">
                 <Label>ملاحظات العلاج</Label>
                 <Textarea
@@ -915,52 +1009,94 @@ export function MobileClinicDialog({ open, onOpenChange, clinic, onSave }: Mobil
             </TabsContent>
 
             <TabsContent value="followup" className="space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>حالة الطلب</Label>
-                  <Select
-                    value={formData.request.situation}
-                    onValueChange={(value: "Open" | "Closed" | "Pending") => 
-                      setFormData({
-                        ...formData,
-                        request: { ...formData.request, situation: value }
-                      })
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Open">مفتوح</SelectItem>
-                      <SelectItem value="Closed">مغلق</SelectItem>
-                      <SelectItem value="Pending">معلق</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <ModernDatePicker
-                    label="تاريخ المتابعة"
-                    placeholder="اختر تاريخ المتابعة"
-                    value={formData.followUpDate}
-                    onChange={(date) => setFormData({ ...formData, followUpDate: date || undefined })}
-                    variant="modern"
-                    size="md"
-                    minDate={new Date()}
-                  />
-                </div>
-              </div>
-
+              {/* معلومات الطلب */}
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-lg">الوصفات الطبية</CardTitle>
+                  <CardTitle className="text-lg">معلومات الطلب</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div className="space-y-2">
+                      <Label>تاريخ الطلب</Label>
+                      <Input
+                        type="date"
+                        value={formData.request.date}
+                        onChange={(e) => setFormData({
+                          ...formData,
+                          request: { ...formData.request, date: e.target.value }
+                        })}
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>حالة الطلب</Label>
+                      <Select
+                        value={formData.request.situation}
+                        onValueChange={(value: "Open" | "Closed" | "Pending") => 
+                          setFormData({
+                            ...formData,
+                            request: { ...formData.request, situation: value }
+                          })
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Open">مفتوح</SelectItem>
+                          <SelectItem value="Closed">مغلق</SelectItem>
+                          <SelectItem value="Pending">معلق</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>تاريخ الإنجاز</Label>
+                      <Input
+                        type="date"
+                        value={formData.request.fulfillingDate}
+                        onChange={(e) => setFormData({
+                          ...formData,
+                          request: { ...formData.request, fulfillingDate: e.target.value }
+                        })}
+                        disabled={formData.request.situation !== "Closed"}
+                      />
+                    </div>
+                  </div>
+
+                  {/* ملخص حالة الطلب */}
+                  <div className="p-3 border border-gray-200 rounded-md bg-gray-50">
+                    <div className="flex items-center justify-between text-sm">
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium text-gray-700">حالة الطلب:</span>
+                        <span className={
+                          formData.request.situation === "Open" ? "text-green-700 font-medium" :
+                          formData.request.situation === "Closed" ? "text-gray-700 font-medium" :
+                          "text-yellow-700 font-medium"
+                        }>
+                          {formData.request.situation === "Open" ? "مفتوح" :
+                           formData.request.situation === "Closed" ? "مغلق" : "معلق"}
+                        </span>
+                      </div>
+                      {formData.request.fulfillingDate && (
+                        <span className="text-gray-600">أُنجز في: {formData.request.fulfillingDate}</span>
+                      )}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* الوصفات الطبية */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">الوصفات والتوصيات</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="flex gap-2">
                     <Input
                       value={newPrescription}
                       onChange={(e) => setNewPrescription(e.target.value)}
-                      placeholder="أدخل وصفة طبية"
+                      placeholder="أدخل وصفة طبية أو توصية"
                       onKeyPress={(e) => {
                         if (e.key === 'Enter') {
                           e.preventDefault();
@@ -972,29 +1108,34 @@ export function MobileClinicDialog({ open, onOpenChange, clinic, onSave }: Mobil
                       type="button"
                       onClick={addPrescription}
                       variant="secondary"
+                      disabled={!newPrescription.trim()}
                     >
                       <Plus className="h-4 w-4" />
                     </Button>
                   </div>
 
-                  <div className="space-y-2">
-                    {formData.prescriptions.map((prescription, index) => (
-                      <div
-                        key={index}
-                        className="flex items-center justify-between p-2 rounded-lg bg-muted/50"
-                      >
-                        <span className="text-sm">{prescription}</span>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => removePrescription(index)}
+                  {formData.prescriptions.length > 0 && (
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium text-gray-700">الوصفات المضافة ({formData.prescriptions.length}):</Label>
+                      {formData.prescriptions.map((prescription, index) => (
+                        <div
+                          key={index}
+                          className="flex items-center justify-between p-3 border border-gray-200 rounded-md bg-gray-50 hover:bg-gray-100 transition-colors"
                         >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    ))}
-                  </div>
+                          <span className="text-sm text-gray-900">{prescription}</span>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => removePrescription(index)}
+                            className="text-red-500 hover:text-red-700 hover:bg-red-50 h-8 w-8 p-0 ml-2"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </CardContent>
               </Card>
 

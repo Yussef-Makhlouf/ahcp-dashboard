@@ -214,7 +214,44 @@ export function ParasiteControlDialog({
           category: item.insecticide?.category || 'Pour-on',
         },
         animalBarnSizeSqM: item.animalBarnSizeSqM || 0,
-        breedingSites: item.breedingSites || 'غير محدد',
+        breedingSites: (() => {
+          if (typeof item.breedingSites === 'string') {
+            return item.breedingSites;
+          } else if (Array.isArray(item.breedingSites)) {
+            // If it's an array, extract meaningful information
+            const sites = (item.breedingSites as any[]).map((site: any) => {
+              if (typeof site === 'string' && site.trim()) return site;
+              
+              const parts = [];
+              if (site.type && site.type !== 'Not Available' && site.type.trim()) {
+                parts.push(site.type);
+              }
+              if (site.area && site.area > 0) {
+                parts.push(`المساحة: ${site.area} م²`);
+              }
+              if (site.treatment && site.treatment.trim()) {
+                parts.push(`المعالجة: ${site.treatment}`);
+              }
+              
+              return parts.length > 0 ? parts.join(' - ') : null;
+            }).filter(Boolean);
+            
+            return sites.length > 0 ? sites.join(' | ') : 'غير محدد';
+          } else if (typeof item.breedingSites === 'object' && item.breedingSites !== null) {
+            // If it's an object, try to extract meaningful text
+            const obj = item.breedingSites as any;
+            if (obj.description) return obj.description;
+            if (obj.name) return obj.name;
+            if (obj.text) return obj.text;
+            if (obj.type && obj.type !== 'Not Available') return obj.type;
+            if (obj.area && obj.area > 0) return `منطقة: ${obj.area} م²`;
+            if (obj.treatment && obj.treatment.trim()) return `معالجة: ${obj.treatment}`;
+            // Otherwise convert to JSON string
+            return JSON.stringify(item.breedingSites);
+          } else {
+            return 'غير محدد';
+          }
+        })(),
         parasiteControlVolume: item.parasiteControlVolume || 0,
         parasiteControlStatus: item.parasiteControlStatus || 'مكتمل',
         herdHealthStatus: item.herdHealthStatus || 'Healthy',
@@ -228,6 +265,11 @@ export function ParasiteControlDialog({
       };
       
       console.log('📝 Loading form data for edit:', formData);
+      console.log('🔍 breedingSites data type and value:', {
+        type: typeof item.breedingSites,
+        value: item.breedingSites,
+        processed: formData.breedingSites
+      });
       form.reset(formData);
     } else {
       // Reset to default values for new record
@@ -815,7 +857,7 @@ export function ParasiteControlDialog({
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>نوع المبيد</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <Select onValueChange={field.onChange} value={field.value}>
                           <FormControl>
                             <SelectTrigger>
                               <SelectValue placeholder="اختر نوع المبيد" />
@@ -825,6 +867,9 @@ export function ParasiteControlDialog({
                             <SelectItem value="Cyperdip 10%">Cyperdip 10%</SelectItem>
                             <SelectItem value="Ultra-Pour 1%">Ultra-Pour 1%</SelectItem>
                             <SelectItem value="Deltamethrin 5%">Deltamethrin 5%</SelectItem>
+                            <SelectItem value="Ivermectin">Ivermectin</SelectItem>
+                            <SelectItem value="Fipronil">Fipronil</SelectItem>
+                            <SelectItem value="Permethrin">Permethrin</SelectItem>
                           </SelectContent>
                         </Select>
                         <FormMessage />
@@ -837,7 +882,7 @@ export function ParasiteControlDialog({
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>طريقة الرش</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <Select onValueChange={field.onChange} value={field.value}>
                           <FormControl>
                             <SelectTrigger>
                               <SelectValue placeholder="اختر طريقة الرش" />
@@ -878,7 +923,7 @@ export function ParasiteControlDialog({
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>فئة المبيد</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <Select onValueChange={field.onChange} value={field.value}>
                           <FormControl>
                             <SelectTrigger>
                               <SelectValue placeholder="اختر فئة المبيد" />
@@ -900,7 +945,7 @@ export function ParasiteControlDialog({
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>حالة الرش</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <Select onValueChange={field.onChange} value={field.value}>
                           <FormControl>
                             <SelectTrigger>
                               <SelectValue placeholder="اختر حالة الرش" />
@@ -923,7 +968,7 @@ export function ParasiteControlDialog({
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>الحالة الصحية للقطيع</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <Select onValueChange={field.onChange} value={field.value}>
                           <FormControl>
                             <SelectTrigger>
                               <SelectValue placeholder="اختر الحالة الصحية" />
@@ -947,7 +992,7 @@ export function ParasiteControlDialog({
                         <FormLabel>الامتثال للتعليمات</FormLabel>
                         <Select 
                           onValueChange={(value) => field.onChange(value === "true")} 
-                          defaultValue={field.value ? "true" : "false"}
+                          value={field.value ? "true" : "false"}
                         >
                           <FormControl>
                             <SelectTrigger>
@@ -995,6 +1040,8 @@ export function ParasiteControlDialog({
                           <Input
                             placeholder="مواقع تكاثر الطفيليات"
                             {...field}
+                            value={typeof field.value === 'string' ? field.value : ''}
+                            onChange={(e) => field.onChange(e.target.value)}
                           />
                         </FormControl>
                         <FormMessage />
@@ -1027,7 +1074,7 @@ export function ParasiteControlDialog({
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>حالة مكافحة الطفيليات</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <Select onValueChange={field.onChange} value={field.value}>
                           <FormControl>
                             <SelectTrigger>
                               <SelectValue placeholder="اختر حالة مكافحة الطفيليات" />
@@ -1095,7 +1142,7 @@ export function ParasiteControlDialog({
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>حالة الطلب</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <Select onValueChange={field.onChange} value={field.value}>
                           <FormControl>
                             <SelectTrigger>
                               <SelectValue placeholder="اختر حالة الطلب" />

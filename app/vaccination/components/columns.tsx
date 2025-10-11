@@ -9,7 +9,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Edit, MoreHorizontal, Trash2, Eye } from "lucide-react";
+import { Edit, MoreHorizontal, Trash2, Eye, MapPin, Phone, Calendar, User } from "lucide-react";
 import { usePermissions } from "@/lib/hooks/usePermissions";
 import type { Vaccination } from "@/types";
 
@@ -26,240 +26,284 @@ export function getColumns({
 }: GetColumnsProps): ColumnDef<Vaccination>[] {
   const { checkPermission } = usePermissions();
   return [
+    // Serial No
     {
       accessorKey: "serialNo",
-      header: "الرقم المسلسل",
+      header: "Serial No",
       cell: ({ row }) => (
         <div className="font-medium">#{row.getValue("serialNo")}</div>
       ),
     },
+    // Date
     {
       accessorKey: "date",
-      header: "التاريخ",
+      header: "Date",
       cell: ({ row }) => {
         const date = new Date(row.getValue("date"));
-        return date.toLocaleDateString("ar-EG");
+        return date.toLocaleDateString("en-US");
       },
     },
+    // Name, ID, Birth Date, Phone
     {
-      accessorKey: "client.name",
-      header: "اسم المالك",
+      id: "clientInfo",
+      header: "Client Info",
       cell: ({ row }) => {
         const client = row.original.client;
-        const owner = row.original.owner; // Legacy support
+        const name = client?.name || '-';
+        const nationalId = client?.nationalId || '';
+        const phone = client?.phone || '';
+        const birthDate = client?.birthDate ? new Date(client.birthDate).toLocaleDateString("en-US") : '';
         
-        if (client) {
-          return (
-            <div>
-              <div className="font-medium">{client.name}</div>
-              <div className="text-xs text-gray-500">
-                {client.nationalId && `هوية: ${client.nationalId}`}
-              </div>
-              <div className="text-xs text-gray-500">
-                {client.phone && `هاتف: ${client.phone}`}
-              </div>
-            </div>
-          );
-        } else if (owner) {
-          return (
-            <div>
-              <div className="font-medium">{owner.name}</div>
-              <div className="text-xs text-gray-500">
-                {owner.id && `هوية: ${owner.id}`}
-              </div>
-              <div className="text-xs text-gray-500">
-                {owner.phone && `هاتف: ${owner.phone}`}
-              </div>
-            </div>
-          );
-        }
-        
-        return <div className="text-gray-500">غير محدد</div>;
-      },
-    },
-    {
-      accessorKey: "vaccineType",
-      header: "نوع المصل",
-      cell: ({ row }) => (
-        <Badge variant="secondary">{row.getValue("vaccineType")}</Badge>
-      ),
-    },
-    {
-      accessorKey: "vaccineCategory",
-      header: "فئة المصل",
-      cell: ({ row }) => {
-        const category = row.getValue("vaccineCategory") as string;
-        const categoryColors = {
-          "Preventive": "bg-blue-500 text-white border-blue-600",
-          "Emergency": "bg-red-500 text-white border-red-600",
-        };
-        const labels = {
-          "Preventive": "وقائي",
-          "Emergency": "طوارئ",
-        };
         return (
-          <Badge className={categoryColors[category as keyof typeof categoryColors] || "bg-gray-500 text-white border-gray-600"}>
-            {labels[category as keyof typeof labels] || category}
-          </Badge>
+          <div className="space-y-1 min-w-[200px]">
+            <div className="font-medium flex items-center gap-1">
+              <User className="h-3 w-3" />
+              {name}
+            </div>
+            {nationalId && (
+              <div className="text-xs text-gray-500">ID: {nationalId}</div>
+            )}
+            {birthDate && (
+              <div className="text-xs text-gray-500 flex items-center gap-1">
+                <Calendar className="h-3 w-3" />
+                DOB: {birthDate}
+              </div>
+            )}
+            {phone && (
+              <div className="text-xs text-gray-500 flex items-center gap-1">
+                <Phone className="h-3 w-3" />
+                {phone}
+              </div>
+            )}
+          </div>
         );
       },
     },
+    // Location
     {
       accessorKey: "farmLocation",
-      header: "موقع المزرعة",
+      header: "Location",
+      cell: ({ row }) => (
+        <div className="text-sm">{row.getValue("farmLocation")}</div>
+      ),
     },
+    // N Coordinate, E Coordinate
     {
-      id: "herdCounts",
-      header: "أعداد القطيع",
+      id: "coordinates",
+      header: "N, E Coordinates",
       cell: ({ row }) => {
-        const herdCounts = row.original.herdCounts;
-        const herd = row.original.herd; // Legacy support
-        
-        if (herdCounts) {
-          const totalAnimals = (herdCounts.sheep?.total || 0) + 
-                             (herdCounts.goats?.total || 0) + 
-                             (herdCounts.cattle?.total || 0) + 
-                             (herdCounts.camel?.total || 0) + 
-                             (herdCounts.horse?.total || 0);
-          
-          const totalVaccinated = (herdCounts.sheep?.vaccinated || 0) + 
-                                 (herdCounts.goats?.vaccinated || 0) + 
-                                 (herdCounts.cattle?.vaccinated || 0) + 
-                                 (herdCounts.camel?.vaccinated || 0) + 
-                                 (herdCounts.horse?.vaccinated || 0);
-          
-          return (
-            <div className="text-sm">
-              <div>الإجمالي: {totalAnimals}</div>
-              <div className="text-green-600">المحصن: {totalVaccinated}</div>
-            </div>
-          );
-        } else if (herd) {
-          // Legacy support
-          const totalAnimals = (herd.sheep?.total || 0) + 
-                             (herd.goats?.total || 0) + 
-                             (herd.cattle?.total || 0) + 
-                             (herd.camel?.total || 0);
-          return <div className="text-sm">الإجمالي: {totalAnimals}</div>;
+        const coords = row.original.coordinates;
+        if (!coords?.latitude || !coords?.longitude) {
+          return <span className="text-gray-400">-</span>;
         }
-        
-        return <div className="text-sm text-gray-500">غير محدد</div>;
+        return (
+          <div className="text-xs space-y-1">
+            <div className="flex items-center gap-1">
+              <MapPin className="h-3 w-3" />
+              <span>N: {coords.latitude.toFixed(4)}</span>
+            </div>
+            <div>E: {coords.longitude.toFixed(4)}</div>
+          </div>
+        );
       },
     },
+    // Supervisor
+    {
+      accessorKey: "supervisor",
+      header: "Supervisor",
+      cell: ({ row }) => (
+        <div className="text-sm">{row.getValue("supervisor")}</div>
+      ),
+    },
+    // Team
     {
       accessorKey: "team",
-      header: "الفريق",
+      header: "Team",
+      cell: ({ row }) => (
+        <div className="text-sm">{row.getValue("team")}</div>
+      ),
     },
+    // Vehicle No
     {
-      accessorKey: "herdHealth",
-      header: "حالة القطيع",
+      accessorKey: "vehicleNo",
+      header: "Vehicle No.",
+      cell: ({ row }) => (
+        <div className="text-sm">{row.getValue("vehicleNo")}</div>
+      ),
+    },
+    // Animal Counts - Sheep
+    {
+      id: "sheep",
+      header: "Sheep",
       cell: ({ row }) => {
-        const status = row.getValue("herdHealth") as string;
-        const statusColors = {
-          "Healthy": "bg-green-500 text-white border-green-600",
-          "Sick": "bg-red-500 text-white border-red-600",
-          "Under Treatment": "bg-yellow-500 text-white border-yellow-600",
-        };
-
+        const sheep = row.original.herdCounts?.sheep;
+        if (!sheep) return <span className="text-gray-400">-</span>;
         return (
-          <Badge className={statusColors[status as keyof typeof statusColors] || "bg-gray-500 text-white border-gray-600"}>
-            {status === "Healthy" && "صحي"}
-            {status === "Sick" && "مريض"}
-            {status === "Under Treatment" && "قيد العلاج"}
-          </Badge>
+          <div className="text-xs space-y-1">
+            <div>Total: {sheep.total || 0}</div>
+            <div>Female: {sheep.female || 0}</div>
+            <div className="text-green-600">Vaccinated: {sheep.vaccinated || 0}</div>
+          </div>
         );
       },
     },
+    // Animal Counts - Goats
     {
-      accessorKey: "animalsHandling",
-      header: "معاملة الحيوانات",
+      id: "goats",
+      header: "Goats",
       cell: ({ row }) => {
-        const handling = row.getValue("animalsHandling") as string;
-        const handlingColors = {
-          "Easy": "bg-green-500 text-white border-green-600",
-          "Difficult": "bg-red-500 text-white border-red-600",
-        };
-        const labels = {
-          "Easy": "سهلة",
-          "Difficult": "صعبة",
-        };
+        const goats = row.original.herdCounts?.goats;
+        if (!goats) return <span className="text-gray-400">-</span>;
         return (
-          <Badge className={handlingColors[handling as keyof typeof handlingColors] || "bg-gray-500 text-white border-gray-600"}>
-            {labels[handling as keyof typeof labels] || handling}
-          </Badge>
+          <div className="text-xs space-y-1">
+            <div>Total: {goats.total || 0}</div>
+            <div>Female: {goats.female || 0}</div>
+            <div className="text-green-600">Vaccinated: {goats.vaccinated || 0}</div>
+          </div>
         );
       },
     },
+    // Animal Counts - Camel
     {
-      accessorKey: "labours",
-      header: "حالة العمال",
+      id: "camel",
+      header: "Camel",
       cell: ({ row }) => {
-        const labours = row.getValue("labours") as string;
-        const laboursColors = {
-          "Available": "bg-green-500 text-white border-green-600",
-          "Not Available": "bg-red-500 text-white border-red-600",
-        };
-        const labels = {
-          "Available": "متوفر",
-          "Not Available": "غير متوفر",
-        };
+        const camel = row.original.herdCounts?.camel;
+        if (!camel) return <span className="text-gray-400">-</span>;
         return (
-          <Badge className={laboursColors[labours as keyof typeof laboursColors] || "bg-gray-500 text-white border-gray-600"}>
-            {labels[labours as keyof typeof labels] || labours}
-          </Badge>
+          <div className="text-xs space-y-1">
+            <div>Total: {camel.total || 0}</div>
+            <div>Female: {camel.female || 0}</div>
+            <div className="text-green-600">Vaccinated: {camel.vaccinated || 0}</div>
+          </div>
         );
       },
     },
+    // Animal Counts - Cattle
     {
-      accessorKey: "reachableLocation",
-      header: "سهولة الوصول",
+      id: "cattle",
+      header: "Cattle",
       cell: ({ row }) => {
-        const location = row.getValue("reachableLocation") as string;
-        const locationColors = {
-          "Easy": "bg-green-500 text-white border-green-600",
-          "Hard to reach": "bg-red-500 text-white border-red-600",
-        };
-        const labels = {
-          "Easy": "سهل",
-          "Hard to reach": "صعب",
-        };
+        const cattle = row.original.herdCounts?.cattle;
+        if (!cattle) return <span className="text-gray-400">-</span>;
         return (
-          <Badge className={locationColors[location as keyof typeof locationColors] || "bg-gray-500 text-white border-gray-600"}>
-            {labels[location as keyof typeof labels] || location}
-          </Badge>
+          <div className="text-xs space-y-1">
+            <div>Total: {cattle.total || 0}</div>
+            <div>Female: {cattle.female || 0}</div>
+            <div className="text-green-600">Vaccinated: {cattle.vaccinated || 0}</div>
+          </div>
         );
       },
     },
+    // Total Herd Summary
     {
-      id: "requestInfo",
-      header: "معلومات الطلب",
+      id: "totals",
+      header: "Herd Summary",
+      cell: ({ row }) => {
+        const herdCounts = row.original.herdCounts;
+        if (!herdCounts) return <span className="text-gray-400">-</span>;
+        
+        const totalHerd = (herdCounts.sheep?.total || 0) + (herdCounts.goats?.total || 0) + 
+                         (herdCounts.camel?.total || 0) + (herdCounts.cattle?.total || 0);
+        const totalFemales = (herdCounts.sheep?.female || 0) + (herdCounts.goats?.female || 0) + 
+                           (herdCounts.camel?.female || 0) + (herdCounts.cattle?.female || 0);
+        const totalVaccinated = (herdCounts.sheep?.vaccinated || 0) + (herdCounts.goats?.vaccinated || 0) + 
+                               (herdCounts.camel?.vaccinated || 0) + (herdCounts.cattle?.vaccinated || 0);
+        
+        return (
+          <div className="text-xs space-y-1">
+            <Badge variant="secondary">Herd: {totalHerd}</Badge>
+            <div>Females: {totalFemales}</div>
+            <Badge variant="outline" className="text-green-600 border-green-600">
+              Vaccinated: {totalVaccinated}
+            </Badge>
+          </div>
+        );
+      },
+    },
+    // Herd Health, Animals Handling, Labours, Reachable Location
+    {
+      id: "conditions",
+      header: "Conditions",
+      cell: ({ row }) => {
+        const herdHealth = row.original.herdHealth;
+        const animalsHandling = row.original.animalsHandling;
+        const labours = row.original.labours;
+        const reachableLocation = row.original.reachableLocation;
+        
+        return (
+          <div className="text-xs space-y-1">
+            <div>Health: {herdHealth || '-'}</div>
+            <div>Handling: {animalsHandling || '-'}</div>
+            <div>Labours: {labours || '-'}</div>
+            <div>Location: {reachableLocation || '-'}</div>
+          </div>
+        );
+      },
+    },
+    // Request Info
+    {
+      id: "request",
+      header: "Request",
       cell: ({ row }) => {
         const request = row.original.request;
-        const status = request?.situation;
+        if (!request) return <span className="text-gray-400">-</span>;
+        
+        const requestDate = request.date ? new Date(request.date).toLocaleDateString("en-US") : '';
+        const fulfillingDate = request.fulfillingDate ? new Date(request.fulfillingDate).toLocaleDateString("en-US") : '';
+        
         const statusColors = {
-          "Open": "bg-blue-500 text-white border-blue-600",
-          "Closed": "bg-green-500 text-white border-green-600",
-          "Pending": "bg-yellow-500 text-white border-yellow-600",
+          "Open": "bg-blue-500 text-white",
+          "Closed": "bg-green-500 text-white",
+          "Pending": "bg-yellow-500 text-white",
         };
-
+        
         return (
-          <div className="text-sm">
-            <Badge className={statusColors[status as keyof typeof statusColors] || "bg-gray-500 text-white border-gray-600"}>
-              {status === "Open" && "مفتوح"}
-              {status === "Closed" && "مغلق"}
-              {status === "Pending" && "معلق"}
-              {!status && "غير محدد"}
+          <div className="text-xs space-y-1">
+            <div>Date: {requestDate}</div>
+            <Badge className={statusColors[request.situation as keyof typeof statusColors] || "bg-gray-500 text-white"}>
+              {request.situation}
             </Badge>
-            {request?.date && (
-              <div className="text-xs text-gray-500 mt-1">
-                طلب: {new Date(request.date).toLocaleDateString("ar-EG")}
-              </div>
+            {fulfillingDate && (
+              <div>Fulfilled: {fulfillingDate}</div>
             )}
-            {request?.fulfillingDate && (
-              <div className="text-xs text-gray-500">
-                إنجاز: {new Date(request.fulfillingDate).toLocaleDateString("ar-EG")}
-              </div>
-            )}
+          </div>
+        );
+      },
+    },
+    // Vaccine & Category
+    {
+      id: "vaccine",
+      header: "Vaccine",
+      cell: ({ row }) => {
+        const vaccineType = row.original.vaccineType;
+        const vaccineCategory = row.original.vaccineCategory;
+        
+        const categoryColors = {
+          "Preventive": "bg-blue-500 text-white",
+          "Emergency": "bg-red-500 text-white",
+        };
+        
+        return (
+          <div className="text-xs space-y-1">
+            <div className="font-medium">{vaccineType || '-'}</div>
+            <Badge className={categoryColors[vaccineCategory as keyof typeof categoryColors] || "bg-gray-500 text-white"}>
+              {vaccineCategory}
+            </Badge>
+          </div>
+        );
+      },
+    },
+    // Remarks
+    {
+      accessorKey: "remarks",
+      header: "Remarks",
+      cell: ({ row }) => {
+        const remarks = row.getValue("remarks") as string;
+        if (!remarks) return <span className="text-gray-400">-</span>;
+        return (
+          <div className="text-xs max-w-[150px] truncate" title={remarks}>
+            {remarks}
           </div>
         );
       },
@@ -287,13 +331,13 @@ export function getColumns({
             <DropdownMenuContent align="end">
               {onView && (
                 <DropdownMenuItem onClick={() => onView(row.original)}>
-                  <Eye className="ml-2 h-4 w-4" />
+                  <Eye className="mr-2 h-4 w-4" />
                   عرض
                 </DropdownMenuItem>
               )}
               {canEdit && (
                 <DropdownMenuItem onClick={() => onEdit(row.original)}>
-                  <Edit className="ml-2 h-4 w-4" />
+                  <Edit className="mr-2 h-4 w-4" />
                   تعديل
                 </DropdownMenuItem>
               )}
@@ -302,7 +346,7 @@ export function getColumns({
                   onClick={() => onDelete(row.original)}
                   className="text-red-600"
                 >
-                  <Trash2 className="ml-2 h-4 w-4" />
+                  <Trash2 className="mr-2 h-4 w-4" />
                   حذف
                 </DropdownMenuItem>
               )}

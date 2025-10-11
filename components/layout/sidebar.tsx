@@ -57,11 +57,11 @@ const menuItems = [
     href: "/clients",
     icon: Users,
   },
-  {
-    title: "التقارير",
-    href: "/reports",
-    icon: FileText,
-  },
+  // {
+  //   title: "التقارير",
+  //   href: "/reports",
+  //   icon: FileText,
+  // },
   {
     title: "الملف الشخصي",
     href: "/profile",

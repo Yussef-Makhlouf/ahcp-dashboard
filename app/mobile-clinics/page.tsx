@@ -247,6 +247,7 @@ export default function MobileClinicsPage() {
 
   const data = mobileClinicsData?.data || [];
 
+
   const handleExport = async (type: "csv" | "pdf") => {
     if (type === "csv") {
       try {
@@ -336,7 +337,7 @@ export default function MobileClinicsPage() {
               maxFileSize={10}
             />
             {checkPermission({ module: 'mobile-clinics', action: 'create' }) && (
-              <Button onClick={handleAdd}>
+              <Button onClick={handleAdd} className="h-9 px-3 " >
                 <Plus className="h-4 w-4 mr-2" />
                 إضافة زيارة جديدة
               </Button>

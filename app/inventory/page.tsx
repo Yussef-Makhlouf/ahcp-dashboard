@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { MainLayout } from "@/components/layout/main-layout";
 import { DataTable } from "@/components/data-table/data-table";
+import { ImportExportManager } from "@/components/import-export/import-export-manager";
 import { Button } from "@/components/ui/button";
 import { 
   Plus, 
@@ -12,7 +13,6 @@ import {
   ShoppingCart,
   Archive,
   BarChart3,
-  Filter,
   Download,
   Upload
 } from "lucide-react";
@@ -402,10 +402,15 @@ export default function InventoryPage() {
             </p>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" size="sm">
-              <Upload className="ml-2 h-4 w-4" />
-              استيراد
-            </Button>
+            <ImportExportManager
+              exportEndpoint="/inventory/export"
+              importEndpoint="/inventory/import"
+              templateEndpoint="/inventory/template"
+              title="المخزون"
+              queryKey="inventory"
+              acceptedFormats={[".csv", ".xlsx"]}
+              maxFileSize={10}
+            />
             <Button variant="outline" size="sm">
               <ShoppingCart className="ml-2 h-4 w-4" />
               طلب شراء

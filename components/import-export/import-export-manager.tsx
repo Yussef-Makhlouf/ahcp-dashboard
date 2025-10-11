@@ -259,50 +259,68 @@ export function ImportExportManager({
       {/* Export Button */}
       <Dialog open={exportDialogOpen} onOpenChange={setExportDialogOpen}>
         <DialogTrigger asChild>
-          <Button variant="outline">
+          <Button variant="outline" size="sm" className="h-9 px-3">
             <Download className="h-4 w-4 mr-2" />
             تصدير
           </Button>
         </DialogTrigger>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>تصدير {title}</DialogTitle>
+        <DialogContent className="w-[95vw] max-w-md mx-auto">
+          <DialogHeader className="text-center">
+            <DialogTitle className="text-lg font-semibold">تصدير {title}</DialogTitle>
           </DialogHeader>
-          
-          <div className="space-y-4">
-            <div>
-              <Label>اختر صيغة التصدير</Label>
-              <div className="grid grid-cols-2 gap-2 mt-2">
-                {exportFormats.map((format) => (
+          <div className="space-y-4 p-4">
+            <p className="text-sm text-muted-foreground text-center">
+              اختر تنسيق التصدير المطلوب
+            </p>
+            
+            <div className="grid gap-3">
+              {exportFormats ? (
+                exportFormats.map((format) => (
                   <Button
                     key={format.value}
-                    variant={exportFormat === format.value ? "default" : "outline"}
-                    onClick={() => setExportFormat(format.value)}
-                    className="justify-start"
+                    onClick={() => exportMutation.mutate(format.value)}
+                    disabled={exportMutation.isPending}
+                    variant="outline"
+                    className="justify-center h-12 text-base font-medium hover:bg-primary hover:text-primary-foreground transition-colors"
                   >
-                    {format.icon}
-                    <span className="mr-2">{format.label}</span>
+                    {format.icon && <span className="ml-2 text-lg">{format.icon}</span>}
+                    <FileText className="ml-2 h-4 w-4" />
+                    تصدير كملف {format.label}
                   </Button>
-                ))}
-              </div>
+                ))
+              ) : (
+                <>
+                  <Button
+                    onClick={() => exportMutation.mutate('csv')}
+                    disabled={exportMutation.isPending}
+                    variant="outline"
+                    className="justify-center h-12 text-base font-medium hover:bg-primary hover:text-primary-foreground transition-colors"
+                  >
+                    <span className="ml-2 text-lg">📄</span>
+                    <FileText className="ml-2 h-4 w-4" />
+                    تصدير كملف CSV
+                  </Button>
+                  
+                  <Button
+                    onClick={() => exportMutation.mutate('excel')}
+                    disabled={exportMutation.isPending}
+                    variant="outline"
+                    className="justify-center h-12 text-base font-medium hover:bg-primary hover:text-primary-foreground transition-colors"
+                  >
+                    <span className="ml-2 text-lg">📊</span>
+                    <FileSpreadsheet className="ml-2 h-4 w-4" />
+                    تصدير كملف Excel
+                  </Button>
+                </>
+              )}
             </div>
             
-            <div className="flex gap-2">
-              <Button
-                onClick={() => handleExport(exportFormat)}
-                disabled={exportMutation.isPending}
-                className="flex-1"
-              >
-                <Download className="h-4 w-4 mr-2" />
-                {exportMutation.isPending ? 'جاري التصدير...' : 'تصدير'}
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => setExportDialogOpen(false)}
-              >
-                إلغاء
-              </Button>
-            </div>
+            {exportMutation.isPending && (
+              <div className="flex items-center justify-center py-4">
+                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
+                <span className="mr-2 text-sm text-muted-foreground">جاري التصدير...</span>
+              </div>
+            )}
           </div>
         </DialogContent>
       </Dialog>
@@ -310,7 +328,7 @@ export function ImportExportManager({
       {/* Import Button */}
       <Dialog open={importDialogOpen} onOpenChange={setImportDialogOpen}>
         <DialogTrigger asChild>
-          <Button variant="outline">
+          <Button variant="outline" size="sm" className="h-9 px-3">
             <Upload className="h-4 w-4 mr-2" />
             استيراد
           </Button>

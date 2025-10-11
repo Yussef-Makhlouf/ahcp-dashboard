@@ -12,14 +12,22 @@ function transformAPIResponse(apiData: any): ParasiteControl {
     date: apiData.date?.split('T')[0] || new Date().toISOString().split('T')[0],
     // Support both client and owner structures
     client: apiData.client ? {
-      _id: apiData.client._id,
+      _id: apiData.client._id || '',
       name: apiData.client.name || '',
       nationalId: apiData.client.nationalId || '',
       phone: apiData.client.phone || '',
       village: apiData.client.village || '',
       detailedAddress: apiData.client.detailedAddress || '',
       birthDate: apiData.client.birthDate || '',
-    } : undefined,
+    } : {
+      _id: '',
+      name: '',
+      nationalId: '',
+      phone: '',
+      village: '',
+      detailedAddress: '',
+      birthDate: '',
+    },
     owner: {
       name: apiData.client?.name || '',
       id: apiData.client?.nationalId || '',
@@ -79,7 +87,7 @@ function transformAPIResponse(apiData: any): ParasiteControl {
       category: apiData.insecticide?.category || '',
     },
     barns: [],
-    breedingSites: apiData.breedingSites ? [{ type: apiData.breedingSites, area: 0, treatment: '' }] : [],
+    breedingSites: apiData.breedingSites || '',
     herdLocation: apiData.herdLocation || '',
     animalBarnSizeSqM: apiData.animalBarnSizeSqM || 0,
     parasiteControlVolume: apiData.parasiteControlVolume || 0,
@@ -340,6 +348,24 @@ export const parasiteControlApi = {
     } catch (error: any) {
       console.error('Error exporting CSV:', error);
       throw new Error(`Failed to export CSV: ${error.message || 'Unknown error'}`);
+    }
+  },
+
+  // Export to Excel with new format - Real API only
+  exportToExcel: async (filters?: Record<string, any>): Promise<Blob> => {
+    try {
+      const params = new URLSearchParams({
+        format: 'csv',
+        ...filters
+      });
+      
+      return await api.get(`/parasite-control/export?${params.toString()}`, {
+        responseType: 'blob',
+        timeout: 60000, // 60 seconds timeout for export
+      });
+    } catch (error: any) {
+      console.error('Error exporting Excel:', error);
+      throw new Error(`Failed to export Excel: ${error.message || 'Unknown error'}`);
     }
   },
 

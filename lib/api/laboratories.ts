@@ -177,6 +177,73 @@ export const laboratoriesApi = {
   getSampleTypes: async (): Promise<string[]> => {
     const response = await api.get<{ data: string[] }>('/laboratories/sample-types');
     return response.data;
+  },
+
+  // Import from file
+  importFromFile: async (file: File): Promise<{
+    success: boolean;
+    message: string;
+    imported: number;
+    errors?: Array<{ row: number; error: string }>;
+  }> => {
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      const response = await api.post('/laboratories/import', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+        timeout: 120000, // 2 minutes for large files
+      });
+      
+      return response as any;
+    } catch (error: any) {
+      console.error('Error importing file:', error);
+      throw new Error(`Failed to import file: ${error.message || 'Unknown error'}`);
+    }
+  },
+
+  // Download template
+  downloadTemplate: async (): Promise<Blob> => {
+    try {
+      const response = await api.get('/laboratories/template', {
+        responseType: 'blob',
+        timeout: 30000,
+      });
+      return response as Blob;
+    } catch (error: any) {
+      console.error('Error downloading template:', error);
+      throw new Error(`Failed to download template: ${error.message || 'Unknown error'}`);
+    }
+  },
+
+  // Export to Excel
+  exportToExcel: async (sampleCodes?: string[]): Promise<Blob> => {
+    try {
+      const response = await api.post('/laboratories/export/excel', { sampleCodes }, {
+        responseType: 'blob',
+        timeout: 60000,
+      });
+      return response as Blob;
+    } catch (error: any) {
+      console.error('Error exporting Excel:', error);
+      throw new Error(`Failed to export Excel: ${error.message || 'Unknown error'}`);
+    }
+  },
+
+  // Export to PDF
+  exportToPdf: async (sampleCodes?: string[]): Promise<Blob> => {
+    try {
+      const response = await api.post('/laboratories/export/pdf', { sampleCodes }, {
+        responseType: 'blob',
+        timeout: 60000,
+      });
+      return response as Blob;
+    } catch (error: any) {
+      console.error('Error exporting PDF:', error);
+      throw new Error(`Failed to export PDF: ${error.message || 'Unknown error'}`);
+    }
   }
 };
 

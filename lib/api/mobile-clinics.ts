@@ -146,6 +146,7 @@ export const mobileClinicsApi = {
   exportToCsv: async (): Promise<Blob> => {
     try {
       const response = await api.get('/mobile-clinics/export', {
+        params: { format: 'csv' },
         responseType: 'blob',
         timeout: 60000,
       });

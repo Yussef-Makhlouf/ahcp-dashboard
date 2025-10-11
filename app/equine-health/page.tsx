@@ -3,8 +3,9 @@
 import { useState } from "react";
 import { MainLayout } from "@/components/layout/main-layout";
 import { DataTable } from "@/components/data-table/data-table";
+import { ImportExportManager } from "@/components/import-export/import-export-manager";
 import { Button } from "@/components/ui/button";
-import { Plus, FileDown, Upload, Heart } from "lucide-react";
+import { Plus, Heart } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { equineHealthApi } from "@/lib/api/equine-health";
 import { EquineHealthDialog } from "./components/equine-health-dialog";
@@ -30,15 +31,23 @@ export default function EquineHealthPage() {
   });
 
   const handleExport = async (type: "csv" | "pdf") => {
-    if (type === "csv") {
-      const blob = await equineHealthApi.exportToCsv();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `equine-health-${new Date().toISOString().split("T")[0]}.csv`;
-      a.click();
+    try {
+      if (type === "csv") {
+        const blob = await equineHealthApi.exportToCsv();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `equine-health-${new Date().toISOString().split("T")[0]}.csv`;
+        a.click();
+        window.URL.revokeObjectURL(url);
+      }
+    } catch (error) {
+      console.error('Export failed:', error);
+      alert('فشل في تصدير البيانات');
     }
   };
+
+
 
   const handleEdit = (item: EquineHealth) => {
     setSelectedItem(item);
@@ -50,6 +59,11 @@ export default function EquineHealthPage() {
       await equineHealthApi.delete(id);
       refetch();
     }
+  };
+
+  const handleView = (item: EquineHealth) => {
+    // This will be handled by the DataTable's built-in view modal
+    console.log("Viewing item:", item);
   };
 
   // Calculate statistics
@@ -74,18 +88,22 @@ export default function EquineHealthPage() {
             </p>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" size="sm" className="border-purple-300 hover:bg-purple-50 hover:border-purple-400 text-purple-700 hover:text-purple-800">
-              <Upload className="ml-2 h-4 w-4" />
-              استيراد
-            </Button>
+            <ImportExportManager
+              exportEndpoint="/equine-health/export"
+              importEndpoint="/equine-health/import"
+              templateEndpoint="/equine-health/template"
+              title="صحة الخيول"
+              queryKey="equineHealth"
+              acceptedFormats={[".csv", ".xlsx"]}
+              maxFileSize={10}
+            />
             {checkPermission({ module: 'equine-health', action: 'create' }) && (
               <Button
                 onClick={() => {
                   setSelectedItem(null);
                   setIsDialogOpen(true);
                 }}
-                className="bg-purple-600 hover:bg-purple-700 text-white shadow-lg hover:shadow-xl transition-all duration-200"
-              >
+className="h-9 px-3"              >
                 <Plus className="ml-2 h-4 w-4" />
                 إضافة سجل جديد
               </Button>
@@ -181,7 +199,7 @@ export default function EquineHealthPage() {
 
         {/* Data Table */}
         <DataTable
-          columns={getColumns({ onEdit: handleEdit, onDelete: handleDelete })}
+          columns={getColumns({ onEdit: handleEdit, onDelete: handleDelete, onView: handleView })}
           data={data?.data || []}
           isLoading={isLoading}
           onExport={handleExport}

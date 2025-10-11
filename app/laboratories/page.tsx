@@ -219,20 +219,37 @@ export default function LaboratoriesPage() {
 
   const data = laboratoriesData?.data || [];
 
-  const handleExport = async (type: "csv" | "pdf") => {
-    if (type === "csv") {
-      try {
-        const blob = await laboratoriesApi.exportToCsv();
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = `laboratories-records-${new Date().toISOString().split("T")[0]}.csv`;
-        a.click();
-        window.URL.revokeObjectURL(url);
-      } catch (error) {
-        console.error('Export failed:', error);
-        alert('فشل في تصدير البيانات');
+  const handleExport = async (type: "csv" | "pdf" | "excel") => {
+    try {
+      let blob: Blob;
+      let filename: string;
+      const dateStr = new Date().toISOString().split("T")[0];
+      
+      if (type === "csv") {
+        blob = await laboratoriesApi.exportToCsv();
+        filename = `laboratories-records-${dateStr}.csv`;
+      } else if (type === "excel") {
+        blob = await laboratoriesApi.exportToExcel();
+        filename = `laboratories-records-${dateStr}.xlsx`;
+      } else if (type === "pdf") {
+        // PDF غير مدعوم حالياً، استخدم Excel بدلاً منه
+        blob = await laboratoriesApi.exportToExcel();
+        filename = `laboratories-records-${dateStr}.xlsx`;
+      } else {
+        throw new Error('نوع التصدير غير مدعوم');
       }
+      
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      a.click();
+      window.URL.revokeObjectURL(url);
+      
+      alert(`تم تصدير البيانات بنجاح كملف ${type.toUpperCase()}`);
+    } catch (error) {
+      console.error('Export failed:', error);
+      alert('فشل في تصدير البيانات');
     }
   };
 
@@ -277,8 +294,8 @@ export default function LaboratoriesPage() {
   };
 
   const handleView = (item: Laboratory) => {
-    setSelectedItem(item);
-    setIsDialogOpen(true);
+    // This will be handled by the DataTable's built-in view modal
+    console.log("Viewing laboratory item:", item);
   };
 
   const handleAdd = () => {
@@ -306,9 +323,13 @@ export default function LaboratoriesPage() {
               queryKey="laboratories"
               acceptedFormats={[".csv", ".xlsx"]}
               maxFileSize={10}
+              exportFormats={[
+                { value: "csv", label: "CSV", icon: "📄" },
+                { value: "excel", label: "Excel", icon: "📊" }
+              ]}
             />
             {checkPermission({ module: 'laboratories', action: 'create' }) && (
-              <Button onClick={handleAdd}>
+              <Button onClick={handleAdd} size="sm" className="h-9 px-3">
                 <Plus className="h-4 w-4 mr-2" />
                 إضافة عينة جديدة
               </Button>
@@ -317,11 +338,11 @@ export default function LaboratoriesPage() {
         </div>
 
         {/* Stats Cards */}
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5">
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
           <Card className="hover:shadow-md transition-shadow">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
-                إجمالي العينات
+                إجمالي السجلات
               </CardTitle>
               <FlaskConical className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
@@ -329,10 +350,10 @@ export default function LaboratoriesPage() {
               {statsLoading ? (
                 <div className="text-2xl font-bold animate-pulse bg-gray-200 h-8 w-16 rounded"></div>
               ) : (
-                <div className="text-2xl font-bold">{stats?.totalSamples || 0}</div>
+                <div className="text-2xl font-bold">{data.length || 0}</div>
               )}
               <p className="text-xs text-muted-foreground">
-                جميع العينات المسجلة
+                جميع سجلات المختبر
               </p>
             </CardContent>
           </Card>
@@ -340,7 +361,7 @@ export default function LaboratoriesPage() {
           <Card className="hover:shadow-md transition-shadow">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
-                العينات هذا الشهر
+                إجمالي العينات
               </CardTitle>
               <TestTube className="h-4 w-4 text-blue-600" />
             </CardHeader>
@@ -349,11 +370,14 @@ export default function LaboratoriesPage() {
                 <div className="text-2xl font-bold animate-pulse bg-blue-200 h-8 w-16 rounded"></div>
               ) : (
                 <div className="text-2xl font-bold text-blue-600">
-                  {stats?.samplesThisMonth || 0}
+                  {data.reduce((total, record) => {
+                    const counts = record.speciesCounts || {};
+                    return total + (counts.sheep || 0) + (counts.goats || 0) + (counts.camel || 0) + (counts.cattle || 0) + (counts.horse || 0);
+                  }, 0)}
                 </div>
               )}
               <p className="text-xs text-muted-foreground">
-                عينة هذا الشهر
+                من جميع الأنواع
               </p>
             </CardContent>
           </Card>
@@ -370,11 +394,32 @@ export default function LaboratoriesPage() {
                 <div className="text-2xl font-bold animate-pulse bg-red-200 h-8 w-16 rounded"></div>
               ) : (
                 <div className="text-2xl font-bold text-red-600">
-                  {stats?.positiveCases || 0}
+                  {data.reduce((total, record) => total + (record.positiveCases || 0), 0)}
                 </div>
               )}
               <p className="text-xs text-muted-foreground">
-                من {stats?.totalSamples || 0} عينة
+                حالة إيجابية
+              </p>
+            </CardContent>
+          </Card>
+          
+          <Card className="hover:shadow-md transition-shadow">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">
+                الحالات السلبية
+              </CardTitle>
+              <Activity className="h-4 w-4 text-green-600" />
+            </CardHeader>
+            <CardContent>
+              {statsLoading ? (
+                <div className="text-2xl font-bold animate-pulse bg-green-200 h-8 w-16 rounded"></div>
+              ) : (
+                <div className="text-2xl font-bold text-green-600">
+                  {data.reduce((total, record) => total + (record.negativeCases || 0), 0)}
+                </div>
+              )}
+              <p className="text-xs text-muted-foreground">
+                حالة سلبية
               </p>
             </CardContent>
           </Card>
@@ -384,21 +429,30 @@ export default function LaboratoriesPage() {
               <CardTitle className="text-sm font-medium">
                 معدل الإيجابية
               </CardTitle>
-              <Activity className="h-4 w-4 text-orange-600" />
+              <Clock className="h-4 w-4 text-orange-600" />
             </CardHeader>
             <CardContent>
               {statsLoading ? (
                 <div className="text-2xl font-bold animate-pulse bg-orange-200 h-8 w-16 rounded"></div>
               ) : (
-                <div className={`text-2xl font-bold ${
-                  (stats?.positivityRate || 0) > 20 ? 'text-red-600' : 
-                  (stats?.positivityRate || 0) > 10 ? 'text-orange-600' : 'text-green-600'
-                }`}>
-                  {stats?.positivityRate ? `${Math.round(stats.positivityRate)}%` : '0%'}
-                </div>
+                (() => {
+                  const totalPositive = data.reduce((total, record) => total + (record.positiveCases || 0), 0);
+                  const totalNegative = data.reduce((total, record) => total + (record.negativeCases || 0), 0);
+                  const totalCases = totalPositive + totalNegative;
+                  const rate = totalCases > 0 ? Math.round((totalPositive / totalCases) * 100) : 0;
+                  
+                  return (
+                    <div className={`text-2xl font-bold ${
+                      rate > 20 ? 'text-red-600' : 
+                      rate > 10 ? 'text-orange-600' : 'text-green-600'
+                    }`}>
+                      {rate}%
+                    </div>
+                  );
+                })()
               )}
               <p className="text-xs text-muted-foreground">
-                {stats?.negativeCases || 0} حالة سلبية
+                نسبة الإيجابية
               </p>
             </CardContent>
           </Card>
@@ -406,20 +460,27 @@ export default function LaboratoriesPage() {
           <Card className="hover:shadow-md transition-shadow">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
-                الفحوصات المعلقة
+                العينات هذا الشهر
               </CardTitle>
-              <Clock className="h-4 w-4 text-yellow-600" />
+              <Clock className="h-4 w-4 text-purple-600" />
             </CardHeader>
             <CardContent>
               {statsLoading ? (
-                <div className="text-2xl font-bold animate-pulse bg-yellow-200 h-8 w-16 rounded"></div>
+                <div className="text-2xl font-bold animate-pulse bg-purple-200 h-8 w-16 rounded"></div>
               ) : (
-                <div className="text-2xl font-bold text-yellow-600">
-                  {stats?.pendingTests || 0}
+                <div className="text-2xl font-bold text-purple-600">
+                  {(() => {
+                    const currentMonth = new Date().getMonth();
+                    const currentYear = new Date().getFullYear();
+                    return data.filter(record => {
+                      const recordDate = new Date(record.date);
+                      return recordDate.getMonth() === currentMonth && recordDate.getFullYear() === currentYear;
+                    }).length;
+                  })()}
                 </div>
               )}
               <p className="text-xs text-muted-foreground">
-                {stats?.inProgressTests || 0} قيد التنفيذ
+                سجل هذا الشهر
               </p>
             </CardContent>
           </Card>
@@ -431,6 +492,7 @@ export default function LaboratoriesPage() {
           data={data}
           isLoading={isLoading}
           onExport={handleExport}
+          onView={handleView}
         />
 
         {/* Laboratory Dialog */}

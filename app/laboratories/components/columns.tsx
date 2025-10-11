@@ -9,7 +9,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Edit, MoreHorizontal, Trash2, Eye } from "lucide-react";
+import { Edit, MoreHorizontal, Trash2 } from "lucide-react";
 import { usePermissions } from "@/lib/hooks/usePermissions";
 import type { Laboratory } from "@/types";
 
@@ -27,68 +27,217 @@ export function getColumns({
   const { checkPermission } = usePermissions();
   
   return [
+    // Serial Number
     {
       accessorKey: "serialNo",
-      header: "رقم التسلسل",
+      header: "Serial",
       cell: ({ row }) => (
         <div className="font-medium">#{row.getValue("serialNo")}</div>
       ),
+      size: 80,
     },
+    // Date
     {
       accessorKey: "date",
-      header: "التاريخ",
+      header: "Date",
       cell: ({ row }) => {
         const date = new Date(row.getValue("date"));
-        return date.toLocaleDateString("ar-EG");
+        return (
+          <div className="text-sm">
+            {date.toLocaleDateString("ar-EG")}
+          </div>
+        );
       },
+      size: 100,
     },
+    // Sample Code
     {
       accessorKey: "sampleCode",
-      header: "رمز العينة",
+      header: "Sample Code",
       cell: ({ row }) => (
-        <div className="font-medium">{row.getValue("sampleCode")}</div>
+        <div className="font-mono text-sm font-medium">{row.getValue("sampleCode")}</div>
       ),
+      size: 120,
     },
+    // Name
     {
       accessorKey: "clientName",
-      header: "اسم العميل",
+      header: "Name",
       cell: ({ row }) => (
         <div className="font-medium">{row.getValue("clientName")}</div>
       ),
+      size: 150,
     },
+    // ID
     {
       accessorKey: "clientId",
-      header: "رقم الهوية",
+      header: "ID",
       cell: ({ row }) => (
         <div className="font-mono text-sm">{row.getValue("clientId")}</div>
       ),
+      size: 120,
     },
+    // Birth Date
+    {
+      accessorKey: "clientBirthDate",
+      header: "Birth Date",
+      cell: ({ row }) => {
+        const birthDate = row.getValue("clientBirthDate") as string;
+        if (!birthDate) return <span className="text-muted-foreground">غير محدد</span>;
+        const date = new Date(birthDate);
+        return (
+          <div className="text-sm">
+            {date.toLocaleDateString("ar-EG")}
+          </div>
+        );
+      },
+      size: 100,
+    },
+    // Phone
     {
       accessorKey: "clientPhone",
-      header: "رقم الهاتف",
+      header: "Phone",
       cell: ({ row }) => (
         <div className="font-mono text-sm">{row.getValue("clientPhone")}</div>
       ),
+      size: 120,
     },
+    // Location
     {
       accessorKey: "farmLocation",
-      header: "الموقع",
+      header: "Location",
       cell: ({ row }) => (
-        <div className="max-w-[150px] truncate" title={row.getValue("farmLocation")}>
+        <div className="max-w-[120px] truncate" title={row.getValue("farmLocation")}>
           {row.getValue("farmLocation")}
         </div>
       ),
+      size: 120,
     },
+    // N (North Coordinate)
+    {
+      accessorKey: "coordinates.latitude",
+      header: "N",
+      cell: ({ row }) => {
+        const coords = row.original.coordinates;
+        return (
+          <div className="font-mono text-xs">
+            {coords?.latitude ? coords.latitude.toFixed(4) : '0'}
+          </div>
+        );
+      },
+      size: 80,
+    },
+    // E (East Coordinate)
+    {
+      accessorKey: "coordinates.longitude",
+      header: "E",
+      cell: ({ row }) => {
+        const coords = row.original.coordinates;
+        return (
+          <div className="font-mono text-xs">
+            {coords?.longitude ? coords.longitude.toFixed(4) : '0'}
+          </div>
+        );
+      },
+      size: 80,
+    },
+    // Sheep
+    {
+      accessorKey: "speciesCounts.sheep",
+      header: "Sheep",
+      cell: ({ row }) => {
+        const counts = row.original.speciesCounts;
+        return (
+          <div className="text-sm font-medium text-center">
+            {counts?.sheep || 0}
+          </div>
+        );
+      },
+      size: 70,
+    },
+    // Goats
+    {
+      accessorKey: "speciesCounts.goats",
+      header: "Goats",
+      cell: ({ row }) => {
+        const counts = row.original.speciesCounts;
+        return (
+          <div className="text-sm font-medium text-center">
+            {counts?.goats || 0}
+          </div>
+        );
+      },
+      size: 70,
+    },
+    // Camel
+    {
+      accessorKey: "speciesCounts.camel",
+      header: "Camel",
+      cell: ({ row }) => {
+        const counts = row.original.speciesCounts;
+        return (
+          <div className="text-sm font-medium text-center">
+            {counts?.camel || 0}
+          </div>
+        );
+      },
+      size: 70,
+    },
+    // Horse
+    {
+      accessorKey: "speciesCounts.horse",
+      header: "Horse",
+      cell: ({ row }) => {
+        const counts = row.original.speciesCounts;
+        return (
+          <div className="text-sm font-medium text-center">
+            {counts?.horse || 0}
+          </div>
+        );
+      },
+      size: 70,
+    },
+    // Cattle
+    {
+      accessorKey: "speciesCounts.cattle",
+      header: "Cattle",
+      cell: ({ row }) => {
+        const counts = row.original.speciesCounts;
+        return (
+          <div className="text-sm font-medium text-center">
+            {counts?.cattle || 0}
+          </div>
+        );
+      },
+      size: 70,
+    },
+    // Other (Species)
+    {
+      accessorKey: "speciesCounts.other",
+      header: "Other (Species)",
+      cell: ({ row }) => {
+        const counts = row.original.speciesCounts;
+        return (
+          <div className="max-w-[100px] truncate text-sm" title={counts?.other}>
+            {counts?.other || 'لا يوجد'}
+          </div>
+        );
+      },
+      size: 120,
+    },
+    // Sample Collector
     {
       accessorKey: "collector",
-      header: "جامع العينة",
+      header: "Sample Collector",
       cell: ({ row }) => (
-        <div className="font-medium">{row.getValue("collector")}</div>
+        <div className="font-medium text-sm">{row.getValue("collector")}</div>
       ),
+      size: 140,
     },
+    // Sample Type
     {
       accessorKey: "sampleType",
-      header: "نوع العينة",
+      header: "Sample Type",
       cell: ({ row }) => {
         const type = row.getValue("sampleType") as string;
         const typeColors: Record<string, string> = {
@@ -108,31 +257,21 @@ export function getColumns({
           </Badge>
         );
       },
+      size: 110,
     },
+    // Samples Number (رمز جامع العينة)
     {
       accessorKey: "sampleNumber",
-      header: "رمز جامع العينة",
+      header: "Samples Number",
       cell: ({ row }) => (
         <div className="font-mono text-sm">{row.getValue("sampleNumber")}</div>
       ),
+      size: 130,
     },
-    {
-      accessorKey: "speciesCounts",
-      header: "عدد العينات",
-      cell: ({ row }) => {
-        const counts = row.getValue("speciesCounts") as any;
-        const total = (counts?.sheep || 0) + (counts?.goats || 0) + (counts?.camel || 0) + 
-                     (counts?.cattle || 0) + (counts?.horse || 0);
-        return (
-          <div className="text-sm font-medium">
-            {total} عينة
-          </div>
-        );
-      },
-    },
+    // Positive Cases
     {
       accessorKey: "positiveCases",
-      header: "الحالات الإيجابية",
+      header: "Positive Cases",
       cell: ({ row }) => {
         const positive = row.getValue("positiveCases") as number;
         return (
@@ -141,10 +280,12 @@ export function getColumns({
           </Badge>
         );
       },
+      size: 120,
     },
+    // Negative Cases
     {
       accessorKey: "negativeCases",
-      header: "الحالات السلبية",
+      header: "Negative Cases",
       cell: ({ row }) => {
         const negative = row.getValue("negativeCases") as number;
         return (
@@ -153,10 +294,12 @@ export function getColumns({
           </Badge>
         );
       },
+      size: 120,
     },
+    // Remarks
     {
       accessorKey: "remarks",
-      header: "ملاحظات",
+      header: "Remarks",
       cell: ({ row }) => {
         const remarks = row.getValue("remarks") as string;
         return (
@@ -165,6 +308,7 @@ export function getColumns({
           </div>
         );
       },
+      size: 150,
     },
     {
       id: "actions",
@@ -173,45 +317,43 @@ export function getColumns({
         const canEdit = checkPermission({ module: 'laboratories', action: 'edit' });
         const canDelete = checkPermission({ module: 'laboratories', action: 'delete' });
         
-        // إذا لم يكن لديه صلاحيات التعديل أو الحذف، لا تظهر خانة الإجراءات
-        if (!canEdit && !canDelete) {
-          return null;
-        }
-        
         return (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="h-8 w-8 p-0">
-                <span className="sr-only">فتح القائمة</span>
-                <MoreHorizontal className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              {onView && (
-                <DropdownMenuItem onClick={() => onView(row.original)}>
-                  <Eye className="mr-2 h-4 w-4" />
-                  عرض
-                </DropdownMenuItem>
-              )}
-              {canEdit && (
-                <DropdownMenuItem onClick={() => onEdit(row.original)}>
-                  <Edit className="mr-2 h-4 w-4" />
-                  تعديل
-                </DropdownMenuItem>
-              )}
-              {canDelete && (
-                <DropdownMenuItem
-                  onClick={() => onDelete(row.original)}
-                  className="text-red-600"
-                >
-                  <Trash2 className="mr-2 h-4 w-4" />
-                  حذف
-                </DropdownMenuItem>
-              )}
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <div className="flex items-center gap-2">
+            {/* Always show Eye icon for viewing */}
+   
+            
+            {/* Show dropdown only if user has edit or delete permissions */}
+            {(canEdit || canDelete) && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" className="h-8 w-8 p-0">
+                    <span className="sr-only">فتح القائمة</span>
+                    <MoreHorizontal className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  {canEdit && (
+                    <DropdownMenuItem onClick={() => onEdit(row.original)}>
+                      <Edit className="mr-2 h-4 w-4" />
+                      تعديل
+                    </DropdownMenuItem>
+                  )}
+                  {canDelete && (
+                    <DropdownMenuItem
+                      onClick={() => onDelete(row.original)}
+                      className="text-red-600"
+                    >
+                      <Trash2 className="mr-2 h-4 w-4" />
+                      حذف
+                    </DropdownMenuItem>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
+          </div>
         );
       },
+      size: 100,
     },
   ];
 }

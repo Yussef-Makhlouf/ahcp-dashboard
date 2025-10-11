@@ -398,6 +398,7 @@ export interface EquineHealth {
     _id?: string;
     name: string;
     nationalId: string;
+    birthDate?: string;
     phone: string;
     village?: string;
     detailedAddress?: string;

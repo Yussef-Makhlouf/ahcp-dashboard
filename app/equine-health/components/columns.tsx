@@ -15,7 +15,7 @@ import type { EquineHealth } from "@/types";
 
 interface GetColumnsProps {
   onEdit: (item: EquineHealth) => void;
-  onDelete: (id: number) => void;
+  onDelete: (id: string) => void;
   onView?: (item: EquineHealth) => void;
 }
 
@@ -28,14 +28,14 @@ export function getColumns({
   return [
     {
       accessorKey: "serialNo",
-      header: "رقم التسلسل",
+      header: "Serial No",
       cell: ({ row }) => (
         <div className="font-medium">#{row.getValue("serialNo")}</div>
       ),
     },
     {
       accessorKey: "date",
-      header: "التاريخ",
+      header: "Date",
       cell: ({ row }) => {
         const date = new Date(row.getValue("date"));
         return date.toLocaleDateString("ar-EG");
@@ -43,21 +43,62 @@ export function getColumns({
     },
     {
       accessorKey: "client.name",
-      header: "اسم المالك",
+      header: "Name",
       cell: ({ row }) => (
         <div className="font-medium">{row.original.client?.name || 'غير محدد'}</div>
       ),
     },
     {
-      accessorKey: "horseCount",
-      header: "عدد الخيول",
+      accessorKey: "client.nationalId",
+      header: "ID",
       cell: ({ row }) => (
-        <Badge variant="secondary">{row.getValue("horseCount")}</Badge>
+        <div className="font-mono text-sm">{row.original.client?.nationalId || 'غير محدد'}</div>
+      ),
+    },
+    {
+      accessorKey: "client.birthDate",
+      header: "Birth Date",
+      cell: ({ row }) => {
+        const client = row.original.client as any;
+        const birthDate = client?.birthDate;
+        if (!birthDate) return 'غير محدد';
+        const date = new Date(birthDate);
+        return date.toLocaleDateString("ar-EG");
+      },
+    },
+    {
+      accessorKey: "client.phone",
+      header: "Phone",
+      cell: ({ row }) => (
+        <div className="font-mono text-sm">{row.original.client?.phone || 'غير محدد'}</div>
+      ),
+    },
+    {
+      accessorKey: "farmLocation",
+      header: "Location",
+      cell: ({ row }) => (
+        <div className="max-w-[150px] truncate" title={row.getValue("farmLocation")}>
+          {row.getValue("farmLocation") || 'غير محدد'}
+        </div>
+      ),
+    },
+    {
+      accessorKey: "coordinates.latitude",
+      header: "N Coordinate",
+      cell: ({ row }) => (
+        <div className="font-mono text-xs">{row.original.coordinates?.latitude?.toFixed(4) || '0'}</div>
+      ),
+    },
+    {
+      accessorKey: "coordinates.longitude",
+      header: "E Coordinate",
+      cell: ({ row }) => (
+        <div className="font-mono text-xs">{row.original.coordinates?.longitude?.toFixed(4) || '0'}</div>
       ),
     },
     {
       accessorKey: "diagnosis",
-      header: "التشخيص",
+      header: "Diagnosis",
       cell: ({ row }) => (
         <div className="max-w-[200px] truncate" title={row.getValue("diagnosis")}>
           {row.getValue("diagnosis")}
@@ -66,7 +107,7 @@ export function getColumns({
     },
     {
       accessorKey: "interventionCategory",
-      header: "فئة التدخل",
+      header: "Intervention Category",
       cell: ({ row }) => {
         const category = row.getValue("interventionCategory") as string;
         const categoryColors: Record<string, string> = {
@@ -95,8 +136,27 @@ export function getColumns({
       },
     },
     {
+      accessorKey: "treatment",
+      header: "Treatment",
+      cell: ({ row }) => (
+        <div className="max-w-[200px] truncate" title={row.getValue("treatment")}>
+          {row.getValue("treatment")}
+        </div>
+      ),
+    },
+    {
+      accessorKey: "request.date",
+      header: "Request Date",
+      cell: ({ row }) => {
+        const requestDate = row.original.request?.date;
+        if (!requestDate) return 'غير محدد';
+        const date = new Date(requestDate);
+        return date.toLocaleDateString("ar-EG");
+      },
+    },
+    {
       accessorKey: "request.situation",
-      header: "حالة الطلب",
+      header: "Request Status",
       cell: ({ row }) => {
         const status = row.original.request?.situation || 'Open';
         const statusColors = {
@@ -117,6 +177,25 @@ export function getColumns({
           </Badge>
         );
       },
+    },
+    {
+      accessorKey: "request.fulfillingDate",
+      header: "Request Fulfilling Date",
+      cell: ({ row }) => {
+        const fulfillingDate = row.original.request?.fulfillingDate;
+        if (!fulfillingDate) return 'غير محدد';
+        const date = new Date(fulfillingDate);
+        return date.toLocaleDateString("ar-EG");
+      },
+    },
+    {
+      accessorKey: "remarks",
+      header: "Remarks",
+      cell: ({ row }) => (
+        <div className="max-w-[150px] truncate" title={row.getValue("remarks")}>
+          {row.getValue("remarks") || 'لا توجد ملاحظات'}
+        </div>
+      ),
     },
     {
       id: "actions",
