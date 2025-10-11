@@ -24,15 +24,25 @@ const nextConfig = {
           { key: 'X-Frame-Options', value: 'DENY' },
           { key: 'X-Content-Type-Options', value: 'nosniff' },
           { key: 'Referrer-Policy', value: 'origin-when-cross-origin' },
+          { key: 'X-XSS-Protection', value: '1; mode=block' },
+          { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=()' },
         ],
       },
     ];
   },
   
   // إعدادات إضافية محسنة
-  reactStrictMode: false, // تجنب double rendering في التطوير
-  swcMinify: true,
+  reactStrictMode: process.env.NODE_ENV === 'development', // Enable in development, disable in production
   poweredByHeader: false, // إخفاء X-Powered-By header
+  
+  // Production optimizations
+  compress: true,
+  productionBrowserSourceMaps: false, // Disable source maps in production for security
+  
+  // إعدادات Turbopack
+  turbopack: {
+    root: './',
+  },
   
   // تحسين الأداء
   experimental: {

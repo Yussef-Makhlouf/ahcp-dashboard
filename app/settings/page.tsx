@@ -115,7 +115,7 @@ export default function SettingsPage() {
         </div>
 
         {/* Statistics Cards */}
-        <div className="grid gap-4 md:grid-cols-5">
+        <div className="grid gap-4 md:grid-cols-4">
           <Card>
             <CardContent className="flex items-center gap-4 p-6">
               <div className="p-3 bg-blue-100 rounded-full">
@@ -152,17 +152,7 @@ export default function SettingsPage() {
             </CardContent>
           </Card>
           
-          <Card>
-            <CardContent className="flex items-center gap-4 p-6">
-              <div className="p-3 bg-orange-100 rounded-full">
-                <BarChart3 className="h-6 w-6 text-orange-600" />
-              </div>
-              <div className="text-right">
-                <p className="text-2xl font-bold">{stats.admins + stats.supervisors + stats.workers}</p>
-                <p className="text-sm text-muted-foreground">المستخدمين حسب الدور</p>
-              </div>
-            </CardContent>
-          </Card>
+
           
           <Card>
             <CardContent className="flex items-center gap-4 p-6">

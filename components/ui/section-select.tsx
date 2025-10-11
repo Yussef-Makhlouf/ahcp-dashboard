@@ -9,6 +9,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { api } from "@/lib/api/base-api";
 
 interface Section {
   _id: string;
@@ -16,7 +17,6 @@ interface Section {
   nameEn?: string;
   code: string;
   description?: string;
-  isActive: boolean;
   supervisorCount?: number;
   workerCount?: number;
   totalUsers?: number;
@@ -28,7 +28,7 @@ interface SectionSelectProps {
   placeholder?: string;
   disabled?: boolean;
   className?: string;
-  showInactive?: boolean; // إظهار الأقسام غير النشطة
+  // showInactive removed - all sections are active
 }
 
 export function SectionSelect({
@@ -37,7 +37,7 @@ export function SectionSelect({
   placeholder = "اختر القسم",
   disabled = false,
   className,
-  showInactive = false,
+  // showInactive removed
 }: SectionSelectProps) {
   const {
     data: response,
@@ -46,28 +46,25 @@ export function SectionSelect({
     refetch,
     isError,
   } = useQuery({
-    queryKey: ["sections", showInactive ? "all" : "active"],
+    queryKey: ["sections", "active"],
     queryFn: async () => {
       try {
-        const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
-        const url = showInactive ? `${baseUrl}/sections` : `${baseUrl}/sections/active`;
-        const res = await fetch(url, {
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        });
+        const endpoint = '/sections/active';
+        const data = await api.get(endpoint);
         
-        if (!res.ok) {
-          throw new Error(`HTTP error! status: ${res.status}`);
+        // التحقق من بنية الاستجابة
+        if (data && typeof data === 'object') {
+          const response = data as any;
+          if (response.success && Array.isArray(response.data)) {
+            console.log('✅ Loaded', response.data.length, 'sections from API');
+          } else {
+            console.log('⚠️ Unexpected response structure:', response);
+          }
         }
         
-        const data = await res.json();
-        console.log('🔍 Sections API response:', data);
-        console.log('🔍 Response type:', typeof data);
-        console.log('🔍 Response keys:', Object.keys(data || {}));
         return data;
       } catch (error) {
-        console.error('Error fetching sections:', error);
+        console.error('❌ Error fetching sections:', error);
         throw error;
       }
     },
@@ -81,35 +78,34 @@ export function SectionSelect({
   // استخراج البيانات من الاستجابة مع معالجة الحالات المختلفة
   let sections: Section[] = [];
   
-  console.log('🔍 Processing response:', response);
-  
   if (response) {
+    const apiResponse = response as any;
+    
     // إذا كانت الاستجابة تحتوي على success و data
-    if (response.success && response.data) {
-      console.log('✅ Found response.success and response.data');
-      if (Array.isArray(response.data)) {
-        sections = response.data as Section[];
-        console.log('✅ Using response.data as sections array:', sections.length);
-      } else if (response.data.sections && Array.isArray(response.data.sections)) {
-        sections = response.data.sections as Section[];
-        console.log('✅ Using response.data.sections as sections array:', sections.length);
+    if (apiResponse.success && apiResponse.data) {
+      if (Array.isArray(apiResponse.data)) {
+        sections = apiResponse.data as Section[];
+      } else if (apiResponse.data.sections && Array.isArray(apiResponse.data.sections)) {
+        sections = apiResponse.data.sections as Section[];
       }
     }
     // إذا كانت الاستجابة مباشرة array
-    else if (Array.isArray(response)) {
-      sections = response as Section[];
-      console.log('✅ Using response as sections array:', sections.length);
+    else if (Array.isArray(apiResponse)) {
+      sections = apiResponse as Section[];
     }
     // إذا كانت الاستجابة تحتوي على data مباشرة
-    else if (response.data && Array.isArray(response.data)) {
-      sections = response.data as Section[];
-      console.log('✅ Using response.data as sections array:', sections.length);
+    else if (apiResponse.data && Array.isArray(apiResponse.data)) {
+      sections = apiResponse.data as Section[];
     }
   }
   
-  console.log('🎯 Final sections array:', sections);
+  // All sections are active by default
+  const activeSections = sections;
   
-  const activeSections = showInactive ? sections : sections.filter(s => s.isActive);
+  // Confirmation message
+  if (sections.length > 0) {
+    console.log(`✅ SectionSelect: ${sections.length} sections ready`);
+  }
 
   // Function to get section color based on code
   const getSectionColor = (code: string): string => {
@@ -126,7 +122,7 @@ export function SectionSelect({
   };
 
   // Find selected section for display
-  const selectedSection = activeSections.find(s => s.code === value || s._id === value);
+  const selectedSection = sections.find(s => s.code === value || s._id === value);
 
   if (error) {
     console.error("❌ Error loading sections:", error);
@@ -171,8 +167,12 @@ export function SectionSelect({
         ) : activeSections.length === 0 ? (
           <div className="px-3 py-2 text-sm text-gray-500 flex flex-col gap-2">
             <span>لا توجد أقسام متاحة</span>
+            <span className="text-xs text-red-500">تم تحميل {sections.length} أقسام من الخادم</span>
             <button 
-              onClick={() => refetch()}
+              onClick={() => {
+                console.log('🔄 Manual refetch triggered');
+                refetch();
+              }}
               className="text-xs text-blue-600 hover:text-blue-800 underline"
             >
               إعادة المحاولة
@@ -197,11 +197,7 @@ export function SectionSelect({
                     <div className="flex flex-col min-w-0 flex-1">
                       <div className="flex items-center gap-2">
                         <span className="font-medium text-gray-900 truncate">{section.name}</span>
-                        {!section.isActive && (
-                          <span className="text-xs bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded-full font-medium">
-                            غير نشط
-                          </span>
-                        )}
+                        {/* All sections are active - no status indicator needed */}
                       </div>
                       <div className="flex items-center gap-3 text-xs text-gray-500">
                         {section.nameEn && (
@@ -220,10 +216,10 @@ export function SectionSelect({
                       )}
                     </div>
                     
-                    {/* Status Indicator */}
+                    {/* All sections are active - status indicator removed */}
                     <div className="flex-shrink-0">
-                      <div className={`w-2 h-2 rounded-full ${section.isActive ? 'bg-green-500' : 'bg-gray-400'}`} 
-                           title={section.isActive ? 'نشط' : 'غير نشط'}></div>
+                      <div className="w-2 h-2 rounded-full bg-green-500" 
+                           title="نشط"></div>
                     </div>
                   </div>
                 </SelectItem>

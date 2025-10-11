@@ -24,6 +24,16 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   UserPlus,
   Shield,
   UserCog,
@@ -37,6 +47,7 @@ import {
 import { toast } from "sonner";
 import { ColumnDef } from "@tanstack/react-table";
 import { api } from "@/lib/api/base-api";
+import { useAuthStore } from "@/lib/store/auth-store";
 
 // Types
 interface User {
@@ -51,23 +62,21 @@ interface User {
   lastLogin?: string;
 }
 
-interface Section {
-  _id: string;
-  name: string;
-  code: string;
-}
+// Section interface is now handled by SectionSelect component
 
 interface UserManagementProps {
   onRefresh?: () => void;
 }
 
 export function UserManagement({ onRefresh }: UserManagementProps) {
+  const { user: currentUser } = useAuthStore();
   const [users, setUsers] = useState<User[]>([]);
-  const [sections, setSections] = useState<Section[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [userType, setUserType] = useState<'admin' | 'supervisor' | 'worker'>('supervisor');
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [userToDelete, setUserToDelete] = useState<User | null>(null);
 
   const [userForm, setUserForm] = useState({
     name: "",
@@ -79,7 +88,6 @@ export function UserManagement({ onRefresh }: UserManagementProps) {
   // Load data
   useEffect(() => {
     loadUsers();
-    loadSections();
   }, []);
 
   const loadUsers = async () => {
@@ -94,21 +102,16 @@ export function UserManagement({ onRefresh }: UserManagementProps) {
     }
   };
 
-  const loadSections = async () => {
-    try {
-      const data = await api.get('/sections/active');
-      if ((data as any)?.success) {
-        setSections((data as any).data || []);
-      }
-    } catch (error) {
-      console.error('Error loading sections:', error);
-      toast.error('حدث خطأ أثناء تحميل الأقسام');
-    }
-  };
+  // Sections are now handled by SectionSelect component
 
   const handleCreateUser = async () => {
-    if (!userForm.name || !userForm.email || !userForm.password) {
+    if (!userForm.name || !userForm.email) {
       toast.error("يرجى ملء جميع الحقول المطلوبة");
+      return;
+    }
+
+    if (!editingUser && !userForm.password) {
+      toast.error("يرجى إدخال كلمة المرور");
       return;
     }
 
@@ -119,23 +122,52 @@ export function UserManagement({ onRefresh }: UserManagementProps) {
 
     setIsLoading(true);
     try {
-      const endpoint = userType === 'admin' ? '/users/admins' : 
-                      userType === 'supervisor' ? '/users/supervisors' : 
-                      '/users/workers';
+      if (editingUser) {
+        // Update existing user
+        const updateData: any = {
+          name: userForm.name,
+          email: userForm.email,
+        };
+        
+        if (userForm.password) {
+          updateData.password = userForm.password;
+        }
+        
+        if (userForm.section) {
+          updateData.section = userForm.section;
+        }
 
-      const response = await api.post(endpoint, userForm);
+        const response = await api.put(`/users/${editingUser._id}`, updateData);
 
-      if ((response as any)?.success) {
-        toast.success("تم إنشاء المستخدم بنجاح");
-        setDialogOpen(false);
-        resetForm();
-        loadUsers();
-        onRefresh?.();
+        if ((response as any)?.success) {
+          toast.success("تم تحديث المستخدم بنجاح");
+          setDialogOpen(false);
+          resetForm();
+          loadUsers();
+          onRefresh?.();
+        } else {
+          toast.error((response as any)?.message || "حدث خطأ أثناء تحديث المستخدم");
+        }
       } else {
-        toast.error((response as any)?.message || "حدث خطأ أثناء إنشاء المستخدم");
+        // Create new user
+        const endpoint = userType === 'admin' ? '/users/admins' : 
+                        userType === 'supervisor' ? '/users/supervisors' : 
+                        '/users/workers';
+
+        const response = await api.post(endpoint, userForm);
+
+        if ((response as any)?.success) {
+          toast.success("تم إنشاء المستخدم بنجاح");
+          setDialogOpen(false);
+          resetForm();
+          loadUsers();
+          onRefresh?.();
+        } else {
+          toast.error((response as any)?.message || "حدث خطأ أثناء إنشاء المستخدم");
+        }
       }
     } catch (error) {
-      toast.error("حدث خطأ أثناء إنشاء المستخدم");
+      toast.error(editingUser ? "حدث خطأ أثناء تحديث المستخدم" : "حدث خطأ أثناء إنشاء المستخدم");
     } finally {
       setIsLoading(false);
     }
@@ -154,6 +186,68 @@ export function UserManagement({ onRefresh }: UserManagementProps) {
     } catch (error) {
       toast.error("حدث خطأ أثناء تحديث حالة المستخدم");
     }
+  };
+
+  const handleEditUser = (user: User) => {
+    setEditingUser(user);
+    setUserForm({
+      name: user.name,
+      email: user.email,
+      password: "",
+      section: user.section || ""
+    });
+    setUserType(user.role === 'super_admin' ? 'admin' : 
+                user.role === 'section_supervisor' ? 'supervisor' : 'worker');
+    setDialogOpen(true);
+  };
+
+  const handleDeleteUser = (user: User) => {
+    setUserToDelete(user);
+    setDeleteDialogOpen(true);
+  };
+
+  const confirmDeleteUser = async () => {
+    if (!userToDelete) return;
+
+    try {
+      const response = await api.delete(`/users/${userToDelete._id}`);
+
+      if ((response as any)?.success) {
+        toast.success("تم حذف المستخدم بنجاح");
+        loadUsers();
+        onRefresh?.();
+      } else {
+        toast.error("حدث خطأ أثناء حذف المستخدم");
+      }
+    } catch (error) {
+      toast.error("حدث خطأ أثناء حذف المستخدم");
+    } finally {
+      setDeleteDialogOpen(false);
+      setUserToDelete(null);
+    }
+  };
+
+  const canEditUser = (user: User) => {
+    if (!currentUser) return false;
+    
+    // Super admin can edit anyone
+    if (currentUser.role === 'super_admin') return true;
+    
+    // Section supervisor can only edit users in their section
+    if (currentUser.role === 'section_supervisor') {
+      return user.section === currentUser.section;
+    }
+    
+    return false;
+  });
+
+  const canDeleteUser = (user: User) => {
+    if (!currentUser) return false;
+    
+    // Only super admin can delete users
+    if (currentUser.role === 'super_admin') return true;
+    
+    return false;
   };
 
   const resetForm = () => {
@@ -233,19 +327,45 @@ export function UserManagement({ onRefresh }: UserManagementProps) {
       header: "الإجراءات",
       cell: ({ row }) => {
         const user = row.original;
+        const canEdit = canEditUser(user);
+        const canDelete = canDeleteUser(user);
+        
         return (
           <div className="flex items-center gap-2 justify-end">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => handleToggleStatus(user._id)}
-            >
-              {user.isActive ? (
-                <ToggleRight className="h-4 w-4 text-green-600" />
-              ) : (
-                <ToggleLeft className="h-4 w-4 text-gray-400" />
-              )}
-            </Button>
+            {canEdit && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => handleEditUser(user)}
+                title="تعديل المستخدم"
+              >
+                <Edit className="h-4 w-4 text-blue-600" />
+              </Button>
+            )}
+            {canDelete && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => handleDeleteUser(user)}
+                title="حذف المستخدم"
+              >
+                <Trash2 className="h-4 w-4 text-red-600" />
+              </Button>
+            )}
+            {currentUser?.role === 'super_admin' && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => handleToggleStatus(user._id)}
+                title={user.isActive ? "إلغاء تفعيل" : "تفعيل"}
+              >
+                {user.isActive ? (
+                  <ToggleRight className="h-4 w-4 text-green-600" />
+                ) : (
+                  <ToggleLeft className="h-4 w-4 text-gray-400" />
+                )}
+              </Button>
+            )}
           </div>
         );
       },
@@ -341,10 +461,10 @@ export function UserManagement({ onRefresh }: UserManagementProps) {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-right">
               {getRoleIcon(userType)}
-              {getRoleTitle(userType)}
+              {editingUser ? `تعديل ${editingUser.name}` : getRoleTitle(userType)}
             </DialogTitle>
             <DialogDescription className="text-right">
-              أدخل بيانات المستخدم الجديد
+              {editingUser ? "تعديل بيانات المستخدم" : "أدخل بيانات المستخدم الجديد"}
             </DialogDescription>
           </DialogHeader>
 
@@ -405,18 +525,52 @@ export function UserManagement({ onRefresh }: UserManagementProps) {
               {isLoading ? (
                 <>
                   <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                  جاري الإنشاء...
+                  {editingUser ? "جاري التحديث..." : "جاري الإنشاء..."}
                 </>
               ) : (
                 <>
-                  <UserPlus className="mr-2 h-4 w-4" />
-                  إنشاء المستخدم
+                  {editingUser ? (
+                    <>
+                      <Edit className="mr-2 h-4 w-4" />
+                      تحديث المستخدم
+                    </>
+                  ) : (
+                    <>
+                      <UserPlus className="mr-2 h-4 w-4" />
+                      إنشاء المستخدم
+                    </>
+                  )}
                 </>
               )}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Delete User Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-right">تأكيد الحذف</AlertDialogTitle>
+            <AlertDialogDescription className="text-right">
+              هل أنت متأكد من حذف المستخدم <strong>{userToDelete?.name}</strong>؟
+              <br />
+              <span className="text-red-600 font-medium">هذا الإجراء لا يمكن التراجع عنه.</span>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setDeleteDialogOpen(false)}>
+              إلغاء
+            </AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={confirmDeleteUser}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              حذف المستخدم
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

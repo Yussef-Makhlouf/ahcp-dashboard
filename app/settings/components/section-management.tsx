@@ -36,7 +36,6 @@ interface Section {
   nameEn?: string;
   code: string;
   description?: string;
-  isActive: boolean;
   supervisorCount?: number;
   workerCount?: number;
   totalUsers?: number;
