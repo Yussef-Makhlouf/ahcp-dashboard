@@ -46,23 +46,27 @@ import { CalendarIcon, Loader2, User, Heart, Shield } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Vaccination } from "@/types";
 import { vaccinationApi } from "@/lib/api/vaccination";
-import { toast } from "sonner";
+import { entityToasts } from "@/lib/utils/toast-utils";
+import { useFormValidation } from "@/lib/hooks/use-form-validation";
+import { ValidatedInput } from "@/components/ui/validated-input";
+import { ValidatedSelect } from "@/components/ui/validated-select";
+import { ValidatedTextarea } from "@/components/ui/validated-textarea";
 
-// Validation function for Saudi phone numbers
-const validateSaudiPhone = (phone: string): boolean => {
-  const saudiPhoneRegex = /^(\+966|966|05)[0-9]{8}$/;
-  return saudiPhoneRegex.test(phone.replace(/\s/g, ''));
-};
+// Import validation functions
+import { validateSaudiPhone, validatePhoneNumber, validateNationalId } from "@/lib/utils";
 
 const formSchema = z.object({
   serialNo: z.string().min(1, { message: "يجب إدخال رقم السجل" }),
   date: z.string().min(1, { message: "يجب إدخال التاريخ" }),
   client: z.object({
     name: z.string().min(2, { message: "يجب إدخال اسم العميل (أكثر من حرفين)" }),
-    nationalId: z.string().min(10, { message: "يجب إدخال رقم الهوية الوطنية (10 أرقام على الأقل)" }),
+    nationalId: z.string().min(10, { message: "يجب إدخال رقم الهوية الوطنية (10 أرقام على الأقل)" }).refine(
+      (nationalId) => validateNationalId(nationalId),
+      { message: "رقم الهوية يجب أن يكون بين 10-14 رقم فقط" }
+    ),
     phone: z.string().min(1, { message: "يجب إدخال رقم الهاتف" }).refine(
-      (phone) => validateSaudiPhone(phone),
-      { message: "رقم الهاتف غير صحيح. يجب أن يبدأ بـ +966 أو 05" }
+      (phone) => validatePhoneNumber(phone),
+      { message: "رقم الهاتف غير صحيح. يجب أن يكون بين 10-15 رقم" }
     ),
     village: z.string().optional(),
     detailedAddress: z.string().optional(),
@@ -140,6 +144,31 @@ export function VaccinationDialog({
 }: VaccinationDialogProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [activeTab, setActiveTab] = useState("info");
+
+  // Validation rules for unified system
+  const validationRules = {
+    'client.name': { required: true, minLength: 2 },
+    'client.nationalId': { required: true, nationalId: true },
+    'client.phone': { required: true, phone: true },
+    'supervisor': { required: true },
+    'vehicleNo': { required: true },
+    'farmLocation': { required: true },
+    'herdHealth': { required: true },
+    'animalsHandling': { required: true },
+    'labours': { required: true },
+    'reachableLocation': { required: true },
+    'remarks': { required: true, minLength: 10 },
+  };
+
+  const {
+    errors,
+    validateField,
+    validateForm: validateFormData,
+    setFieldError,
+    clearFieldError,
+    clearAllErrors,
+    getFieldError,
+  } = useFormValidation(validationRules);
 
   // Function to generate serial number
   const generateSerialNo = () => {
@@ -348,22 +377,18 @@ export function VaccinationDialog({
         // Update existing item
         const updateId = item._id || item.serialNo;
         await vaccinationApi.update(updateId, transformedData);
-        toast.success("تم تحديث سجل التحصين بنجاح");
+        entityToasts.vaccination.update();
       } else {
         // Create new item
         await vaccinationApi.create(transformedData);
-        toast.success("تم إضافة سجل التحصين بنجاح");
+        entityToasts.vaccination.create();
       }
 
       onOpenChange(false);
       onSuccess?.();
     } catch (error) {
       console.error("Error saving vaccination record:", error);
-      toast.error(
-        item
-          ? "حدث خطأ أثناء تحديث سجل التحصين"
-          : "حدث خطأ أثناء إضافة سجل التحصين"
-      );
+      entityToasts.vaccination.error(item ? 'update' : 'create');
     } finally {
       setIsSubmitting(false);
     }
@@ -375,82 +400,81 @@ export function VaccinationDialog({
     type: string = "text",
     options?: { value: string; label: string }[],
     isNumber: boolean = false
-  ) => (
-    <FormField
-      control={form.control as any}
-      name={name as any}
-      render={({ field }) => (
-        <FormItem className="mb-6 space-y-3">
-          <FormLabel className="block text-sm font-semibold text-gray-800 mb-2">
+  ) => {
+    const isRequired = ['client.name', 'client.nationalId', 'client.phone', 'supervisor', 'vehicleNo', 'herdLocation', 'herdHealth', 'animalsHandling', 'labours', 'reachableLocation'].includes(name);
+    
+    if (type === "select") {
+      return (
+        <ValidatedSelect
+          label={label}
+          required={isRequired}
+          value={String(form.watch(name as any) || '')}
+          placeholder={`اختر ${label.toLowerCase()}`}
+          options={options || []}
+          error={getFieldError(name)}
+          onValueChange={(value) => {
+            form.setValue(name as any, value);
+            clearFieldError(name);
+          }}
+          onBlur={() => {
+            const error = validateField(name, form.watch(name as any));
+            if (error) {
+              setFieldError(name, error);
+            }
+          }}
+        />
+      );
+    } else if (type === "date") {
+      return (
+        <div className="mb-6 space-y-3">
+          <label className="block text-sm font-semibold text-gray-800 mb-2">
             {label}
-          </FormLabel>
-          <FormControl>
-            {type === "select" ? (
-              <Select
-                onValueChange={field.onChange}
-                defaultValue={field.value}
-                dir="rtl"
-              >
-                <SelectTrigger className="w-full border-2 border-gray-400 focus:border-blue-500 transition-colors duration-200">
-                  <SelectValue placeholder={`اختر ${label.toLowerCase()}`} />
-                </SelectTrigger>
-                <SelectContent>
-                  {options?.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            ) : type === "date" ? (
-              <ModernDatePicker
-                placeholder="اختر التاريخ"
-                value={field.value}
-                onChange={(date) => {
-                  const dateString = date ? date.toISOString().split('T')[0] : '';
-                  field.onChange(dateString);
-                }}
-                variant="modern"
-                size="md"
-                maxDate={new Date()}
-                minDate={new Date(1900, 0, 1)}
-              />
-            ) : type === "checkbox" ? (
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id={name}
-                  checked={field.value}
-                  onCheckedChange={field.onChange}
-                />
-                <label
-                  htmlFor={name}
-                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                >
-                  {label}
-                </label>
-              </div>
-            ) : (
-              <Input
-                type={type}
-                {...field}
-                value={field.value || ""}
-                onChange={(e) => {
-                  if (isNumber) {
-                    field.onChange(Number(e.target.value) || 0);
-                  } else {
-                    field.onChange(e.target.value);
-                  }
-                }}
-                className="w-full border-2 border-gray-400 focus:border-blue-500 transition-colors duration-200"
-                dir="rtl"
-              />
-            )}
-          </FormControl>
-          <FormMessage className="text-xs text-red-500" />
-        </FormItem>
-      )}
-    />
-  );
+          </label>
+          <ModernDatePicker
+            placeholder="اختر التاريخ"
+            value={form.watch(name) ? new Date(form.watch(name)) : undefined}
+            onChange={(date) => {
+              const dateString = date ? date.toISOString().split('T')[0] : '';
+              form.setValue(name, dateString);
+              clearFieldError(name);
+            }}
+            variant="modern"
+            size="md"
+            maxDate={new Date()}
+            minDate={new Date(1900, 0, 1)}
+          />
+          {getFieldError(name) && (
+            <p className="text-red-500 text-sm font-medium">{getFieldError(name)}</p>
+          )}
+        </div>
+      );
+    } else {
+      return (
+        <ValidatedInput
+          label={label}
+          required={isRequired}
+          type={type}
+          placeholder={`أدخل ${label.toLowerCase()}`}
+          value={String(form.watch(name as any) || "")}
+          error={getFieldError(name)}
+          onValueChange={(value) => {
+            if (isNumber) {
+              form.setValue(name as any, Number(value) || 0);
+            } else {
+              form.setValue(name as any, value);
+            }
+            clearFieldError(name);
+          }}
+          onBlur={() => {
+            const error = validateField(name, form.watch(name as any));
+            if (error) {
+              setFieldError(name, error);
+            }
+          }}
+        />
+      );
+    }
+  };
 
   const renderHerdInputs = (animal: string) => (
     <div className="space-y-6 p-6 border-2 border-gray-500 rounded-xl bg-gray-50 shadow-sm">
@@ -541,278 +565,546 @@ export function VaccinationDialog({
                 />
 
               <TabsContent value="info" className="tabs-content-modern">
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-8">
-                  <div className="space-y-6">
-                    <h3 className="text-xl font-semibold text-blue-700 border-b-2 border-blue-400 pb-3">
-                      معلومات العميل
-                    </h3>
-                    {renderFormField("client.name", "اسم العميل")}
-                    {renderFormField("client.nationalId", "رقم الهوية الوطنية")}
-                    {renderFormField("client.phone", "رقم الهاتف")}
-                    {renderFormField("client.village", "القرية")}
-                    {renderFormField("client.detailedAddress", "العنوان التفصيلي")}
-                    <FormField
-                      control={form.control}
-                      name="client.birthDate"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>تاريخ الميلاد</FormLabel>
-                          <FormControl>
-                            <ModernDatePicker
-                              placeholder="اختر تاريخ الميلاد"
-                              value={field.value ? new Date(field.value) : undefined}
-                              onChange={(date) => {
-                                const dateString = date ? date.toISOString().split('T')[0] : '';
-                                field.onChange(dateString);
-                              }}
-                              maxDate={new Date()}
-                              minDate={new Date(1900, 0, 1)}
-                              variant="modern"
-                              size="md"
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {/* Serial Number */}
+                  <div className="space-y-2">
+                    <label className="block text-sm font-semibold text-gray-800 mb-2">
+                      رقم السجل *
+                    </label>
+                    <div className="flex gap-2">
+                      <Input
+                        value={form.watch("serialNo") || ""}
+                        onChange={(e) => {
+                          form.setValue("serialNo", e.target.value);
+                          clearFieldError("serialNo");
+                        }}
+                        placeholder="رقم السجل"
+                        required
+                        className={`flex-1 ${getFieldError("serialNo") ? 'border-red-500' : ''}`}
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => form.setValue("serialNo", generateSerialNo())}
+                        className="px-3"
+                      >
+                        توليد تلقائي
+                      </Button>
+                    </div>
+                    {getFieldError("serialNo") && (
+                      <p className="text-red-500 text-sm font-medium mt-1">{getFieldError("serialNo")}</p>
+                    )}
+                  </div>
+
+                  {/* Date */}
+                  <div className="space-y-2">
+                    <label className="block text-sm font-semibold text-gray-800 mb-2">
+                      تاريخ التحصين *
+                    </label>
+                    <ModernDatePicker
+                      placeholder="اختر التاريخ"
+                      value={form.watch("date") ? new Date(form.watch("date")) : undefined}
+                      onChange={(date) => {
+                        const dateString = date ? date.toISOString().split('T')[0] : '';
+                        form.setValue("date", dateString);
+                        clearFieldError("date");
+                      }}
+                      required
+                      variant="modern"
+                      size="md"
+                      maxDate={new Date()}
+                    />
+                    {getFieldError("date") && (
+                      <p className="text-red-500 text-sm font-medium mt-1">{getFieldError("date")}</p>
+                    )}
+                  </div>
+
+                  {/* Client Name */}
+                  <div className="space-y-2">
+                    <label className="block text-sm font-semibold text-gray-800 mb-2">
+                      اسم العميل *
+                    </label>
+                    <Input
+                      value={form.watch("client.name") || ""}
+                      onChange={(e) => {
+                        form.setValue("client.name", e.target.value);
+                        clearFieldError("client.name");
+                      }}
+                      placeholder="اسم العميل"
+                      required
+                      className={getFieldError("client.name") ? 'border-red-500' : ''}
+                    />
+                    {getFieldError("client.name") && (
+                      <p className="text-red-500 text-sm font-medium mt-1">{getFieldError("client.name")}</p>
+                    )}
+                  </div>
+
+                  {/* Client National ID */}
+                  <div className="space-y-2">
+                    <label className="block text-sm font-semibold text-gray-800 mb-2">
+                      رقم الهوية الوطنية *
+                    </label>
+                    <Input
+                      value={form.watch("client.nationalId") || ""}
+                      onChange={(e) => {
+                        form.setValue("client.nationalId", e.target.value);
+                        clearFieldError("client.nationalId");
+                      }}
+                      placeholder="رقم الهوية (10-14 رقم)"
+                      required
+                      maxLength={14}
+                      className={getFieldError("client.nationalId") ? 'border-red-500' : ''}
+                    />
+                    {getFieldError("client.nationalId") && (
+                      <p className="text-red-500 text-sm font-medium mt-1">{getFieldError("client.nationalId")}</p>
+                    )}
+                  </div>
+
+                  {/* Client Phone */}
+                  <div className="space-y-2">
+                    <label className="block text-sm font-semibold text-gray-800 mb-2">
+                      رقم الهاتف *
+                    </label>
+                    <Input
+                      value={form.watch("client.phone") || ""}
+                      onChange={(e) => {
+                        form.setValue("client.phone", e.target.value);
+                        clearFieldError("client.phone");
+                      }}
+                      placeholder="رقم الهاتف (10-15 رقم)"
+                      required
+                      maxLength={15}
+                      className={getFieldError("client.phone") ? 'border-red-500' : ''}
+                    />
+                    {getFieldError("client.phone") && (
+                      <p className="text-red-500 text-sm font-medium mt-1">{getFieldError("client.phone")}</p>
+                    )}
+                  </div>
+
+                  {/* Client Village */}
+                  <div className="space-y-2">
+                    <label className="block text-sm font-semibold text-gray-800 mb-2">
+                      القرية
+                    </label>
+                    <Input
+                      value={form.watch("client.village") || ""}
+                      onChange={(e) => form.setValue("client.village", e.target.value)}
+                      placeholder="القرية"
                     />
                   </div>
 
-                  <div className="space-y-6">
-                    <h3 className="text-xl font-semibold text-blue-700 border-b-2 border-blue-400 pb-3">
-                      معلومات التحصين
-                    </h3>
-                    <FormField
-                      control={form.control}
-                      name="serialNo"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>رقم السجل</FormLabel>
-                          <div className="flex gap-2">
-                            <FormControl>
-                              <Input {...field} placeholder="رقم السجل" />
-                            </FormControl>
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="sm"
-                              onClick={() => field.onChange(generateSerialNo())}
-                              className="whitespace-nowrap"
-                            >
-                              توليد تلقائي
-                            </Button>
-                          </div>
-                          <FormMessage />
-                        </FormItem>
-                      )}
+                  {/* Client Detailed Address */}
+                  <div className="space-y-2">
+                    <label className="block text-sm font-semibold text-gray-800 mb-2">
+                      العنوان التفصيلي
+                    </label>
+                    <Input
+                      value={form.watch("client.detailedAddress") || ""}
+                      onChange={(e) => form.setValue("client.detailedAddress", e.target.value)}
+                      placeholder="العنوان التفصيلي"
                     />
-                    <FormField
-                      control={form.control}
-                      name="date"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>تاريخ التحصين</FormLabel>
-                          <FormControl>
-                            <ModernDatePicker
-                              placeholder="اختر تاريخ التحصين"
-                              value={field.value ? new Date(field.value) : undefined}
-                              onChange={(date) => {
-                                const dateString = date ? date.toISOString().split('T')[0] : '';
-                                field.onChange(dateString);
-                              }}
-                              maxDate={new Date()}
-                              variant="modern"
-                              size="md"
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
+                  </div>
+
+                  {/* Client Birth Date */}
+                  <div className="space-y-2">
+                    <label className="block text-sm font-semibold text-gray-800 mb-2">
+                      تاريخ الميلاد
+                    </label>
+                    <ModernDatePicker
+                      placeholder="اختر تاريخ الميلاد"
+                      value={form.watch("client.birthDate") ? new Date(form.watch("client.birthDate")) : undefined}
+                      onChange={(date) => {
+                        const dateString = date ? date.toISOString().split('T')[0] : '';
+                        form.setValue("client.birthDate", dateString);
+                      }}
+                      maxDate={new Date()}
+                      minDate={new Date(1900, 0, 1)}
+                      variant="modern"
+                      size="md"
                     />
-                    <FormField
-                      control={form.control}
-                      name="supervisor"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>اسم المشرف</FormLabel>
-                          <FormControl>
-                            <SupervisorSelect
-                              value={field.value}
-                              onValueChange={field.onChange}
-                              placeholder="اختر المشرف"
-                              section="تحصين"
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
+                  </div>
+
+                  {/* Supervisor */}
+                  <div className="space-y-2">
+                    <label className="block text-sm font-semibold text-gray-800 mb-2">
+                      اسم المشرف *
+                    </label>
+                    <SupervisorSelect
+                      value={form.watch("supervisor") || ""}
+                      onValueChange={(value) => {
+                        form.setValue("supervisor", value);
+                        clearFieldError("supervisor");
+                      }}
+                      placeholder="اختر المشرف"
+                      section="تحصين"
                     />
-                    {renderFormField("vehicleNo", "رقم المركبة")}
-                    {renderFormField("farmLocation", "موقع المزرعة")}
-                    {renderFormField("team", "اسم الفريق")}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      {renderFormField("coordinates.latitude", "خط العرض", "number", undefined, true)}
-                      {renderFormField("coordinates.longitude", "خط الطول", "number", undefined, true)}
-                    </div>
-                    {renderFormField(
-                      "vaccineType",
-                      "نوع المصل",
-                      "select",
-                      [
-                        { value: "HS", label: "لقاح الحمى القلاعية (HS)" },
-                        { value: "SG-Pox", label: "لقاح طاعون المجترات الصغيرة (SG-Pox)" },
-                        { value: "ET", label: "لقاح الإسهال الوبائي (ET)" },
-                        { value: "Brucella", label: "لقاح البروسيلا" },
-                        { value: "Rabies", label: "لقاح السعار" },
-                        { value: "Anthrax", label: "لقاح الجمرة الخبيثة" },
-                      ]
+                    {getFieldError("supervisor") && (
+                      <p className="text-red-500 text-sm font-medium mt-1">{getFieldError("supervisor")}</p>
                     )}
-                    {renderFormField(
-                      "vaccineCategory",
-                      "فئة المصل",
-                      "select",
-                      [
-                        { value: "Preventive", label: "وقائي" },
-                        { value: "Emergency", label: "طوارئ" },
-                      ]
+                  </div>
+
+                  {/* Vehicle Number */}
+                  <div className="space-y-2">
+                    <label className="block text-sm font-semibold text-gray-800 mb-2">
+                      رقم المركبة *
+                    </label>
+                    <Input
+                      value={form.watch("vehicleNo") || ""}
+                      onChange={(e) => {
+                        form.setValue("vehicleNo", e.target.value);
+                        clearFieldError("vehicleNo");
+                      }}
+                      placeholder="رقم المركبة"
+                      required
+                      className={getFieldError("vehicleNo") ? 'border-red-500' : ''}
+                    />
+                    {getFieldError("vehicleNo") && (
+                      <p className="text-red-500 text-sm font-medium mt-1">{getFieldError("vehicleNo")}</p>
                     )}
-                    {renderFormField(
-                      "herdHealth",
-                      "حالة القطيع",
-                      "select",
-                      [
-                        { value: "Healthy", label: "صحي" },
-                        { value: "Sick", label: "مريض" },
-                        { value: "Under Treatment", label: "قيد العلاج" },
-                      ]
+                  </div>
+
+                  {/* Farm Location */}
+                  <div className="space-y-2">
+                    <label className="block text-sm font-semibold text-gray-800 mb-2">
+                      موقع المزرعة *
+                    </label>
+                    <Input
+                      value={form.watch("farmLocation") || ""}
+                      onChange={(e) => {
+                        form.setValue("farmLocation", e.target.value);
+                        clearFieldError("farmLocation");
+                      }}
+                      placeholder="موقع المزرعة"
+                      required
+                      className={getFieldError("farmLocation") ? 'border-red-500' : ''}
+                    />
+                    {getFieldError("farmLocation") && (
+                      <p className="text-red-500 text-sm font-medium mt-1">{getFieldError("farmLocation")}</p>
                     )}
-                    {renderFormField(
-                      "animalsHandling",
-                      "معاملة الحيوانات",
-                      "select",
-                      [
-                        { value: "Easy", label: "سهلة" },
-                        { value: "Difficult", label: "صعبة" },
-                      ]
+                  </div>
+
+                  {/* Team */}
+                  <div className="space-y-2">
+                    <label className="block text-sm font-semibold text-gray-800 mb-2">
+                      اسم الفريق *
+                    </label>
+                    <Input
+                      value={form.watch("team") || ""}
+                      onChange={(e) => {
+                        form.setValue("team", e.target.value);
+                        clearFieldError("team");
+                      }}
+                      placeholder="اسم الفريق"
+                      required
+                      className={getFieldError("team") ? 'border-red-500' : ''}
+                    />
+                    {getFieldError("team") && (
+                      <p className="text-red-500 text-sm font-medium mt-1">{getFieldError("team")}</p>
                     )}
-                    {renderFormField(
-                      "labours",
-                      "حالة العمال",
-                      "select",
-                      [
-                        { value: "Available", label: "متوفر" },
-                        { value: "Not Available", label: "غير متوفر" },
-                      ]
+                  </div>
+
+                  {/* Coordinates */}
+                  <div className="space-y-2">
+                    <label className="block text-sm font-semibold text-gray-800 mb-2">
+                      خط العرض
+                    </label>
+                    <Input
+                      type="number"
+                      value={form.watch("coordinates.latitude") || ""}
+                      onChange={(e) => form.setValue("coordinates.latitude", parseFloat(e.target.value) || null)}
+                      placeholder="خط العرض"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="block text-sm font-semibold text-gray-800 mb-2">
+                      خط الطول
+                    </label>
+                    <Input
+                      type="number"
+                      value={form.watch("coordinates.longitude") || ""}
+                      onChange={(e) => form.setValue("coordinates.longitude", parseFloat(e.target.value) || null)}
+                      placeholder="خط الطول"
+                    />
+                  </div>
+
+                  {/* Vaccine Type */}
+                  <div className="space-y-2">
+                    <label className="block text-sm font-semibold text-gray-800 mb-2">
+                      نوع المصل *
+                    </label>
+                    <Select
+                      value={form.watch("vaccineType") || ""}
+                      onValueChange={(value) => {
+                        form.setValue("vaccineType", value);
+                        clearFieldError("vaccineType");
+                      }}
+                    >
+                      <SelectTrigger className={getFieldError("vaccineType") ? 'border-red-500' : ''}>
+                        <SelectValue placeholder="اختر نوع المصل" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="HS">لقاح الحمى القلاعية (HS)</SelectItem>
+                        <SelectItem value="SG-Pox">لقاح طاعون المجترات الصغيرة (SG-Pox)</SelectItem>
+                        <SelectItem value="ET">لقاح الإسهال الوبائي (ET)</SelectItem>
+                        <SelectItem value="Brucella">لقاح البروسيلا</SelectItem>
+                        <SelectItem value="Rabies">لقاح السعار</SelectItem>
+                        <SelectItem value="Anthrax">لقاح الجمرة الخبيثة</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    {getFieldError("vaccineType") && (
+                      <p className="text-red-500 text-sm font-medium mt-1">{getFieldError("vaccineType")}</p>
                     )}
-                    {renderFormField(
-                      "reachableLocation",
-                      "سهولة الوصول للموقع",
-                      "select",
-                      [
-                        { value: "Easy", label: "سهل" },
-                        { value: "Hard to reach", label: "صعب الوصول" },
-                      ]
+                  </div>
+
+                  {/* Vaccine Category */}
+                  <div className="space-y-2">
+                    <label className="block text-sm font-semibold text-gray-800 mb-2">
+                      فئة المصل *
+                    </label>
+                    <Select
+                      value={form.watch("vaccineCategory") || ""}
+                      onValueChange={(value) => {
+                        form.setValue("vaccineCategory", value);
+                        clearFieldError("vaccineCategory");
+                      }}
+                    >
+                      <SelectTrigger className={getFieldError("vaccineCategory") ? 'border-red-500' : ''}>
+                        <SelectValue placeholder="اختر فئة المصل" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Preventive">وقائي</SelectItem>
+                        <SelectItem value="Emergency">طوارئ</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    {getFieldError("vaccineCategory") && (
+                      <p className="text-red-500 text-sm font-medium mt-1">{getFieldError("vaccineCategory")}</p>
+                    )}
+                  </div>
+
+                  {/* Herd Health */}
+                  <div className="space-y-2">
+                    <label className="block text-sm font-semibold text-gray-800 mb-2">
+                      حالة القطيع *
+                    </label>
+                    <Select
+                      value={form.watch("herdHealth") || ""}
+                      onValueChange={(value) => {
+                        form.setValue("herdHealth", value);
+                        clearFieldError("herdHealth");
+                      }}
+                    >
+                      <SelectTrigger className={getFieldError("herdHealth") ? 'border-red-500' : ''}>
+                        <SelectValue placeholder="اختر حالة القطيع" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Healthy">صحي</SelectItem>
+                        <SelectItem value="Sick">مريض</SelectItem>
+                        <SelectItem value="Under Treatment">قيد العلاج</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    {getFieldError("herdHealth") && (
+                      <p className="text-red-500 text-sm font-medium mt-1">{getFieldError("herdHealth")}</p>
+                    )}
+                  </div>
+
+                  {/* Animals Handling */}
+                  <div className="space-y-2">
+                    <label className="block text-sm font-semibold text-gray-800 mb-2">
+                      معاملة الحيوانات *
+                    </label>
+                    <Select
+                      value={form.watch("animalsHandling") || ""}
+                      onValueChange={(value) => {
+                        form.setValue("animalsHandling", value);
+                        clearFieldError("animalsHandling");
+                      }}
+                    >
+                      <SelectTrigger className={getFieldError("animalsHandling") ? 'border-red-500' : ''}>
+                        <SelectValue placeholder="اختر معاملة الحيوانات" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Easy">سهلة</SelectItem>
+                        <SelectItem value="Difficult">صعبة</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    {getFieldError("animalsHandling") && (
+                      <p className="text-red-500 text-sm font-medium mt-1">{getFieldError("animalsHandling")}</p>
+                    )}
+                  </div>
+
+                  {/* Labours */}
+                  <div className="space-y-2">
+                    <label className="block text-sm font-semibold text-gray-800 mb-2">
+                      حالة العمال *
+                    </label>
+                    <Select
+                      value={form.watch("labours") || ""}
+                      onValueChange={(value) => {
+                        form.setValue("labours", value);
+                        clearFieldError("labours");
+                      }}
+                    >
+                      <SelectTrigger className={getFieldError("labours") ? 'border-red-500' : ''}>
+                        <SelectValue placeholder="اختر حالة العمال" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Available">متوفر</SelectItem>
+                        <SelectItem value="Not Available">غير متوفر</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    {getFieldError("labours") && (
+                      <p className="text-red-500 text-sm font-medium mt-1">{getFieldError("labours")}</p>
+                    )}
+                  </div>
+
+                  {/* Reachable Location */}
+                  <div className="space-y-2">
+                    <label className="block text-sm font-semibold text-gray-800 mb-2">
+                      سهولة الوصول للموقع *
+                    </label>
+                    <Select
+                      value={form.watch("reachableLocation") || ""}
+                      onValueChange={(value) => {
+                        form.setValue("reachableLocation", value);
+                        clearFieldError("reachableLocation");
+                      }}
+                    >
+                      <SelectTrigger className={getFieldError("reachableLocation") ? 'border-red-500' : ''}>
+                        <SelectValue placeholder="اختر سهولة الوصول للموقع" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Easy">سهل</SelectItem>
+                        <SelectItem value="Hard to reach">صعب الوصول</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    {getFieldError("reachableLocation") && (
+                      <p className="text-red-500 text-sm font-medium mt-1">{getFieldError("reachableLocation")}</p>
                     )}
                   </div>
                 </div>
               </TabsContent>
 
               <TabsContent value="herd" className="tabs-content-modern">
-                <h3 className="text-xl font-semibold text-blue-700 border-b-2 border-blue-400 pb-3">
-                  تفاصيل القطيع
-                </h3>
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-8">
-                  {renderHerdInputs("sheep")}
-                  {renderHerdInputs("goats")}
-                  {renderHerdInputs("camel")}
-                  {renderHerdInputs("cattle")}
-                  {renderHerdInputs("horse")}
+                <div className="space-y-6">
+                  <h3 className="text-xl font-semibold text-blue-700 border-b-2 border-blue-400 pb-3">
+                    تفاصيل القطيع
+                  </h3>
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    {renderHerdInputs("sheep")}
+                    {renderHerdInputs("goats")}
+                    {renderHerdInputs("camel")}
+                    {renderHerdInputs("cattle")}
+                    {renderHerdInputs("horse")}
+                  </div>
                 </div>
               </TabsContent>
 
               <TabsContent value="request" className="tabs-content-modern">
-                <h3 className="text-xl font-semibold text-blue-700 border-b-2 border-blue-400 pb-3">
-                  معلومات الطلب
-                </h3>
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-8">
-                  <div className="space-y-4">
-                    <FormField
-                      control={form.control}
-                      name="request.date"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>تاريخ الطلب</FormLabel>
-                          <FormControl>
-                            <ModernDatePicker
-                              placeholder="اختر تاريخ الطلب"
-                              value={field.value ? new Date(field.value) : undefined}
-                              onChange={(date) => {
-                                const dateString = date ? date.toISOString().split('T')[0] : '';
-                                field.onChange(dateString);
-                              }}
-                              maxDate={new Date()}
-                              variant="modern"
-                              size="md"
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    {renderFormField(
-                      "request.situation",
-                      "حالة الطلب",
-                      "select",
-                      [
-                        { value: "Open", label: "مفتوح" },
-                        { value: "Closed", label: "مغلق" },
-                        { value: "Pending", label: "معلق" },
-                      ]
-                    )}
-                    {form.watch("request.situation") === "Closed" && (
-                      <FormField
-                        control={form.control}
-                        name="request.fulfillingDate"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>تاريخ الإنجاز</FormLabel>
-                            <FormControl>
-                              <ModernDatePicker
-                                placeholder="اختر تاريخ الإنجاز"
-                                value={field.value ? new Date(field.value) : undefined}
-                                onChange={(date) => {
-                                  const dateString = date ? date.toISOString().split('T')[0] : '';
-                                  field.onChange(dateString);
-                                }}
-                                minDate={form.watch("request.date") ? new Date(form.watch("request.date")) : undefined}
-                                variant="modern"
-                                size="md"
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
+                <div className="space-y-6">
+                  <h3 className="text-xl font-semibold text-blue-700 border-b-2 border-blue-400 pb-3">
+                    معلومات الطلب
+                  </h3>
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <label className="block text-sm font-semibold text-gray-800 mb-2">
+                          تاريخ الطلب *
+                        </label>
+                        <ModernDatePicker
+                          placeholder="اختر تاريخ الطلب"
+                          value={form.watch("request.date") ? new Date(form.watch("request.date")) : undefined}
+                          onChange={(date) => {
+                            const dateString = date ? date.toISOString().split('T')[0] : '';
+                            form.setValue("request.date", dateString);
+                            clearFieldError("request.date");
+                          }}
+                          maxDate={new Date()}
+                          variant="modern"
+                          size="md"
+                          required
+                        />
+                        {getFieldError("request.date") && (
+                          <p className="text-red-500 text-sm font-medium mt-1">{getFieldError("request.date")}</p>
                         )}
-                      />
-                    )}
-                  </div>
-                  <div className="space-y-4">
-                    {renderFormField("category", "الفئة")}
-                    <FormField
-                      control={form.control as any}
-                      name="remarks"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>الملاحظات</FormLabel>
-                          <FormControl>
-                            <Textarea
-                              {...field}
-                              className="min-h-[120px]"
-                              dir="rtl"
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <label className="block text-sm font-semibold text-gray-800 mb-2">
+                          حالة الطلب *
+                        </label>
+                        <Select
+                          value={form.watch("request.situation") || ""}
+                          onValueChange={(value) => {
+                            form.setValue("request.situation", value);
+                            clearFieldError("request.situation");
+                          }}
+                        >
+                          <SelectTrigger className={getFieldError("request.situation") ? 'border-red-500' : ''}>
+                            <SelectValue placeholder="اختر حالة الطلب" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="Open">مفتوح</SelectItem>
+                            <SelectItem value="Closed">مغلق</SelectItem>
+                            <SelectItem value="Pending">معلق</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        {getFieldError("request.situation") && (
+                          <p className="text-red-500 text-sm font-medium mt-1">{getFieldError("request.situation")}</p>
+                        )}
+                      </div>
+                      
+                      {form.watch("request.situation") === "Closed" && (
+                        <div className="space-y-2">
+                          <label className="block text-sm font-semibold text-gray-800 mb-2">
+                            تاريخ الإنجاز
+                          </label>
+                          <ModernDatePicker
+                            placeholder="اختر تاريخ الإنجاز"
+                            value={form.watch("request.fulfillingDate") ? new Date(form.watch("request.fulfillingDate")) : undefined}
+                            onChange={(date) => {
+                              const dateString = date ? date.toISOString().split('T')[0] : '';
+                              form.setValue("request.fulfillingDate", dateString);
+                            }}
+                            minDate={form.watch("request.date") ? new Date(form.watch("request.date")) : undefined}
+                            variant="modern"
+                            size="md"
+                          />
+                        </div>
                       )}
-                    />
+                    </div>
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <label className="block text-sm font-semibold text-gray-800 mb-2">
+                          الفئة
+                        </label>
+                        <Input
+                          value={form.watch("category") || ""}
+                          onChange={(e) => form.setValue("category", e.target.value)}
+                          placeholder="الفئة"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="block text-sm font-semibold text-gray-800 mb-2">
+                          الملاحظات *
+                        </label>
+                        <Textarea
+                          value={form.watch("remarks") || ""}
+                          onChange={(e) => {
+                            form.setValue("remarks", e.target.value);
+                            clearFieldError("remarks");
+                          }}
+                          placeholder="أدخل الملاحظات (10 أحرف على الأقل)"
+                          className={`min-h-[120px] ${getFieldError("remarks") ? 'border-red-500' : ''}`}
+                          dir="rtl"
+                          required
+                        />
+                        {getFieldError("remarks") && (
+                          <p className="text-red-500 text-sm font-medium mt-1">{getFieldError("remarks")}</p>
+                        )}
+                      </div>
+                    </div>
                   </div>
                 </div>
               </TabsContent>

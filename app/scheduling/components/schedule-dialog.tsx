@@ -48,8 +48,13 @@ import { Card, CardContent, CardHeader, CardTitle, StatsCard } from "@/component
 import { Badge, StatusBadge } from "@/components/ui/badge-modern";
 import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
+import { entityToasts } from "@/lib/utils/toast-utils";
+import { useFormValidation } from "@/lib/hooks/use-form-validation";
+import { ValidatedInput } from "@/components/ui/validated-input";
+import { ValidatedSelect } from "@/components/ui/validated-select";
+import { ValidatedTextarea } from "@/components/ui/validated-textarea";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Popover, PopoverContent, PopoverTrigger, PopoverTrigger } from "@radix-ui/react-popover";
+import { Popover, PopoverContent, PopoverTrigger } from "@radix-ui/react-popover";
 
 interface ScheduleDialogProps {
   open: boolean;
@@ -95,6 +100,31 @@ const timeSlots = [
 
 export function ScheduleDialog({ open, onOpenChange, event, onSave }: ScheduleDialogProps) {
   const [activeTab, setActiveTab] = useState("basic");
+
+  // Validation rules for unified system
+  const validationRules = {
+    'title': { required: true, minLength: 2 },
+    'type': { required: true },
+    'date': { required: true },
+    'time': { required: true },
+    'location': { required: true },
+    'clientName': { required: true, minLength: 2 },
+    'clientPhone': { required: true, phone: true },
+    'animalCount': { required: true },
+    'status': { required: true },
+    'priority': { required: true },
+  };
+
+  const {
+    errors,
+    validateField,
+    validateForm: validateFormData,
+    setFieldError,
+    clearFieldError,
+    clearAllErrors,
+    getFieldError,
+  } = useFormValidation(validationRules);
+
   const [formData, setFormData] = useState({
     title: "",
     type: "vaccination",
@@ -166,7 +196,7 @@ export function ScheduleDialog({ open, onOpenChange, event, onSave }: ScheduleDi
     }
   }, [event]);
 
-  const [errors, setErrors] = useState<Record<string, string>>({});
+  // const [errors, setErrors] = useState<Record<string, string>>({});
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
@@ -224,14 +254,30 @@ export function ScheduleDialog({ open, onOpenChange, event, onSave }: ScheduleDi
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!validateForm()) return;
+    if (!validateForm()) {
+      // Show field-specific errors directly in the form
+      // The validateForm function already sets errors in the errors state
+      // which will be displayed by FormMessage components
+      return;
+    }
     
-    onSave({
-      ...formData,
-      assignedTo: selectedMembers,
-      date: formData.date,
-    });
-    onOpenChange(false);
+    try {
+      if (event) {
+        entityToasts.schedule.update();
+      } else {
+        entityToasts.schedule.create();
+      }
+      
+      onSave({
+        ...formData,
+        assignedTo: selectedMembers,
+        date: formData.date,
+      });
+      onOpenChange(false);
+    } catch (error) {
+      console.error('Error saving schedule:', error);
+      entityToasts.schedule.error(event ? 'update' : 'create');
+    }
   };
 
   const toggleMember = (member: string) => {
@@ -384,8 +430,8 @@ export function ScheduleDialog({ open, onOpenChange, event, onSave }: ScheduleDi
                     <PopoverContent className="w-auto p-0">
                       <Calendar
                         mode="single"
-                        selected={formData.date}
-                        onSelect={(date) => setFormData({ ...formData, date })}
+                        selected={formData.date as Date | undefined}
+                        onSelect={(date: Date | undefined) => setFormData({ ...formData, date })}
                         initialFocus
                       />
                     </PopoverContent>

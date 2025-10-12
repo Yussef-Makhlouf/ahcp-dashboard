@@ -38,6 +38,12 @@ import { Separator } from "@/components/ui/separator";
 import { Progress } from "@/components/ui/progress";
 import type { Laboratory } from "@/types";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { entityToasts } from "@/lib/utils/toast-utils";
+import { laboratoriesApi } from "@/lib/api/laboratories";
+import { useFormValidation } from "@/lib/hooks/use-form-validation";
+import { ValidatedInput } from "@/components/ui/validated-input";
+import { ValidatedSelect } from "@/components/ui/validated-select";
+import { ValidatedTextarea } from "@/components/ui/validated-textarea";
 
 interface LaboratoryDialogProps {
   open: boolean;
@@ -81,6 +87,29 @@ interface TestResult {
 
 export function LaboratoryDialog({ open, onOpenChange, laboratory, onSave }: LaboratoryDialogProps) {
   const [activeTab, setActiveTab] = useState("basic");
+
+  // Validation rules for unified system
+  const validationRules = {
+    'clientName': { required: true, minLength: 2 },
+    'clientId': { required: true, nationalId: true },
+    'clientPhone': { required: true, phone: true },
+    'supervisor': { required: true },
+    'vehicleNo': { required: true },
+    'farmLocation': { required: true },
+    'sampleCode': { required: true },
+    'testType': { required: true },
+  };
+
+  const {
+    errors,
+    validateField,
+    validateForm: validateFormData,
+    setFieldError,
+    clearFieldError,
+    clearAllErrors,
+    getFieldError,
+  } = useFormValidation(validationRules);
+
   const [formData, setFormData] = useState({
     serialNo: 0,
     date: undefined as Date | undefined,
@@ -103,6 +132,7 @@ export function LaboratoryDialog({ open, onOpenChange, laboratory, onSave }: Lab
       other: "",
     },
     collector: "",
+    supervisor: "",
     sampleType: "",
     sampleNumber: "",
     positiveCases: 0,
@@ -148,6 +178,7 @@ export function LaboratoryDialog({ open, onOpenChange, laboratory, onSave }: Lab
           other: "",
         },
         collector: laboratory.collector || "",
+        supervisor: (laboratory as any).supervisor || "",
         sampleType: laboratory.sampleType || "",
         sampleNumber: laboratory.sampleNumber || "",
         positiveCases: laboratory.positiveCases || 0,
@@ -178,6 +209,7 @@ export function LaboratoryDialog({ open, onOpenChange, laboratory, onSave }: Lab
           other: "",
         },
         collector: "",
+        supervisor: "",
         sampleType: "",
         sampleNumber: "",
         positiveCases: 0,
@@ -188,57 +220,38 @@ export function LaboratoryDialog({ open, onOpenChange, laboratory, onSave }: Lab
     }
   }, [laboratory]);
 
-  const [errors, setErrors] = useState<Record<string, string>>({});
-
   const validateForm = () => {
-    const newErrors: Record<string, string> = {};
+    // Use the unified validation system
+    const isValid = validateFormData(formData);
     
-    // Required fields validation
-    if (!formData.sampleCode.trim()) {
-      newErrors.sampleCode = "رمز العينة مطلوب";
-    } else if (formData.sampleCode.trim().length < 3) {
-      newErrors.sampleCode = "رمز العينة يجب أن يكون أكثر من 3 أحرف";
-    }
-    
-    if (!formData.sampleType) {
-      newErrors.sampleType = "نوع العينة مطلوب";
-    }
-    
-    if (!formData.collector) {
-      newErrors.collector = "جامع العينة مطلوب";
-    }
-    
-    if (!formData.date) {
-      newErrors.date = "تاريخ جمع العينة مطلوب";
-    }
-    
-    
-    // Validate species counts
+    // Additional custom validations
     const totalSamples = getTotalSamples();
     if (totalSamples === 0) {
-      newErrors.speciesCounts = "يجب إدخال عدد العينات";
+      setFieldError('speciesCounts', "يجب إدخال عدد العينات");
+      return false;
     }
-    
     
     // Validate positive and negative cases
     if (formData.positiveCases < 0) {
-      newErrors.positiveCases = "الحالات الإيجابية لا يمكن أن تكون سالبة";
+      setFieldError('positiveCases', "الحالات الإيجابية لا يمكن أن تكون سالبة");
+      return false;
     }
     
     if (formData.negativeCases < 0) {
-      newErrors.negativeCases = "الحالات السلبية لا يمكن أن تكون سالبة";
+      setFieldError('negativeCases', "الحالات السلبية لا يمكن أن تكون سالبة");
+      return false;
     }
     
     const totalCases = formData.positiveCases + formData.negativeCases;
     if (totalCases > totalSamples) {
-      newErrors.positiveCases = "مجموع الحالات الإيجابية والسلبية لا يمكن أن يكون أكبر من إجمالي العينات";
+      setFieldError('positiveCases', "مجموع الحالات الإيجابية والسلبية لا يمكن أن يكون أكبر من إجمالي العينات");
+      return false;
     }
     
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+    return isValid;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!validateForm()) return;
@@ -263,8 +276,26 @@ export function LaboratoryDialog({ open, onOpenChange, laboratory, onSave }: Lab
       remarks: formData.remarks,
     };
     
-    onSave(submitData);
-    onOpenChange(false);
+    // Validate form data before sending
+    // Validation is already handled by validateForm() function
+    
+    try {
+      if (laboratory) {
+        // Update existing laboratory
+        await laboratoriesApi.update(laboratory._id || '', submitData);
+        entityToasts.laboratory.update();
+      } else {
+        // Create new laboratory
+        await laboratoriesApi.create(submitData);
+        entityToasts.laboratory.create();
+      }
+      
+      onSave(submitData);
+      onOpenChange(false);
+    } catch (error) {
+      console.error('Error saving laboratory:', error);
+      entityToasts.laboratory.error(laboratory ? 'update' : 'create');
+    }
   };
 
   const addTestResult = () => {
@@ -356,10 +387,13 @@ export function LaboratoryDialog({ open, onOpenChange, laboratory, onSave }: Lab
                     <Input
                       type="number"
                       value={formData.serialNo}
-                      onChange={(e) => setFormData({ ...formData, serialNo: parseInt(e.target.value) || 0 })}
+                      onChange={(e) => {
+                        setFormData({ ...formData, serialNo: parseInt(e.target.value) || 0 });
+                        clearFieldError('serialNo');
+                      }}
                       required
                       disabled={!!laboratory}
-                      className="flex-1"
+                      className={`flex-1 ${getFieldError('serialNo') ? 'border-red-500' : ''}`}
                     />
                     {!laboratory && (
                       <Button
@@ -376,6 +410,9 @@ export function LaboratoryDialog({ open, onOpenChange, laboratory, onSave }: Lab
                       </Button>
                     )}
                   </div>
+                  {getFieldError('serialNo') && (
+                    <p className="text-red-500 text-sm font-medium mt-1">{getFieldError('serialNo')}</p>
+                  )}
                 </div>
 
                 {/* Date */}
@@ -384,11 +421,17 @@ export function LaboratoryDialog({ open, onOpenChange, laboratory, onSave }: Lab
                     label="التاريخ *"
                     placeholder="اختر التاريخ"
                     value={formData.date}
-                    onChange={(date) => setFormData({ ...formData, date: date || undefined })}
+                    onChange={(date) => {
+                      setFormData({ ...formData, date: date || undefined });
+                      clearFieldError('date');
+                    }}
                     required
                     variant="modern"
                     size="md"
                   />
+                  {getFieldError('date') && (
+                    <p className="text-red-500 text-sm font-medium mt-1">{getFieldError('date')}</p>
+                  )}
                 </div>
 
                 {/* Sample Code */}
@@ -397,10 +440,13 @@ export function LaboratoryDialog({ open, onOpenChange, laboratory, onSave }: Lab
                   <div className="flex gap-2">
                     <Input
                       value={formData.sampleCode}
-                      onChange={(e) => setFormData({ ...formData, sampleCode: e.target.value })}
+                      onChange={(e) => {
+                        setFormData({ ...formData, sampleCode: e.target.value });
+                        clearFieldError('sampleCode');
+                      }}
                       required
                       disabled={!!laboratory}
-                      className="font-mono flex-1"
+                      className={`font-mono flex-1 ${getFieldError('sampleCode') ? 'border-red-500' : ''}`}
                     />
                     {!laboratory && (
                       <Button
@@ -417,6 +463,9 @@ export function LaboratoryDialog({ open, onOpenChange, laboratory, onSave }: Lab
                       </Button>
                     )}
                   </div>
+                  {getFieldError('sampleCode') && (
+                    <p className="text-red-500 text-sm font-medium mt-1">{getFieldError('sampleCode')}</p>
+                  )}
                 </div>
 
                 {/* Client Name */}
@@ -424,10 +473,17 @@ export function LaboratoryDialog({ open, onOpenChange, laboratory, onSave }: Lab
                   <Label>اسم العميل *</Label>
                   <Input
                     value={formData.clientName}
-                    onChange={(e) => setFormData({ ...formData, clientName: e.target.value })}
+                    onChange={(e) => {
+                      setFormData({ ...formData, clientName: e.target.value });
+                      clearFieldError('clientName');
+                    }}
                     placeholder="اسم العميل"
                     required
+                    className={getFieldError('clientName') ? 'border-red-500' : ''}
                   />
+                  {getFieldError('clientName') && (
+                    <p className="text-red-500 text-sm font-medium mt-1">{getFieldError('clientName')}</p>
+                  )}
                 </div>
 
                 {/* Client ID */}
@@ -435,11 +491,18 @@ export function LaboratoryDialog({ open, onOpenChange, laboratory, onSave }: Lab
                   <Label>رقم الهوية *</Label>
                   <Input
                     value={formData.clientId}
-                    onChange={(e) => setFormData({ ...formData, clientId: e.target.value })}
+                    onChange={(e) => {
+                      setFormData({ ...formData, clientId: e.target.value });
+                      clearFieldError('clientId');
+                    }}
                     placeholder="رقم الهوية (9-10 أرقام)"
                     required
                     maxLength={10}
+                    className={getFieldError('clientId') ? 'border-red-500' : ''}
                   />
+                  {getFieldError('clientId') && (
+                    <p className="text-red-500 text-sm font-medium mt-1">{getFieldError('clientId')}</p>
+                  )}
                 </div>
 
                 {/* Client Birth Date */}
@@ -459,11 +522,18 @@ export function LaboratoryDialog({ open, onOpenChange, laboratory, onSave }: Lab
                   <Label>رقم الهاتف *</Label>
                   <Input
                     value={formData.clientPhone}
-                    onChange={(e) => setFormData({ ...formData, clientPhone: e.target.value })}
+                    onChange={(e) => {
+                      setFormData({ ...formData, clientPhone: e.target.value });
+                      clearFieldError('clientPhone');
+                    }}
                     placeholder="رقم الهاتف (9 أرقام)"
                     required
                     maxLength={9}
+                    className={getFieldError('clientPhone') ? 'border-red-500' : ''}
                   />
+                  {getFieldError('clientPhone') && (
+                    <p className="text-red-500 text-sm font-medium mt-1">{getFieldError('clientPhone')}</p>
+                  )}
                 </div>
 
                 {/* Location */}
@@ -471,10 +541,17 @@ export function LaboratoryDialog({ open, onOpenChange, laboratory, onSave }: Lab
                   <Label>الموقع *</Label>
                   <Input
                     value={formData.farmLocation}
-                    onChange={(e) => setFormData({ ...formData, farmLocation: e.target.value })}
+                    onChange={(e) => {
+                      setFormData({ ...formData, farmLocation: e.target.value });
+                      clearFieldError('farmLocation');
+                    }}
                     placeholder="موقع المزرعة"
                     required
+                    className={getFieldError('farmLocation') ? 'border-red-500' : ''}
                   />
+                  {getFieldError('farmLocation') && (
+                    <p className="text-red-500 text-sm font-medium mt-1">{getFieldError('farmLocation')}</p>
+                  )}
                 </div>
 
                 {/* North Coordinate */}
@@ -510,10 +587,16 @@ export function LaboratoryDialog({ open, onOpenChange, laboratory, onSave }: Lab
                   <Label>جامع العينة *</Label>
                   <SupervisorSelect
                     value={formData.collector}
-                    onValueChange={(value) => setFormData({ ...formData, collector: value })}
+                    onValueChange={(value) => {
+                      setFormData({ ...formData, collector: value });
+                      clearFieldError('collector');
+                    }}
                     placeholder="اختر جامع العينة"
                     section="المختبرات"
                   />
+                  {getFieldError('collector') && (
+                    <p className="text-red-500 text-sm font-medium mt-1">{getFieldError('collector')}</p>
+                  )}
                 </div>
 
                 {/* Sample Type */}
@@ -521,7 +604,10 @@ export function LaboratoryDialog({ open, onOpenChange, laboratory, onSave }: Lab
                   <Label>نوع العينة *</Label>
                   <Select
                     value={formData.sampleType}
-                    onValueChange={(value) => setFormData({ ...formData, sampleType: value })}
+                    onValueChange={(value) => {
+                      setFormData({ ...formData, sampleType: value });
+                      clearFieldError('sampleType');
+                    }}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="اختر نوع العينة" />
@@ -534,6 +620,9 @@ export function LaboratoryDialog({ open, onOpenChange, laboratory, onSave }: Lab
                       ))}
                     </SelectContent>
                   </Select>
+                  {getFieldError('sampleType') && (
+                    <p className="text-red-500 text-sm font-medium mt-1">{getFieldError('sampleType')}</p>
+                  )}
                 </div>
 
                 {/* Collector Code */}
@@ -541,10 +630,17 @@ export function LaboratoryDialog({ open, onOpenChange, laboratory, onSave }: Lab
                   <Label>رمز جامع العينة *</Label>
                   <Input
                     value={formData.sampleNumber}
-                    onChange={(e) => setFormData({ ...formData, sampleNumber: e.target.value })}
+                    onChange={(e) => {
+                      setFormData({ ...formData, sampleNumber: e.target.value });
+                      clearFieldError('sampleNumber');
+                    }}
                     placeholder="رمز جامع العينة (مثل: OS001, KN002)"
                     required
+                    className={getFieldError('sampleNumber') ? 'border-red-500' : ''}
                   />
+                  {getFieldError('sampleNumber') && (
+                    <p className="text-red-500 text-sm font-medium mt-1">{getFieldError('sampleNumber')}</p>
+                  )}
                 </div>
               </div>
             </TabsContent>

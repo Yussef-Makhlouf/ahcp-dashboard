@@ -38,11 +38,15 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { EnhancedMobileTabs } from "@/components/ui/mobile-tabs";
 import { parasiteControlApi } from "@/lib/api/parasite-control";
 import type { ParasiteControl } from "@/types";
-import { validateEgyptianPhone, validateSaudiPhone } from "@/lib/utils";
+import { validateEgyptianPhone, validateSaudiPhone, validatePhoneNumber, validateNationalId } from "@/lib/utils";
 import { User, Heart, Shield, Activity } from "lucide-react";
 import { ModernDatePicker } from "@/components/ui/modern-date-picker";
 import { SupervisorSelect } from "@/components/ui/supervisor-select";
-import { toast } from "sonner";
+import { entityToasts } from "@/lib/utils/toast-utils";
+import { useFormValidation } from "@/lib/hooks/use-form-validation";
+import { ValidatedInput } from "@/components/ui/validated-input";
+import { ValidatedSelect } from "@/components/ui/validated-select";
+import { ValidatedTextarea } from "@/components/ui/validated-textarea";
 
 const formSchema = z.object({
   serialNo: z.string().min(1, "رقم السجل مطلوب"),
@@ -134,6 +138,31 @@ export function ParasiteControlDialog({
   onSuccess,
 }: ParasiteControlDialogProps) {
   const [activeTab, setActiveTab] = useState("basic");
+  
+  // Validation rules for unified system
+  const validationRules = {
+    'client.name': { required: true, minLength: 2 },
+    'client.nationalId': { required: true, nationalId: true },
+    'client.phone': { required: true, phone: true },
+    'supervisor': { required: true },
+    'vehicleNo': { required: true },
+    'herdLocation': { required: true },
+    'insecticide.type': { required: true },
+    'insecticide.method': { required: true },
+    'insecticide.category': { required: true },
+    'insecticide.volumeMl': { required: true },
+  };
+
+  const {
+    errors,
+    validateField,
+    validateForm: validateFormData,
+    setFieldError,
+    clearFieldError,
+    clearAllErrors,
+    getFieldError,
+  } = useFormValidation(validationRules);
+
   const form = useForm({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -333,58 +362,85 @@ export function ParasiteControlDialog({
       // تحقق من وجود اسم العميل
       if (!data.client?.name?.trim()) {
         console.error('❌ Missing client name:', data.client);
-        toast.error('يرجى إدخال اسم العميل');
+        form.setError('client.name', { 
+          type: 'required', 
+          message: 'اسم العميل مطلوب' 
+        });
         setActiveTab('client');
         return;
       }
       
       // تحقق من وجود البيانات المطلوبة الأخرى
       if (!data.serialNo?.trim()) {
-        toast.error('يرجى ملء رقم السجل');
+        form.setError('serialNo', { 
+          type: 'required', 
+          message: 'رقم السجل مطلوب' 
+        });
         setActiveTab('basic');
         return;
       }
       
       if (!data.herdLocation?.trim()) {
-        toast.error('يرجى ملء موقع القطيع');
+        form.setError('herdLocation', { 
+          type: 'required', 
+          message: 'موقع القطيع مطلوب' 
+        });
         setActiveTab('basic');
         return;
       }
       
       if (!data.supervisor?.trim()) {
-        toast.error('يرجى ملء اسم المشرف');
+        form.setError('supervisor', { 
+          type: 'required', 
+          message: 'اسم المشرف مطلوب' 
+        });
         setActiveTab('basic');
         return;
       }
       
       if (!data.vehicleNo?.trim()) {
-        toast.error('يرجى ملء رقم المركبة');
+        form.setError('vehicleNo', { 
+          type: 'required', 
+          message: 'رقم المركبة مطلوب' 
+        });
         setActiveTab('basic');
         return;
       }
       
       // تحقق من بيانات المبيد المطلوبة
       if (!data.insecticide?.type?.trim()) {
-        toast.error('يرجى ملء نوع المبيد');
+        form.setError('insecticide.type', { 
+          type: 'required', 
+          message: 'نوع المبيد مطلوب' 
+        });
         setActiveTab('treatment');
         return;
       }
       
       if (!data.insecticide?.method?.trim()) {
-        toast.error('يرجى ملء طريقة الرش');
+        form.setError('insecticide.method', { 
+          type: 'required', 
+          message: 'طريقة الرش مطلوبة' 
+        });
         setActiveTab('treatment');
         return;
       }
       
       if (!data.insecticide?.category?.trim()) {
-        toast.error('يرجى ملء فئة المبيد');
+        form.setError('insecticide.category', { 
+          type: 'required', 
+          message: 'فئة المبيد مطلوبة' 
+        });
         setActiveTab('treatment');
         return;
       }
       
       if (!data.insecticide?.volumeMl || Number(data.insecticide.volumeMl) <= 0) {
         console.error('❌ Invalid volumeMl:', data.insecticide?.volumeMl);
-        toast.error('يرجى ملء كمية المبيد (يجب أن تكون أكبر من 0)');
+        form.setError('insecticide.volumeMl', { 
+          type: 'min', 
+          message: 'كمية المبيد يجب أن تكون أكبر من 0' 
+        });
         setActiveTab('treatment');
         return;
       }
@@ -463,14 +519,20 @@ export function ParasiteControlDialog({
       // التحقق النهائي من البيانات قبل الإرسال
       if (!backendData.client?.name?.trim()) {
         console.error('❌ Client name is invalid:', backendData.client);
-        toast.error('اسم العميل غير صحيح');
+        form.setError('client.name', { 
+          type: 'required', 
+          message: 'اسم العميل مطلوب' 
+        });
         setActiveTab('client');
         return;
       }
       
       if (!backendData.insecticide.volumeMl || backendData.insecticide.volumeMl <= 0) {
         console.error('❌ Insecticide volumeMl is invalid:', backendData.insecticide.volumeMl);
-        toast.error('كمية المبيد غير صحيحة - يجب أن تكون أكبر من 0');
+        form.setError('insecticide.volumeMl', { 
+          type: 'min', 
+          message: 'كمية المبيد يجب أن تكون أكبر من 0' 
+        });
         setActiveTab('treatment');
         return;
       }
@@ -489,7 +551,7 @@ export function ParasiteControlDialog({
       onOpenChange(false);
     } catch (error) {
       console.error('❌ Error submitting form:', error);
-      toast.error(error instanceof Error ? error.message : 'حدث خطأ غير متوقع');
+      entityToasts.parasiteControl.error('save');
     }
   };
 
@@ -567,86 +629,95 @@ export function ParasiteControlDialog({
 
               <TabsContent value="basic" className="tabs-content-modern">
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-4 lg:gap-6">
-                  <FormField
-                    control={form.control as any}
-                    name="serialNo"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>رقم السجل <span className="text-red-500">*</span></FormLabel>
-                        <div className="flex gap-2">
-                          <FormControl>
-                            <Input placeholder="PC001" {...field} required />
-                          </FormControl>
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            onClick={() => {
-                              const newSerial = `PC${Date.now().toString().slice(-6)}`;
-                              field.onChange(newSerial);
-                            }}
-                            className="whitespace-nowrap"
-                          >
-                            توليد جديد
-                          </Button>
-                        </div>
-                        <FormMessage />
-                      </FormItem>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium after:content-['*'] after:text-red-500 after:ml-1">
+                      رقم السجل
+                    </label>
+                    <div className="flex gap-2">
+                      <ValidatedInput
+                        placeholder="PC001"
+                        value={form.watch('serialNo')}
+                        error={getFieldError('serialNo')}
+                        onValueChange={(value) => {
+                          form.setValue('serialNo', value);
+                          clearFieldError('serialNo');
+                        }}
+                        onBlur={() => {
+                          const error = validateField('serialNo', form.watch('serialNo'));
+                          if (error) {
+                            setFieldError('serialNo', error);
+                          }
+                        }}
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          const newSerial = `PC${Date.now().toString().slice(-6)}`;
+                          form.setValue('serialNo', newSerial);
+                          clearFieldError('serialNo');
+                        }}
+                        className="whitespace-nowrap"
+                      >
+                        توليد جديد
+                      </Button>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium after:content-['*'] after:text-red-500 after:ml-1">
+                      التاريخ
+                    </label>
+                    <ModernDatePicker
+                      label=""
+                      placeholder="اختر التاريخ"
+                      value={form.watch('date') ? new Date(form.watch('date')) : undefined}
+                      onChange={(date) => {
+                        const dateString = date ? date.toISOString().split('T')[0] : '';
+                        form.setValue('date', dateString);
+                        clearFieldError('date');
+                      }}
+                      required
+                      variant="modern"
+                      size="md"
+                    />
+                    {getFieldError('date') && (
+                      <p className="text-red-500 text-sm font-medium mt-1">{getFieldError('date')}</p>
                     )}
-                  />
-                  <FormField
-                    control={form.control as any}
-                    name="date"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormControl>
-                          <ModernDatePicker
-                            label="التاريخ"
-                            placeholder="اختر التاريخ"
-                            value={field.value}
-                            onChange={(date) => {
-                              const dateString = date ? date.toISOString().split('T')[0] : '';
-                              field.onChange(dateString);
-                            }}
-                            required
-                            variant="modern"
-                            size="md"
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium after:content-['*'] after:text-red-500 after:ml-1">
+                      المشرف
+                    </label>
+                    <SupervisorSelect
+                      value={form.watch('supervisor')}
+                      onValueChange={(value) => {
+                        form.setValue('supervisor', value);
+                        clearFieldError('supervisor');
+                      }}
+                      placeholder="اختر المشرف"
+                      section="مكافحة الطفيليات"
+                    />
+                    {getFieldError('supervisor') && (
+                      <p className="text-red-500 text-sm font-medium mt-1">{getFieldError('supervisor')}</p>
                     )}
-                  />
-                  <FormField
-                    control={form.control as any}
-                    name="supervisor"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>المشرف</FormLabel>
-                        <FormControl>
-                          <SupervisorSelect
-                            value={field.value}
-                            onValueChange={field.onChange}
-                            placeholder="اختر المشرف"
-                            section="مكافحة الطفيليات"
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control as any}
-                    name="vehicleNo"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>رقم المركبة</FormLabel>
-                        <FormControl>
-                          <Input placeholder="P1" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
+                  </div>
+                  <ValidatedInput
+                    label="رقم المركبة"
+                    required
+                    placeholder="P1"
+                    value={form.watch('vehicleNo')}
+                    error={getFieldError('vehicleNo')}
+                    onValueChange={(value) => {
+                      form.setValue('vehicleNo', value);
+                      clearFieldError('vehicleNo');
+                    }}
+                    onBlur={() => {
+                      const error = validateField('vehicleNo', form.watch('vehicleNo'));
+                      if (error) {
+                        setFieldError('vehicleNo', error);
+                      }
+                    }}
                   />
                   <FormField
                     control={form.control as any}
@@ -657,22 +728,26 @@ export function ParasiteControlDialog({
                         <FormControl>
                           <Input {...field} disabled />
                         </FormControl>
-                        <FormMessage />
+                        <FormMessage className="text-red-500 text-sm font-medium" />
                       </FormItem>
                     )}
                   />
-                  <FormField
-                    control={form.control as any}
-                    name="herdLocation"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>موقع القطيع</FormLabel>
-                        <FormControl>
-                          <Input placeholder="موقع القطيع" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
+                  <ValidatedInput
+                    label="موقع القطيع"
+                    required
+                    placeholder="موقع القطيع"
+                    value={form.watch('herdLocation')}
+                    error={getFieldError('herdLocation')}
+                    onValueChange={(value) => {
+                      form.setValue('herdLocation', value);
+                      clearFieldError('herdLocation');
+                    }}
+                    onBlur={() => {
+                      const error = validateField('herdLocation', form.watch('herdLocation'));
+                      if (error) {
+                        setFieldError('herdLocation', error);
+                      }
+                    }}
                   />
                 </div>
               </TabsContent>
@@ -680,48 +755,60 @@ export function ParasiteControlDialog({
               <TabsContent value="client" className="tabs-content-modern">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {/* Client Name */}
-                  <FormField
-                    control={form.control as any}
-                    name="client.name"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>اسم العميل <span className="text-red-500">*</span></FormLabel>
-                        <FormControl>
-                          <Input placeholder="محمد أحمد الشمري" {...field} required />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
+                  <ValidatedInput
+                    label="اسم العميل"
+                    required
+                    placeholder="محمد أحمد الشمري"
+                    value={form.watch('client.name')}
+                    error={getFieldError('client.name')}
+                    onValueChange={(value) => {
+                      form.setValue('client.name', value);
+                      clearFieldError('client.name');
+                    }}
+                    onBlur={() => {
+                      const error = validateField('client.name', form.watch('client.name'));
+                      if (error) {
+                        setFieldError('client.name', error);
+                      }
+                    }}
                   />
                   
                   {/* National ID */}
-                  <FormField
-                    control={form.control as any}
-                    name="client.nationalId"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>رقم الهوية الوطنية <span className="text-red-500">*</span></FormLabel>
-                        <FormControl>
-                          <Input placeholder="1234567890" {...field} required />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
+                  <ValidatedInput
+                    label="رقم الهوية الوطنية"
+                    required
+                    placeholder="1234567890"
+                    value={form.watch('client.nationalId')}
+                    error={getFieldError('client.nationalId')}
+                    onValueChange={(value) => {
+                      form.setValue('client.nationalId', value);
+                      clearFieldError('client.nationalId');
+                    }}
+                    onBlur={() => {
+                      const error = validateField('client.nationalId', form.watch('client.nationalId'));
+                      if (error) {
+                        setFieldError('client.nationalId', error);
+                      }
+                    }}
                   />
                   
                   {/* Phone */}
-                  <FormField
-                    control={form.control as any}
-                    name="client.phone"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>رقم الهاتف <span className="text-red-500">*</span></FormLabel>
-                        <FormControl>
-                          <Input placeholder="+966501234567" {...field} required />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
+                  <ValidatedInput
+                    label="رقم الهاتف"
+                    required
+                    placeholder="+966501234567"
+                    value={form.watch('client.phone')}
+                    error={getFieldError('client.phone')}
+                    onValueChange={(value) => {
+                      form.setValue('client.phone', value);
+                      clearFieldError('client.phone');
+                    }}
+                    onBlur={() => {
+                      const error = validateField('client.phone', form.watch('client.phone'));
+                      if (error) {
+                        setFieldError('client.phone', error);
+                      }
+                    }}
                   />
                   
                   {/* Village */}
@@ -734,7 +821,7 @@ export function ParasiteControlDialog({
                         <FormControl>
                           <Input placeholder="الرياض" {...field} />
                         </FormControl>
-                        <FormMessage />
+                        <FormMessage className="text-red-500 text-sm font-medium" />
                       </FormItem>
                     )}
                   />
@@ -749,7 +836,7 @@ export function ParasiteControlDialog({
                         <FormControl>
                           <Textarea placeholder="مزرعة الأحمد، طريق الخرج" {...field} />
                         </FormControl>
-                        <FormMessage />
+                        <FormMessage className="text-red-500 text-sm font-medium" />
                       </FormItem>
                     )}
                   />
@@ -776,7 +863,7 @@ export function ParasiteControlDialog({
                             value={field.value || ""}
                           />
                         </FormControl>
-                        <FormMessage />
+                        <FormMessage className="text-red-500 text-sm font-medium" />
                       </FormItem>
                     )}
                   />
@@ -799,7 +886,7 @@ export function ParasiteControlDialog({
                             value={field.value || ""}
                           />
                         </FormControl>
-                        <FormMessage />
+                        <FormMessage className="text-red-500 text-sm font-medium" />
                       </FormItem>
                     )}
                   />
@@ -872,7 +959,7 @@ export function ParasiteControlDialog({
                             <SelectItem value="Permethrin">Permethrin</SelectItem>
                           </SelectContent>
                         </Select>
-                        <FormMessage />
+                        <FormMessage className="text-red-500 text-sm font-medium" />
                       </FormItem>
                     )}
                   />
@@ -894,7 +981,7 @@ export function ParasiteControlDialog({
                             <SelectItem value="Injection">Injection</SelectItem>
                           </SelectContent>
                         </Select>
-                        <FormMessage />
+                        <FormMessage className="text-red-500 text-sm font-medium" />
                       </FormItem>
                     )}
                   />
@@ -913,7 +1000,7 @@ export function ParasiteControlDialog({
                             required
                           />
                         </FormControl>
-                        <FormMessage />
+                        <FormMessage className="text-red-500 text-sm font-medium" />
                       </FormItem>
                     )}
                   />
@@ -935,7 +1022,7 @@ export function ParasiteControlDialog({
                             <SelectItem value="Injection">Injection</SelectItem>
                           </SelectContent>
                         </Select>
-                        <FormMessage />
+                        <FormMessage className="text-red-500 text-sm font-medium" />
                       </FormItem>
                     )}
                   />
@@ -956,7 +1043,7 @@ export function ParasiteControlDialog({
                             <SelectItem value="Not Sprayed">لم يتم الرش</SelectItem>
                           </SelectContent>
                         </Select>
-                        <FormMessage />
+                        <FormMessage className="text-red-500 text-sm font-medium" />
                       </FormItem>
                     )}
                   />
@@ -980,7 +1067,7 @@ export function ParasiteControlDialog({
                             <SelectItem value="Under Treatment">تحت العلاج</SelectItem>
                           </SelectContent>
                         </Select>
-                        <FormMessage />
+                        <FormMessage className="text-red-500 text-sm font-medium" />
                       </FormItem>
                     )}
                   />
@@ -1004,7 +1091,7 @@ export function ParasiteControlDialog({
                             <SelectItem value="false">غير ممتثل</SelectItem>
                           </SelectContent>
                         </Select>
-                        <FormMessage />
+                        <FormMessage className="text-red-500 text-sm font-medium" />
                       </FormItem>
                     )}
                   />
@@ -1026,7 +1113,7 @@ export function ParasiteControlDialog({
                             onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
                           />
                         </FormControl>
-                        <FormMessage />
+                        <FormMessage className="text-red-500 text-sm font-medium" />
                       </FormItem>
                     )}
                   />
@@ -1044,7 +1131,7 @@ export function ParasiteControlDialog({
                             onChange={(e) => field.onChange(e.target.value)}
                           />
                         </FormControl>
-                        <FormMessage />
+                        <FormMessage className="text-red-500 text-sm font-medium" />
                       </FormItem>
                     )}
                   />
@@ -1064,7 +1151,7 @@ export function ParasiteControlDialog({
                             onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
                           />
                         </FormControl>
-                        <FormMessage />
+                        <FormMessage className="text-red-500 text-sm font-medium" />
                       </FormItem>
                     )}
                   />
@@ -1087,7 +1174,7 @@ export function ParasiteControlDialog({
                             <SelectItem value="ملغي">ملغي</SelectItem>
                           </SelectContent>
                         </Select>
-                        <FormMessage />
+                        <FormMessage className="text-red-500 text-sm font-medium" />
                       </FormItem>
                     )}
                   />
@@ -1132,7 +1219,7 @@ export function ParasiteControlDialog({
                             size="md"
                           />
                         </FormControl>
-                        <FormMessage />
+                        <FormMessage className="text-red-500 text-sm font-medium" />
                       </FormItem>
                     )}
                   />
@@ -1154,7 +1241,7 @@ export function ParasiteControlDialog({
                             <SelectItem value="Pending">معلق</SelectItem>
                           </SelectContent>
                         </Select>
-                        <FormMessage />
+                        <FormMessage className="text-red-500 text-sm font-medium" />
                       </FormItem>
                     )}
                   />
@@ -1176,7 +1263,7 @@ export function ParasiteControlDialog({
                             size="md"
                           />
                         </FormControl>
-                        <FormMessage />
+                        <FormMessage className="text-red-500 text-sm font-medium" />
                       </FormItem>
                     )}
                   />

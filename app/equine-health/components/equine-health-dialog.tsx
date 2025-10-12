@@ -38,19 +38,27 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { EnhancedMobileTabs } from "@/components/ui/mobile-tabs";
 import { equineHealthApi } from "@/lib/api/equine-health";
 import type { EquineHealth } from "@/types";
-import { validateEgyptianPhone, validateSaudiPhone } from "@/lib/utils";
+import { validateEgyptianPhone, validateSaudiPhone, validatePhoneNumber, validateNationalId } from "@/lib/utils";
 import { User, Heart, Shield, Activity } from "lucide-react";
 import { useState } from "react";
 import { ModernDatePicker } from "@/components/ui/modern-date-picker";
 import { SupervisorSelect } from "@/components/ui/supervisor-select";
+import { entityToasts } from "@/lib/utils/toast-utils";
+import { useFormValidation } from "@/lib/hooks/use-form-validation";
+import { ValidatedInput } from "@/components/ui/validated-input";
+import { ValidatedSelect } from "@/components/ui/validated-select";
+import { ValidatedTextarea } from "@/components/ui/validated-textarea";
 
 const formSchema = z.object({
   serialNo: z.string().min(1, "رقم السجل مطلوب"),
   date: z.string().min(1, "التاريخ مطلوب"),
   client: z.object({
     name: z.string().min(2, "الاسم يجب أن يكون أكثر من حرفين"),
-    nationalId: z.string().min(3, "رقم الهوية يجب أن يكون أكثر من 3 أحرف"),
-    phone: z.string().refine(validateSaudiPhone, "رقم الهاتف غير صحيح. يجب أن يبدأ بـ +966 أو 05"),
+    nationalId: z.string().min(3, "رقم الهوية يجب أن يكون أكثر من 3 أحرف").refine(
+      (nationalId) => validateNationalId(nationalId),
+      { message: "رقم الهوية يجب أن يكون بين 10-14 رقم فقط" }
+    ),
+    phone: z.string().refine(validatePhoneNumber, "رقم الهاتف غير صحيح. يجب أن يكون بين 10-15 رقم"),
     village: z.string().optional(),
     detailedAddress: z.string().optional(),
   }),
@@ -96,6 +104,31 @@ export function EquineHealthDialog({
   onSuccess,
 }: EquineHealthDialogProps) {
   const [activeTab, setActiveTab] = useState("basic");
+
+  // Validation rules for unified system
+  const validationRules = {
+    'client.name': { required: true, minLength: 2 },
+    'client.nationalId': { required: true, nationalId: true },
+    'client.phone': { required: true, phone: true },
+    'supervisor': { required: true },
+    'vehicleNo': { required: true },
+    'farmLocation': { required: true },
+    'herdHealth': { required: true },
+    'animalsHandling': { required: true },
+    'labours': { required: true },
+    'reachableLocation': { required: true },
+  };
+
+  const {
+    errors,
+    validateField,
+    validateForm: validateFormData,
+    setFieldError,
+    clearFieldError,
+    clearAllErrors,
+    getFieldError,
+  } = useFormValidation(validationRules);
+
   const form = useForm({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -188,13 +221,16 @@ export function EquineHealthDialog({
 
       if (item) {
         await equineHealthApi.update(item.serialNo, apiData);
+        entityToasts.equineHealth.update();
       } else {
         await equineHealthApi.create(apiData);
+        entityToasts.equineHealth.create();
       }
       onSuccess();
       form.reset();
     } catch (error) {
       console.error("Error saving data:", error);
+      entityToasts.equineHealth.error(item ? 'update' : 'create');
     }
   };
 
@@ -256,7 +292,7 @@ export function EquineHealthDialog({
                         <FormControl>
                           <Input placeholder="EH001" {...field} />
                         </FormControl>
-                        <FormMessage />
+                        <FormMessage className="text-red-500 text-sm font-medium" />
                       </FormItem>
                     )}
                   />
@@ -279,7 +315,7 @@ export function EquineHealthDialog({
                             size="md"
                           />
                         </FormControl>
-                        <FormMessage />
+                        <FormMessage className="text-red-500 text-sm font-medium" />
                       </FormItem>
                     )}
                   />
@@ -297,7 +333,7 @@ export function EquineHealthDialog({
                             section="صحة الخيول"
                           />
                         </FormControl>
-                        <FormMessage />
+                        <FormMessage className="text-red-500 text-sm font-medium" />
                       </FormItem>
                     )}
                   />
@@ -310,7 +346,7 @@ export function EquineHealthDialog({
                         <FormControl>
                           <Input placeholder="VET001" {...field} />
                         </FormControl>
-                        <FormMessage />
+                        <FormMessage className="text-red-500 text-sm font-medium" />
                       </FormItem>
                     )}
                   />
@@ -328,7 +364,7 @@ export function EquineHealthDialog({
                             onChange={(e) => field.onChange(parseInt(e.target.value) || 1)}
                           />
                         </FormControl>
-                        <FormMessage />
+                        <FormMessage className="text-red-500 text-sm font-medium" />
                       </FormItem>
                     )}
                   />
@@ -341,7 +377,7 @@ export function EquineHealthDialog({
                         <FormControl>
                           <Input placeholder="موقع المزرعة" {...field} />
                         </FormControl>
-                        <FormMessage />
+                        <FormMessage className="text-red-500 text-sm font-medium" />
                       </FormItem>
                     )}
                   />
@@ -359,7 +395,7 @@ export function EquineHealthDialog({
                         <FormControl>
                           <Input placeholder="الاسم الكامل" {...field} />
                         </FormControl>
-                        <FormMessage />
+                        <FormMessage className="text-red-500 text-sm font-medium" />
                       </FormItem>
                     )}
                   />
@@ -372,7 +408,7 @@ export function EquineHealthDialog({
                         <FormControl>
                           <Input placeholder="رقم الهوية الوطنية" {...field} />
                         </FormControl>
-                        <FormMessage />
+                        <FormMessage className="text-red-500 text-sm font-medium" />
                       </FormItem>
                     )}
                   />
@@ -385,7 +421,7 @@ export function EquineHealthDialog({
                         <FormControl>
                           <Input placeholder="القرية أو المدينة" {...field} />
                         </FormControl>
-                        <FormMessage />
+                        <FormMessage className="text-red-500 text-sm font-medium" />
                       </FormItem>
                     )}
                   />
@@ -401,7 +437,7 @@ export function EquineHealthDialog({
                         <FormDescription>
                           رقم الموبايل السعودي (يبدأ بـ +966 أو 05)
                         </FormDescription>
-                        <FormMessage />
+                        <FormMessage className="text-red-500 text-sm font-medium" />
                       </FormItem>
                     )}
                   />
@@ -416,7 +452,7 @@ export function EquineHealthDialog({
                         <FormControl>
                           <Textarea placeholder="العنوان التفصيلي للمزرعة" {...field} />
                         </FormControl>
-                        <FormMessage />
+                        <FormMessage className="text-red-500 text-sm font-medium" />
                       </FormItem>
                     )}
                   />
@@ -440,7 +476,7 @@ export function EquineHealthDialog({
                             value={field.value || ""}
                           />
                         </FormControl>
-                        <FormMessage />
+                        <FormMessage className="text-red-500 text-sm font-medium" />
                       </FormItem>
                     )}
                   />
@@ -462,7 +498,7 @@ export function EquineHealthDialog({
                             value={field.value || ""}
                           />
                         </FormControl>
-                        <FormMessage />
+                        <FormMessage className="text-red-500 text-sm font-medium" />
                       </FormItem>
                     )}
                   />
@@ -480,7 +516,7 @@ export function EquineHealthDialog({
                         <FormControl>
                           <Input placeholder="وصف التشخيص" {...field} />
                         </FormControl>
-                        <FormMessage />
+                        <FormMessage className="text-red-500 text-sm font-medium" />
                       </FormItem>
                     )}
                   />
@@ -505,7 +541,7 @@ export function EquineHealthDialog({
                             <SelectItem value="Performance">أداء</SelectItem>
                           </SelectContent>
                         </Select>
-                        <FormMessage />
+                        <FormMessage className="text-red-500 text-sm font-medium" />
                       </FormItem>
                     )}
                   />
@@ -567,7 +603,7 @@ export function EquineHealthDialog({
                             size="md"
                           />
                         </FormControl>
-                        <FormMessage />
+                        <FormMessage className="text-red-500 text-sm font-medium" />
                       </FormItem>
                     )}
                   />
@@ -589,7 +625,7 @@ export function EquineHealthDialog({
                             <SelectItem value="Pending">معلق</SelectItem>
                           </SelectContent>
                         </Select>
-                        <FormMessage />
+                        <FormMessage className="text-red-500 text-sm font-medium" />
                       </FormItem>
                     )}
                   />
@@ -614,7 +650,7 @@ export function EquineHealthDialog({
                             size="md"
                           />
                         </FormControl>
-                        <FormMessage />
+                        <FormMessage className="text-red-500 text-sm font-medium" />
                       </FormItem>
                     )}
                   />

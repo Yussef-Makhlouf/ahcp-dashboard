@@ -35,6 +35,12 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import React, { useCallback } from "react";
 import { Separator } from "@/components/ui/separator";
 import type { MobileClinic } from "@/types";
+import { entityToasts } from "@/lib/utils/toast-utils";
+import { mobileClinicsApi } from "@/lib/api/mobile-clinics";
+import { useFormValidation } from "@/lib/hooks/use-form-validation";
+import { ValidatedInput } from "@/components/ui/validated-input";
+import { ValidatedSelect } from "@/components/ui/validated-select";
+import { ValidatedTextarea } from "@/components/ui/validated-textarea";
 
 interface MobileClinicDialogProps {
   open: boolean;
@@ -82,6 +88,30 @@ interface Treatment {
 export function MobileClinicDialog({ open, onOpenChange, clinic, onSave }: MobileClinicDialogProps) {
   const [activeTab, setActiveTab] = useState("basic");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  // Validation rules
+  const validationRules = {
+    'client.name': { required: true, minLength: 2 },
+    'client.nationalId': { required: true, nationalId: true },
+    'client.phone': { required: true, phone: true },
+    'supervisor': { required: true },
+    'vehicleNo': { required: true },
+    'farmLocation': { required: true },
+    'date': { required: true },
+    'interventionCategory': { required: true },
+    'diagnosis': { required: true },
+  };
+
+  const {
+    errors,
+    validateField,
+    validateForm: validateFormData,
+    setFieldError,
+    clearFieldError,
+    clearAllErrors,
+    getFieldError,
+  } = useFormValidation(validationRules);
+
   const [formData, setFormData] = useState({
     serialNo: "",
     date: undefined as Date | undefined,
@@ -270,78 +300,52 @@ export function MobileClinicDialog({ open, onOpenChange, clinic, onSave }: Mobil
         prescriptions: [],
       });
     }
+    
+    // Clear errors when dialog opens
+    clearAllErrors();
   }, [clinic]);
 
-  const [errors, setErrors] = useState<Record<string, string>>({});
 
   const validateForm = () => {
-    const newErrors: Record<string, string> = {};
+    // Use the unified validation system
+    const validationData = {
+      'client.name': formData.client?.name,
+      'client.nationalId': formData.client?.nationalId,
+      'client.phone': formData.client?.phone,
+      'supervisor': formData.supervisor,
+      'vehicleNo': formData.vehicleNo,
+      'farmLocation': formData.farmLocation,
+      'date': formData.date,
+      'interventionCategory': formData.interventionCategory,
+      'diagnosis': formData.diagnosis,
+    };
+
+    const isValid = validateFormData(validationData);
     
-    // Required fields validation
-    if (!formData.client?.name?.trim()) {
-      newErrors.ownerName = "اسم المربي مطلوب";
-    } else if (formData.client.name.trim().length < 2) {
-      newErrors.ownerName = "اسم المربي يجب أن يكون أكثر من حرفين";
-    }
-    
-    if (!formData.client?.nationalId?.trim()) {
-      newErrors.ownerId = "رقم هوية المربي مطلوب";
-    } else if (formData.client.nationalId.trim().length < 3) {
-      newErrors.ownerId = "رقم هوية المربي يجب أن يكون أكثر من 3 أحرف";
-    }
-    
-    if (!formData.client?.phone?.trim()) {
-      newErrors.ownerPhone = "رقم الهاتف مطلوب";
-    } else if (!validateSaudiPhone(formData.client.phone)) {
-      newErrors.ownerPhone = "رقم الهاتف غير صحيح. يجب أن يبدأ بـ +966 أو 05";
-    }
-    
-    if (!formData.supervisor) {
-      newErrors.supervisor = "المشرف مطلوب";
-    }
-    
-    if (!formData.vehicleNo) {
-      newErrors.vehicleNo = "رقم المركبة مطلوب";
-    }
-    
-    if (!formData.farmLocation.trim()) {
-      newErrors.farmLocation = "موقع المزرعة مطلوب";
-    }
-    
-    // Validate date
-    if (!formData.date) {
-      newErrors.date = "يجب اختيار التاريخ";
-    } else if (formData.date > new Date()) {
-      newErrors.date = "لا يمكن اختيار تاريخ في المستقبل";
-    }
-    
-    if (!formData.interventionCategory) {
-      newErrors.interventionCategory = "نوع التدخل مطلوب";
-    }
-    
-    if (!formData.diagnosis) {
-      newErrors.diagnosis = "التشخيص مطلوب";
-    }
-    
-    // Validate animal counts
+    // Additional custom validations
     const totalAnimals = getTotalAnimals();
     if (totalAnimals === 0) {
-      newErrors.animalCount = "يجب إدخال عدد الحيوانات المعالجة";
+      setFieldError('animalCount', 'يجب إدخال عدد الحيوانات المعالجة');
+      return false;
     }
     
-    // Validate treatments
     if (formData.treatments.length === 0 && !formData.treatment.trim()) {
-      newErrors.treatment = "يجب إدخال تفاصيل العلاج";
+      setFieldError('treatment', 'يجب إدخال تفاصيل العلاج');
+      return false;
     }
     
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+    return isValid;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!validateForm()) return;
+    if (!validateForm()) {
+      // Show field-specific errors directly in the form
+      // The validateForm function already sets errors in the errors state
+      // which will be displayed by FormMessage components
+      return;
+    }
     
     setIsSubmitting(true);
     
@@ -397,10 +401,21 @@ export function MobileClinicDialog({ open, onOpenChange, clinic, onSave }: Mobil
         remarks: formData.remarks || '',
       };
       
+      if (clinic) {
+        // Update existing clinic
+        await mobileClinicsApi.update(clinic._id || clinic.serialNo || '', submitData);
+        entityToasts.mobileClinic.update();
+      } else {
+        // Create new clinic
+        await mobileClinicsApi.create(submitData);
+        entityToasts.mobileClinic.create();
+      }
+      
       await onSave(submitData);
       onOpenChange(false);
     } catch (error) {
       console.error('Error submitting form:', error);
+      entityToasts.mobileClinic.error(clinic ? 'update' : 'create');
     } finally {
       setIsSubmitting(false);
     }
@@ -511,10 +526,15 @@ export function MobileClinicDialog({ open, onOpenChange, clinic, onSave }: Mobil
                   <div className="flex gap-2">
                     <Input
                       value={formData.serialNo}
-                      onChange={(e) => setFormData({ ...formData, serialNo: e.target.value })}
+                      onChange={(e) => {
+                        setFormData({ ...formData, serialNo: e.target.value });
+                        // Clear error when user starts typing
+                        clearFieldError('serialNo');
+                      }}
                       type="text"
                       disabled={!!clinic}
                       placeholder="سيتم توليده تلقائياً"
+                      className={errors.serialNo ? 'border-red-500' : ''}
                     />
                     {!clinic && (
                       <Button
@@ -527,6 +547,9 @@ export function MobileClinicDialog({ open, onOpenChange, clinic, onSave }: Mobil
                       </Button>
                     )}
                   </div>
+                  {errors.serialNo && (
+                    <p className="text-red-500 text-sm font-medium mt-1">{errors.serialNo}</p>
+                  )}
                 </div>
 
                 <div className="space-y-2">
@@ -534,56 +557,87 @@ export function MobileClinicDialog({ open, onOpenChange, clinic, onSave }: Mobil
                     label="التاريخ"
                     placeholder="اختر التاريخ"
                     value={formData.date}
-                    onChange={(date) => setFormData({ ...formData, date: date || undefined })}
+                    onChange={(date) => {
+                      setFormData({ ...formData, date: date || undefined });
+                      // Clear error when user selects date
+                      clearFieldError('date');
+                    }}
                     required
                     variant="modern"
                     size="md"
                     maxDate={new Date()} // منع اختيار تواريخ مستقبلية
                   />
+                  {errors.date && (
+                    <p className="text-red-500 text-sm font-medium mt-1">{errors.date}</p>
+                  )}
                 </div>
 
-                <div className="space-y-2">
-                  <Label>اسم المربي *</Label>
-                  <Input
-                    value={formData.client?.name || ""}
-                    onChange={(e) => setFormData({
+                <ValidatedInput
+                  label="اسم المربي"
+                  required
+                  value={formData.client?.name || ""}
+                  placeholder="أدخل اسم المربي"
+                  error={getFieldError('client.name')}
+                  onValueChange={(value) => {
+                    setFormData({
                       ...formData,
-                      client: { ...formData.client, name: e.target.value },
-                      owner: { ...formData.owner, name: e.target.value }
-                    })}
-                    required
-                    placeholder="أدخل اسم المربي"
-                  />
-                </div>
+                      client: { ...formData.client, name: value },
+                      owner: { ...formData.owner, name: value }
+                    });
+                    clearFieldError('client.name');
+                  }}
+                  onBlur={() => {
+                    const error = validateField('client.name', formData.client?.name);
+                    if (error) {
+                      setFieldError('client.name', error);
+                    }
+                  }}
+                />
 
-                <div className="space-y-2">
-                  <Label>رقم هوية المربي *</Label>
-                  <Input
-                    value={formData.client?.nationalId || ""}
-                    onChange={(e) => setFormData({
+                <ValidatedInput
+                  label="رقم هوية المربي"
+                  required
+                  value={formData.client?.nationalId || ""}
+                  placeholder="1234567890"
+                  error={getFieldError('client.nationalId')}
+                  onValueChange={(value) => {
+                    setFormData({
                       ...formData,
-                      client: { ...formData.client, nationalId: e.target.value },
-                      owner: { ...formData.owner, id: e.target.value }
-                    })}
-                    required
-                    placeholder="1234567890"
-                  />
-                </div>
+                      client: { ...formData.client, nationalId: value },
+                      owner: { ...formData.owner, id: value }
+                    });
+                    clearFieldError('client.nationalId');
+                  }}
+                  onBlur={() => {
+                    const error = validateField('client.nationalId', formData.client?.nationalId);
+                    if (error) {
+                      setFieldError('client.nationalId', error);
+                    }
+                  }}
+                />
 
-                <div className="space-y-2">
-                  <Label>رقم الهاتف *</Label>
-                  <Input
-                    value={formData.client?.phone || ""}
-                    onChange={(e) => setFormData({
+                <ValidatedInput
+                  label="رقم الهاتف"
+                  required
+                  value={formData.client?.phone || ""}
+                  placeholder="+966501234567 أو 0501234567"
+                  dir="ltr"
+                  error={getFieldError('client.phone')}
+                  onValueChange={(value) => {
+                    setFormData({
                       ...formData,
-                      client: { ...formData.client, phone: e.target.value },
-                      owner: { ...formData.owner, phone: e.target.value }
-                    })}
-                    required
-                    placeholder="+966501234567 أو 0501234567"
-                    dir="ltr"
-                  />
-                </div>
+                      client: { ...formData.client, phone: value },
+                      owner: { ...formData.owner, phone: value }
+                    });
+                    clearFieldError('client.phone');
+                  }}
+                  onBlur={() => {
+                    const error = validateField('client.phone', formData.client?.phone);
+                    if (error) {
+                      setFieldError('client.phone', error);
+                    }
+                  }}
+                />
 
                 <div className="space-y-2">
                   <Label>القرية</Label>
@@ -598,43 +652,57 @@ export function MobileClinicDialog({ open, onOpenChange, clinic, onSave }: Mobil
                 </div>
 
                 <div className="space-y-2">
-                  <Label>المشرف *</Label>
+                  <Label className="after:content-['*'] after:text-red-500 after:ml-1">المشرف</Label>
                   <SupervisorSelect
                     value={formData.supervisor}
-                    onValueChange={(value) => setFormData({ ...formData, supervisor: value })}
+                    onValueChange={(value) => {
+                      setFormData({ ...formData, supervisor: value });
+                      clearFieldError('supervisor');
+                    }}
                     placeholder="اختر المشرف"
                     section=" mobile-clinics"
                   />
+                  {getFieldError('supervisor') && (
+                    <p className="text-red-500 text-sm font-medium mt-1">{getFieldError('supervisor')}</p>
+                  )}
                 </div>
 
-                <div className="space-y-2">
-                  <Label>رقم المركبة *</Label>
-                  <Select
-                    value={formData.vehicleNo}
-                    onValueChange={(value) => setFormData({ ...formData, vehicleNo: value })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="اختر المركبة" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {vehicles.map((vehicle) => (
-                        <SelectItem key={vehicle.id} value={vehicle.id}>
-                          {vehicle.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+                <ValidatedSelect
+                  label="رقم المركبة"
+                  required
+                  value={formData.vehicleNo}
+                  placeholder="اختر المركبة"
+                  options={vehicles.map(vehicle => ({ value: vehicle.id, label: vehicle.name }))}
+                  error={getFieldError('vehicleNo')}
+                  onValueChange={(value) => {
+                    setFormData({ ...formData, vehicleNo: value });
+                    clearFieldError('vehicleNo');
+                  }}
+                  onBlur={() => {
+                    const error = validateField('vehicleNo', formData.vehicleNo);
+                    if (error) {
+                      setFieldError('vehicleNo', error);
+                    }
+                  }}
+                />
 
-                <div className="space-y-2">
-                  <Label>موقع المزرعة *</Label>
-                  <Input
-                    value={formData.farmLocation}
-                    onChange={(e) => setFormData({ ...formData, farmLocation: e.target.value })}
-                    required
-                    placeholder="أدخل موقع المزرعة"
-                  />
-                </div>
+                <ValidatedInput
+                  label="موقع المزرعة"
+                  required
+                  value={formData.farmLocation}
+                  placeholder="أدخل موقع المزرعة"
+                  error={getFieldError('farmLocation')}
+                  onValueChange={(value) => {
+                    setFormData({ ...formData, farmLocation: value });
+                    clearFieldError('farmLocation');
+                  }}
+                  onBlur={() => {
+                    const error = validateField('farmLocation', formData.farmLocation);
+                    if (error) {
+                      setFieldError('farmLocation', error);
+                    }
+                  }}
+                />
               </div>
 
               <Separator />
@@ -808,9 +876,13 @@ export function MobileClinicDialog({ open, onOpenChange, clinic, onSave }: Mobil
                   <Label>التشخيص *</Label>
                   <Select
                     value={formData.diagnosis}
-                    onValueChange={(value) => setFormData({ ...formData, diagnosis: value })}
+                    onValueChange={(value) => {
+                      setFormData({ ...formData, diagnosis: value });
+                      // Clear error when user selects diagnosis
+                      clearFieldError('diagnosis');
+                    }}
                   >
-                    <SelectTrigger>
+                    <SelectTrigger className={errors.diagnosis ? 'border-red-500' : ''}>
                       <SelectValue placeholder="اختر التشخيص" />
                     </SelectTrigger>
                     <SelectContent>
@@ -821,15 +893,22 @@ export function MobileClinicDialog({ open, onOpenChange, clinic, onSave }: Mobil
                       ))}
                     </SelectContent>
                   </Select>
+                  {errors.diagnosis && (
+                    <p className="text-red-500 text-sm font-medium mt-1">{errors.diagnosis}</p>
+                  )}
                 </div>
 
                 <div className="space-y-2">
                   <Label>نوع التدخل *</Label>
                   <Select
                     value={formData.interventionCategory}
-                    onValueChange={(value) => setFormData({ ...formData, interventionCategory: value })}
+                    onValueChange={(value) => {
+                      setFormData({ ...formData, interventionCategory: value });
+                      // Clear error when user selects category
+                      clearFieldError('interventionCategory');
+                    }}
                   >
-                    <SelectTrigger>
+                    <SelectTrigger className={errors.interventionCategory ? 'border-red-500' : ''}>
                       <SelectValue placeholder="اختر نوع التدخل" />
                     </SelectTrigger>
                     <SelectContent>
@@ -840,6 +919,9 @@ export function MobileClinicDialog({ open, onOpenChange, clinic, onSave }: Mobil
                       ))}
                     </SelectContent>
                   </Select>
+                  {errors.interventionCategory && (
+                    <p className="text-red-500 text-sm font-medium mt-1">{errors.interventionCategory}</p>
+                  )}
                 </div>
               </div>
 
@@ -1001,10 +1083,18 @@ export function MobileClinicDialog({ open, onOpenChange, clinic, onSave }: Mobil
                 <Label>ملاحظات العلاج</Label>
                 <Textarea
                   value={formData.treatment}
-                  onChange={(e) => setFormData({ ...formData, treatment: e.target.value })}
+                  onChange={(e) => {
+                    setFormData({ ...formData, treatment: e.target.value });
+                    // Clear error when user starts typing
+                    clearFieldError('treatment');
+                  }}
                   placeholder="أدخل تفاصيل العلاج والملاحظات"
                   rows={3}
+                  className={errors.treatment ? 'border-red-500' : ''}
                 />
+                {errors.treatment && (
+                  <p className="text-red-500 text-sm font-medium mt-1">{errors.treatment}</p>
+                )}
               </div>
             </TabsContent>
 

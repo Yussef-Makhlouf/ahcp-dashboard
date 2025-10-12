@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { useAuthStore } from '@/lib/store/auth-store';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -333,6 +334,16 @@ export default function LoginPage() {
                   'تسجيل الدخول'
                 )}
               </Button>
+
+              {/* رابط نسيان كلمة المرور */}
+              <div className="text-center mt-4">
+                <Link 
+                  href="/forgot-password"
+                  className="text-sm text-slate-600 hover:text-slate-800 hover:underline transition-colors duration-200"
+                >
+                  نسيت كلمة المرور؟
+                </Link>
+              </div>
             </form>
 
             {/* معلومات تسجيل الدخول */}

@@ -1,6 +1,7 @@
 import { api } from './base-api';
 import type { Client, PaginatedResponse } from '@/types';
 import { handleAPIResponse, handleStatisticsResponse } from './api-response-handler';
+import { entityToasts } from '@/lib/utils/toast-utils';
 
 export interface ClientsResponse {
   success: boolean;
@@ -52,7 +53,8 @@ export const clientsApi = {
       return handleAPIResponse<Client>(response, params?.limit || 10);
     } catch (error: any) {
       console.error('Error fetching clients list:', error);
-      throw new Error(`Failed to fetch clients: ${error.message || 'Unknown error'}`);
+      // Use enhanced error message from interceptor
+      throw new Error(error.userMessage || `Failed to fetch clients: ${error.message || 'Unknown error'}`);
     }
   },
 
@@ -67,7 +69,7 @@ export const clientsApi = {
       return recordData;
     } catch (error: any) {
       console.error('Error fetching client by ID:', error);
-      throw new Error(`Failed to fetch client: ${error.message || 'Unknown error'}`);
+      throw new Error(error.userMessage || `Failed to fetch client: ${error.message || 'Unknown error'}`);
     }
   },
 
@@ -82,7 +84,7 @@ export const clientsApi = {
       return recordData;
     } catch (error: any) {
       console.error('Error creating client:', error);
-      throw new Error(`Failed to create client: ${error.message || 'Unknown error'}`);
+      throw new Error(error.userMessage || `Failed to create client: ${error.message || 'Unknown error'}`);
     }
   },
 
@@ -97,7 +99,7 @@ export const clientsApi = {
       return recordData;
     } catch (error: any) {
       console.error('Error updating client:', error);
-      throw new Error(`Failed to update client: ${error.message || 'Unknown error'}`);
+      throw new Error(error.userMessage || `Failed to update client: ${error.message || 'Unknown error'}`);
     }
   },
 
@@ -109,7 +111,7 @@ export const clientsApi = {
       });
     } catch (error: any) {
       console.error('Error deleting client:', error);
-      throw new Error(`Failed to delete client: ${error.message || 'Unknown error'}`);
+      throw new Error(error.userMessage || `Failed to delete client: ${error.message || 'Unknown error'}`);
     }
   },
 
