@@ -50,10 +50,10 @@ export function getColumns({
       header: "Client Info",
       cell: ({ row }) => {
         const client = row.original.client;
-        const name = client?.name || '-';
-        const nationalId = client?.nationalId || '';
-        const phone = client?.phone || '';
-        const birthDate = client?.birthDate ? new Date(client.birthDate).toLocaleDateString("en-US") : '';
+        const name = typeof client === 'object' && client ? client.name || '-' : '-';
+        const nationalId = typeof client === 'object' && client ? client.nationalId || '' : '';
+        const phone = typeof client === 'object' && client ? client.phone || '' : '';
+        const birthDate = typeof client === 'object' && client?.birthDate ? new Date(client.birthDate).toLocaleDateString("en-US") : '';
         
         return (
           <div className="space-y-1 min-w-[200px]">

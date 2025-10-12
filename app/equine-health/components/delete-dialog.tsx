@@ -30,7 +30,7 @@ export function DeleteDialog({
 }: DeleteDialogProps) {
   const handleConfirm = () => {
     if (item) {
-      onConfirm(item.serialNo);
+      onConfirm(parseInt(item.serialNo) || 0);
     }
   };
 
@@ -51,7 +51,7 @@ export function DeleteDialog({
               <>
                 هل أنت متأكد من أنك تريد حذف سجل صحة الخيول للمالك{" "}
                 <span className="font-semibold text-gray-900">
-                  {item.owner.name}
+                  {item.owner?.name}
                 </span>{" "}
                 بتاريخ{" "}
                 <span className="font-semibold text-gray-900">

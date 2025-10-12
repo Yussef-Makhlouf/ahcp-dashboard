@@ -195,7 +195,6 @@ export function InventoryDialog({ open, onOpenChange, item, onSave }: InventoryD
     }
   }, [item]);
 
-  const [errors, setErrors] = useState<Record<string, string>>({});
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
@@ -249,7 +248,6 @@ export function InventoryDialog({ open, onOpenChange, item, onSave }: InventoryD
       newErrors.expiryDate = "تاريخ الانتهاء لا يمكن أن يكون في الماضي";
     }
     
-    setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 

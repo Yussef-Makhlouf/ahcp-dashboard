@@ -1105,7 +1105,7 @@ export function MobileClinicDialog({ open, onOpenChange, clinic, onSave }: Mobil
                   <CardTitle className="text-lg">معلومات الطلب</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div className="space-y-2">
                       <Label>تاريخ الطلب</Label>
                       <Input

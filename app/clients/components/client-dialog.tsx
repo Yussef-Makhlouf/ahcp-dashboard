@@ -193,7 +193,7 @@ export function ClientDialog({ open, onOpenChange, client, onSave }: ClientDialo
       newErrors.email = "البريد الإلكتروني غير صحيح";
     }
     
-    setErrors(newErrors);
+    // setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
@@ -233,19 +233,19 @@ export function ClientDialog({ open, onOpenChange, client, onSave }: ClientDialo
   const addAnimal = () => {
     // Validate animal data
     if (!newAnimal.identificationNumber?.trim()) {
-      entityToasts.error.validation("animal identification number");
+      entityToasts.client.error("validation");
       return;
     }
     if (!newAnimal.breed.trim()) {
-      entityToasts.error.validation("animal breed");
+      entityToasts.client.error("validation");
       return;
     }
     if (newAnimal.age <= 0) {
-      entityToasts.error.validation("animal age");
+      entityToasts.client.error("validation");
       return;
     }
     if (newAnimal.animalCount <= 0) {
-      entityToasts.error.validation("animal count");
+      entityToasts.client.error("validation");
       return;
     }
     
@@ -253,7 +253,7 @@ export function ClientDialog({ open, onOpenChange, client, onSave }: ClientDialo
     if (formData.animals.some(animal => 
       (animal.identificationNumber || animal.identification_number) === newAnimal.identificationNumber
     )) {
-      entityToasts.error.duplicate("Animal identification number");
+      entityToasts.client.error("duplicate");
       return;
     }
     
