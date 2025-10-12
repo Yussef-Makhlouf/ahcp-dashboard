@@ -2,7 +2,7 @@ import axios, { AxiosInstance, AxiosRequestConfig } from 'axios';
 import { useAuthStore } from '@/lib/store/auth-store';
 
 // Base API configuration - إنتاج
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api' || 'https://ahcp-backend.vercel.app/api';
 
 // Create axios instance
 const apiClient: AxiosInstance = axios.create({
