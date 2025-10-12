@@ -76,11 +76,11 @@ export default function ResetPasswordPage() {
     try {
       await authApi.resetPassword(token, values.password);
       setIsSuccess(true);
-      entityToasts.client.create("تم تغيير كلمة المرور بنجاح!");
+      entityToasts.auth.passwordChanged();
     } catch (error: any) {
       console.error("Reset password error:", error);
       const errorMessage = error.response?.data?.message || "فشل في إعادة تعيين كلمة المرور.";
-      entityToasts.client.error(errorMessage);
+      entityToasts.auth.error(error);
     } finally {
       setIsSubmitting(false);
     }

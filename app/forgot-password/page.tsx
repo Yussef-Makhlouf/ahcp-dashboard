@@ -47,11 +47,11 @@ export default function ForgotPasswordPage() {
       if (response.data?.resetUrl) {
         setResetUrl(response.data.resetUrl);
       }
-      entityToasts.client.create(response.message);
+      entityToasts.auth.passwordReset();
     } catch (error: any) {
       console.error("Forgot password error:", error);
       const errorMessage = error.response?.data?.message || "فشل في إرسال رابط إعادة تعيين كلمة المرور.";
-      entityToasts.client.error(errorMessage);
+      entityToasts.auth.error(error);
     } finally {
       setIsSubmitting(false);
     }

@@ -10,6 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Eye, EyeOff, Shield, Building2, AlertCircle, CheckCircle } from 'lucide-react';
+import { entityToasts } from '@/lib/utils/toast-utils';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -172,6 +173,7 @@ export default function LoginPage() {
       await login({ email, password });
       
       setSuccess('تم تسجيل الدخول بنجاح! جاري التوجيه...');
+      entityToasts.auth.login();
       console.log('✅ Login successful, redirecting to:', returnUrl);
       
       // إعادة توجيه فورية بعد نجاح تسجيل الدخول
@@ -182,7 +184,10 @@ export default function LoginPage() {
     } catch (error: any) {
       console.error('❌ Login error:', error);
       
-      // معالجة أنواع مختلفة من الأخطاء
+      // استخدام toast-utils الجديد لمعالجة الأخطاء
+      entityToasts.auth.error(error);
+      
+      // معالجة أنواع مختلفة من الأخطاء للعرض في الصفحة
       if (error.response?.status === 401) {
         setError('البريد الإلكتروني أو كلمة المرور غير صحيحة');
       } else if (error.response?.status === 403) {
