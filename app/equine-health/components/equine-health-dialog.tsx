@@ -43,36 +43,63 @@ import { User, Heart, Shield, Activity } from "lucide-react";
 import { useState } from "react";
 import { ModernDatePicker } from "@/components/ui/modern-date-picker";
 
+const horseDetailSchema = z.object({
+  id: z.string().min(1, "معرف الحصان مطلوب"),
+  breed: z.string().min(1, "السلالة مطلوبة"),
+  age: z.number().min(0, "العمر يجب أن يكون موجباً"),
+  gender: z.enum(["ذكر", "أنثى"]),
+  color: z.string().optional(),
+  healthStatus: z.enum(["سليم", "مريض", "تحت العلاج"]).optional(),
+  temperature: z.number().optional(),
+  heartRate: z.number().optional(),
+  respiratoryRate: z.number().optional(),
+});
+
+const medicationSchema = z.object({
+  name: z.string().min(1, "اسم الدواء مطلوب"),
+  dosage: z.string().min(1, "الجرعة مطلوبة"),
+  quantity: z.number().min(1, "الكمية مطلوبة"),
+  route: z.enum(["Oral", "Intravenous", "Intramuscular", "Topical", "Subcutaneous"]).optional(),
+});
+
 const formSchema = z.object({
   date: z.string().min(1, "التاريخ مطلوب"),
-  owner: z.object({
+  client: z.object({
+    _id: z.string().optional(),
     name: z.string().min(2, "الاسم يجب أن يكون أكثر من حرفين"),
-    id: z.string().min(3, "رقم الهوية يجب أن يكون أكثر من 3 أحرف"),
-    birthDate: z.string().min(1, "تاريخ الميلاد مطلوب"),
+    nationalId: z.string().min(3, "رقم الهوية يجب أن يكون أكثر من 3 أحرف"),
     phone: z.string().refine(validateSaudiPhone, "رقم الهاتف غير صحيح. يجب أن يبدأ بـ +966 أو 05"),
+    village: z.string().optional(),
+    detailedAddress: z.string().optional(),
   }),
-  location: z.object({
-    e: z.number().nullable(),
-    n: z.number().nullable(),
-  }),
+  farmLocation: z.string().min(2, "موقع المزرعة مطلوب"),
+  coordinates: z.object({
+    latitude: z.number().nullable(),
+    longitude: z.number().nullable(),
+  }).optional(),
   supervisor: z.string().min(2, "اسم المشرف يجب أن يكون أكثر من حرفين"),
   vehicleNo: z.string().min(1, "رقم المركبة مطلوب"),
   horseCount: z.number().min(1, "عدد الخيول يجب أن يكون أكبر من صفر"),
+  horseDetails: z.array(horseDetailSchema).min(1, "يجب إضافة تفاصيل حصان واحد على الأقل"),
   diagnosis: z.string().min(3, "التشخيص يجب أن يكون أكثر من 3 أحرف"),
   interventionCategory: z.enum([
     "Clinical Examination",
     "Surgical Operation",
     "Ultrasonography",
     "Lab Analysis",
-    "Farriery"
+    "Farriery",
+    "Routine",
+    "Emergency"
   ]),
   treatment: z.string().min(3, "العلاج يجب أن يكون أكثر من 3 أحرف"),
+  medicationsUsed: z.array(medicationSchema).optional(),
   request: z.object({
     date: z.string().min(1, "تاريخ الطلب مطلوب"),
     situation: z.enum(["Open", "Closed", "Pending"]),
     fulfillingDate: z.string().optional(),
   }),
-  category: z.string().default("Equine Health Service"),
+  followUpRequired: z.boolean().optional(),
+  followUpDate: z.string().optional(),
   remarks: z.string().optional(),
 });
 
@@ -96,25 +123,46 @@ export function EquineHealthDialog({
     resolver: zodResolver(formSchema),
     defaultValues: {
       date: new Date().toISOString().split("T")[0],
-      owner: {
+      client: {
+        _id: "",
         name: "",
-        id: "",
-        birthDate: "",
+        nationalId: "",
         phone: "",
+        village: "",
+        detailedAddress: "",
       },
-      location: { e: null, n: null },
+      farmLocation: "",
+      coordinates: {
+        latitude: null,
+        longitude: null,
+      },
       supervisor: "",
       vehicleNo: "",
       horseCount: 1,
+      horseDetails: [
+        {
+          id: "",
+          breed: "",
+          age: 0,
+          gender: "ذكر" as const,
+          color: "",
+          healthStatus: "سليم" as const,
+          temperature: undefined,
+          heartRate: undefined,
+          respiratoryRate: undefined,
+        }
+      ],
       diagnosis: "",
-      interventionCategory: "Clinical Examination",
+      interventionCategory: "Clinical Examination" as const,
       treatment: "",
+      medicationsUsed: [],
       request: {
         date: new Date().toISOString().split("T")[0],
-        situation: "Open",
+        situation: "Open" as const,
         fulfillingDate: undefined,
       },
-      category: "Equine Health Service",
+      followUpRequired: false,
+      followUpDate: undefined,
       remarks: "",
     },
   });
@@ -127,10 +175,21 @@ export function EquineHealthDialog({
 
   const onSubmit = async (data: any) => {
     try {
+      // Sync horseCount with horseDetails array length
+      const formattedData = {
+        ...data,
+        horseCount: data.horseDetails?.length || 1,
+      };
+
+      // Clean up empty client._id if it's a new client
+      if (formattedData.client._id === "") {
+        delete formattedData.client._id;
+      }
+
       if (item) {
-        await equineHealthApi.update(item.serialNo, data as any);
+        await equineHealthApi.update(item._id || item.serialNo, formattedData);
       } else {
-        await equineHealthApi.create(data as any);
+        await equineHealthApi.create(formattedData);
       }
       onSuccess();
       form.reset();

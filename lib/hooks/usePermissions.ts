@@ -47,7 +47,7 @@ export const usePermissions = () => {
       
       // يمكن للمشرف التعديل/الإضافة/الحذف فقط في قسمه
       if (['create', 'edit', 'delete'].includes(action)) {
-        return supervisorModule === module || supervisorModule === 'all';
+        return supervisorModule === module || supervisorModule === 'Administration';
       }
     }
 

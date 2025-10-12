@@ -192,6 +192,8 @@ export default function LoginPage() {
             redirectPath = '/mobile-clinic';
           } else if (user.section === 'Laboratory') {
             redirectPath = '/laboratories';
+          } else if (user.section === 'Administration') {
+            redirectPath = '/';
           } else {
             redirectPath = '/';
           }
