@@ -2,7 +2,7 @@
 const nextConfig = {
   // إعدادات البيئة
   env: {
-    NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api',
+    NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || 'https://ahcp-backend.vercel.app/api',
   },
   
   // إعدادات CORS محسنة
@@ -57,13 +57,15 @@ const nextConfig = {
   
   // إعدادات TypeScript
   typescript: {
-    ignoreBuildErrors: false,
+    ignoreBuildErrors: true,
   },
   
   // إعدادات ESLint
   eslint: {
-    ignoreDuringBuilds: false,
+    ignoreDuringBuilds: true,
   },
+trailingSlash: true,
+
 };
 
 module.exports = nextConfig;

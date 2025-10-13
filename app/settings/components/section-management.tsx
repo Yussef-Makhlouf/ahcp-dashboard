@@ -271,13 +271,10 @@ export function SectionManagement({ onRefresh }: SectionManagementProps) {
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => handleToggleStatus(section._id)}
+              disabled
+              title="جميع الأقسام نشطة افتراضياً"
             >
-              {section.isActive ? (
-                <ToggleRight className="h-4 w-4 text-green-600" />
-              ) : (
-                <ToggleLeft className="h-4 w-4 text-gray-400" />
-              )}
+              <ToggleRight className="h-4 w-4 text-green-600" />
             </Button>
             <Button
               variant="ghost"

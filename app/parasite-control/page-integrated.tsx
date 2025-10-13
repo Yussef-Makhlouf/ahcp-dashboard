@@ -246,7 +246,6 @@ export default function ParasiteControlPage() {
               queryKey="parasite-control"
               acceptedFormats={[".csv", ".xlsx"]}
               maxFileSize={10}
-              canImport={checkPermission({ module: 'parasite-control', action: 'create' })}
             />
             {checkPermission({ module: 'parasite-control', action: 'create' }) && (
               <Button onClick={handleAdd}>

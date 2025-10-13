@@ -170,7 +170,6 @@ export default function ProfilePage() {
       updateUser({
         name: updatedProfile.name,
         email: updatedProfile.email,
-        avatar: updatedProfile.avatar,
       });
       setIsEditing(false);
       setSelectedImage(null);

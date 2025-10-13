@@ -239,7 +239,7 @@ export function UserManagement({ onRefresh }: UserManagementProps) {
     }
     
     return false;
-  });
+  };
 
   const canDeleteUser = (user: User) => {
     if (!currentUser) return false;

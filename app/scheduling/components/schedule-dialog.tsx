@@ -196,7 +196,7 @@ export function ScheduleDialog({ open, onOpenChange, event, onSave }: ScheduleDi
     }
   }, [event]);
 
-  // const [errors, setErrors] = useState<Record<string, string>>({});
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};

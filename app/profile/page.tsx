@@ -177,7 +177,7 @@ export default function ProfilePage() {
                 >
                   <AvatarImage src={avatarPreview || user?.avatar} />
                   <AvatarFallback className="text-lg">
-                    {user?.name?.split(' ').map(n => n[0]).join('') || 'U'}
+                    {user?.name?.split(' ').map((n: string) => n[0]).join('') || 'U'}
                   </AvatarFallback>
                 </Avatar>
                 {isEditing && (
