@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { MainLayout } from "@/components/layout/main-layout";
 import { DataTable } from "@/components/data-table/data-table";
-import { ImportExportManager } from "@/components/import-export/import-export-manager";
+
 import { getColumns } from "./components/columns";
 import { MobileClinicDialog } from "./components/mobile-clinic-dialog";
 import { Button } from "@/components/ui/button";
@@ -15,6 +15,10 @@ import { formatDate } from "@/lib/utils";
 import { mobileClinicsApi } from "@/lib/api/mobile-clinics";
 import { useQuery } from "@tanstack/react-query";
 import { usePermissions } from "@/lib/hooks/usePermissions";
+import { useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
+import { apiConfig } from "@/lib/api-config";
+import { ImportExportManager } from "@/components/import-export";
 
 // تعريف حقول النموذج
 const formFields = [
@@ -230,6 +234,7 @@ export default function MobileClinicsPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState<MobileClinic | null>(null);
   const { checkPermission } = usePermissions();
+  const queryClient = useQueryClient();
 
   // Fetch mobile clinics data using React Query
   const { data: mobileClinicsData, isLoading, refetch } = useQuery({
@@ -248,22 +253,6 @@ export default function MobileClinicsPage() {
   const data = mobileClinicsData?.data || [];
 
 
-  const handleExport = async (type: "csv" | "pdf") => {
-    if (type === "csv") {
-      try {
-        const blob = await mobileClinicsApi.exportToCsv();
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = `mobile-clinics-records-${new Date().toISOString().split("T")[0]}.csv`;
-        a.click();
-        window.URL.revokeObjectURL(url);
-      } catch (error) {
-        console.error('Export failed:', error);
-        alert('فشل في تصدير البيانات');
-      }
-    }
-  };
 
   const handleDelete = async (item: MobileClinic) => {
     if (confirm("هل أنت متأكد من حذف هذا السجل؟")) {
@@ -328,13 +317,22 @@ export default function MobileClinicsPage() {
           </div>
           <div className="flex gap-2">
             <ImportExportManager
-              exportEndpoint="/mobile-clinics/export"
-              importEndpoint="/mobile-clinics/import"
-              templateEndpoint="/mobile-clinics/template"
+              exportEndpoint={apiConfig.endpoints.mobileClinics.export}
+              importEndpoint={apiConfig.endpoints.mobileClinics.import}
+              templateEndpoint={apiConfig.endpoints.mobileClinics.template}
               title="العيادات المتنقلة"
               queryKey="mobile-clinics"
               acceptedFormats={[".csv", ".xlsx"]}
               maxFileSize={10}
+              onImportSuccess={() => {
+                queryClient.invalidateQueries({ queryKey: ['mobile-clinics'] });
+              }}
+              onExportSuccess={() => {
+                toast.success('تم تصدير البيانات بنجاح');
+              }}
+              onRefresh={() => {
+                queryClient.invalidateQueries({ queryKey: ['mobile-clinics'] });
+              }}
             />
             {checkPermission({ module: 'mobile-clinics', action: 'create' }) && (
               <Button onClick={handleAdd} className="h-9 px-3 " >
@@ -419,7 +417,6 @@ export default function MobileClinicsPage() {
           columns={getColumns({ onEdit: handleEdit, onDelete: handleDelete, onView: handleView })}
           data={data}
           isLoading={isLoading}
-          onExport={handleExport}
         />
 
         {/* Mobile Clinic Dialog */}

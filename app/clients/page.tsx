@@ -20,12 +20,14 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { MoreHorizontal, Edit, Trash, Eye } from "lucide-react";
 import { ClientDialog } from "./components/client-dialog";
-import { ImportExportManager } from "@/components/import-export/import-export-manager";
+
 import { clientsApi } from "@/lib/api/clients";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { usePermissions } from "@/lib/hooks/usePermissions";
 import { ProtectedButton } from "@/components/ui/protected-button";
+import { ImportExportManager } from "@/components/import-export";
+import { apiConfig } from "@/lib/api-config";
 
 export default function ClientsPage() {
   const [isClientDialogOpen, setIsClientDialogOpen] = useState(false);
@@ -308,25 +310,6 @@ export default function ClientsPage() {
     },
   ];
 
-  const handleExport = async (type: "csv" | "pdf") => {
-    try {
-      if (type === "csv") {
-        // استخدام API للتصدير
-        const blob = await clientsApi.exportToCsv?.();
-        if (blob) {
-          const url = window.URL.createObjectURL(blob);
-          const a = document.createElement("a");
-          a.href = url;
-          a.download = `clients-${new Date().toISOString().split("T")[0]}.csv`;
-          a.click();
-          window.URL.revokeObjectURL(url);
-          toast.success('تم تصدير البيانات بنجاح');
-        }
-      }
-    } catch (error) {
-      toast.error('حدث خطأ أثناء التصدير');
-    }
-  };
 
 
   const handleSaveClient = (clientData: Client) => {
@@ -367,13 +350,24 @@ export default function ClientsPage() {
           </div>
           <div className="flex gap-2">
             <ImportExportManager
-              exportEndpoint="/clients/export"
-              importEndpoint="/clients/import"
-              templateEndpoint="/clients/template"
-              title="المربيين"
+              exportEndpoint={apiConfig.endpoints.clients.export}
+              importEndpoint={apiConfig.endpoints.clients.import}
+              templateEndpoint={apiConfig.endpoints.clients.template}
+              title="العملاء"
               queryKey="clients"
               acceptedFormats={[".csv", ".xlsx"]}
               maxFileSize={10}
+              onImportSuccess={() => {
+                queryClient.invalidateQueries({ queryKey: ['clients'] });
+                queryClient.invalidateQueries({ queryKey: ['clients-stats'] });
+              }}
+              onExportSuccess={() => {
+                toast.success('تم تصدير البيانات بنجاح');
+              }}
+              onRefresh={() => {
+                queryClient.invalidateQueries({ queryKey: ['clients'] });
+                queryClient.invalidateQueries({ queryKey: ['clients-stats'] });
+              }}
             />
             
             {/* زر إضافة مربي جديد - للمدير العام والمشرفين فقط */}
@@ -456,7 +450,6 @@ export default function ClientsPage() {
           columns={columns}
           data={data}
           isLoading={isLoading}
-          onExport={handleExport}
         />
 
         {/* Client Dialog */}

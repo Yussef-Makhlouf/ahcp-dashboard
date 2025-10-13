@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { MainLayout } from "@/components/layout/main-layout";
 import { DataTable } from "@/components/data-table/data-table";
-import { ImportExportManager } from "@/components/import-export/import-export-manager";
+
 import { Button } from "@/components/ui/button";
 import { 
   Plus, 
@@ -33,6 +33,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { InventoryDialog } from "./components/inventory-dialog";
 import { usePermissions } from "@/lib/hooks/usePermissions";
+import { useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
+import { apiConfig } from "@/lib/api-config";
+import { ImportExportManager } from "@/components/import-export";
 import {
   BarChart,
   Bar,
@@ -183,6 +187,7 @@ export default function InventoryPage() {
   const [selectedItem, setSelectedItem] = useState<InventoryItem | undefined>(undefined);
   const [activeTab, setActiveTab] = useState("all");
   const { checkPermission } = usePermissions();
+  const queryClient = useQueryClient();
 
   const columns: ColumnDef<InventoryItem>[] = [
     {
@@ -363,9 +368,6 @@ export default function InventoryPage() {
     },
   ];
 
-  const handleExport = async (type: "csv" | "pdf") => {
-    console.log("Exporting as", type);
-  };
 
   const handleSaveItem = (itemData: any) => {
     if (selectedItem) {
@@ -403,13 +405,22 @@ export default function InventoryPage() {
           </div>
           <div className="flex gap-2">
             <ImportExportManager
-              exportEndpoint="/inventory/export"
-              importEndpoint="/inventory/import"
-              templateEndpoint="/inventory/template"
+              exportEndpoint={apiConfig.endpoints.inventory.export}
+              importEndpoint={apiConfig.endpoints.inventory.import}
+              templateEndpoint={apiConfig.endpoints.inventory.template}
               title="المخزون"
               queryKey="inventory"
               acceptedFormats={[".csv", ".xlsx"]}
               maxFileSize={10}
+              onImportSuccess={() => {
+                queryClient.invalidateQueries({ queryKey: ['inventory'] });
+              }}
+              onExportSuccess={() => {
+                toast.success('تم تصدير البيانات بنجاح');
+              }}
+              onRefresh={() => {
+                queryClient.invalidateQueries({ queryKey: ['inventory'] });
+              }}
             />
             <Button variant="outline" size="sm">
               <ShoppingCart className="ml-2 h-4 w-4" />
@@ -565,7 +576,6 @@ export default function InventoryPage() {
             <DataTable
               columns={columns}
               data={filteredData}
-              onExport={handleExport}
             />
           </TabsContent>
         </Tabs>

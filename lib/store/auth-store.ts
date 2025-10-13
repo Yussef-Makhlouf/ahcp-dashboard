@@ -9,10 +9,12 @@ interface AuthState {
   isAuthenticated: boolean;
   isLoading: boolean;
   error: string | null;
-  login: (credentials: LoginRequest) => Promise<void>;
+  isRehydrated: boolean;
+  login: (credentials: LoginRequest) => Promise<{ success: boolean; data?: any; error?: string }>;
   logout: () => Promise<void>;
   updateUser: (user: Partial<User>) => void;
   checkAuth: () => boolean;
+  validateToken: () => boolean;
   clearError: () => void;
   resetAuth: () => void;
 }
@@ -25,6 +27,7 @@ export const useAuthStore = create<AuthState>()(
       isAuthenticated: false,
       isLoading: false,
       error: null,
+      isRehydrated: false,
       login: async (credentials: LoginRequest) => {
         try {
           console.log('🔐 محاولة تسجيل الدخول:', { email: credentials.email });
@@ -33,7 +36,7 @@ export const useAuthStore = create<AuthState>()(
           const response = await authApi.login(credentials);
           console.log('📥 استجابة API:', response);
           
-          if (response && response.success) {
+          if (response && response.success && response.data && response.data.user && response.data.token) {
             console.log('✅ تسجيل الدخول ناجح:', {
               user: response.data.user,
               hasToken: !!response.data.token
@@ -46,12 +49,34 @@ export const useAuthStore = create<AuthState>()(
               isLoading: false,
               error: null
             });
+            
+            // حفظ البيانات في localStorage
+            if (typeof window !== 'undefined') {
+              const authData = {
+                user: response.data.user,
+                token: response.data.token,
+                isAuthenticated: true
+              };
+              localStorage.setItem('auth-storage', JSON.stringify(authData));
+              console.log('💾 تم حفظ بيانات الجلسة في localStorage:', {
+                hasToken: !!authData.token,
+                isAuthenticated: authData.isAuthenticated,
+                user: authData.user?.email
+              });
+            }
+            
+            return { success: true, data: response.data };
           } else {
             console.error('❌ فشل في تسجيل الدخول:', response);
+            const errorMessage = response?.message || 'فشل في تسجيل الدخول';
             set({
-              error: response?.message || 'فشل في تسجيل الدخول',
-              isLoading: false
+              error: errorMessage,
+              isLoading: false,
+              isAuthenticated: false,
+              user: null,
+              token: null
             });
+            return { success: false, error: errorMessage };
           }
         } catch (error: any) {
           console.error('❌ خطأ في تسجيل الدخول:', error);
@@ -62,27 +87,27 @@ export const useAuthStore = create<AuthState>()(
           });
           
           // معالجة أنواع مختلفة من الأخطاء
+          let errorMessage = 'حدث خطأ أثناء تسجيل الدخول';
+          
           if (error.response?.status === 401) {
-            set({
-              error: 'البريد الإلكتروني أو كلمة المرور غير صحيحة',
-              isLoading: false
-            });
+            errorMessage = 'البريد الإلكتروني أو كلمة المرور غير صحيحة';
           } else if (error.response?.status === 403) {
-            set({
-              error: 'الحساب غير مفعل أو محظور',
-              isLoading: false
-            });
+            errorMessage = 'الحساب غير مفعل أو محظور';
           } else if (error.code === 'NETWORK_ERROR' || error.message.includes('Network Error')) {
-            set({
-              error: 'خطأ في الاتصال بالخادم. تأكد من تشغيل الخادم الخلفي',
-              isLoading: false
-            });
+            errorMessage = 'خطأ في الاتصال بالخادم. تأكد من تشغيل الخادم الخلفي';
           } else {
-            set({
-              error: error.response?.data?.message || error.message || 'حدث خطأ أثناء تسجيل الدخول',
-              isLoading: false
-            });
+            errorMessage = error.response?.data?.message || error.message || errorMessage;
           }
+          
+          set({
+            error: errorMessage,
+            isLoading: false,
+            isAuthenticated: false,
+            user: null,
+            token: null
+          });
+          
+          return { success: false, error: errorMessage };
         }
       },
       logout: async () => {
@@ -95,15 +120,23 @@ export const useAuthStore = create<AuthState>()(
         }
         
         console.log('🚪 تسجيل خروج...');
+        console.log('🔍 Current auth state before logout:', {
+          isAuthenticated: currentState.isAuthenticated,
+          hasToken: !!currentState.token,
+          user: currentState.user?.email
+        });
         
         try {
           // محاولة إعلام الخادم بتسجيل الخروج (اختياري)
           if (currentState.token) {
-            await authApi.logout();
+            try {
+              await authApi.logout();
+              console.log('✅ تم إعلام الخادم بتسجيل الخروج');
+            } catch (error: any) {
+              console.error('⚠️ خطأ في إعلام الخادم بتسجيل الخروج:', error?.message || 'خطأ غير معروف');
+              // لا توقف عملية تسجيل الخروج بسبب خطأ في الخادم
+            }
           }
-        } catch (error: any) {
-          console.error('⚠️ خطأ في إعلام الخادم بتسجيل الخروج:', error?.message || 'خطأ غير معروف');
-          // لا توقف عملية تسجيل الخروج بسبب خطأ في الخادم
         } finally {
           // مسح حالة المصادقة محلياً
           set({ 
@@ -116,8 +149,25 @@ export const useAuthStore = create<AuthState>()(
           
           // مسح البيانات من localStorage
           if (typeof window !== 'undefined') {
+            // مسح جميع البيانات المتعلقة بالمصادقة
             localStorage.removeItem('auth-storage');
-            console.log('🗑️ تم مسح بيانات الجلسة');
+            localStorage.removeItem('auth-storage-persist');
+            
+            // مسح أي بيانات أخرى قد تكون مخزنة
+            const keysToRemove = [];
+            for (let i = 0; i < localStorage.length; i++) {
+              const key = localStorage.key(i);
+              if (key && (key.includes('auth') || key.includes('user') || key.includes('token'))) {
+                keysToRemove.push(key);
+              }
+            }
+            keysToRemove.forEach(key => localStorage.removeItem(key));
+            
+            console.log('🗑️ تم مسح جميع بيانات الجلسة');
+            
+            // إعادة توجيه إلى صفحة تسجيل الدخول
+            // استخدام replace بدلاً من href لتجنب إضافة صفحة جديدة للتاريخ
+            window.location.replace('/login');
           }
         }
       },
@@ -127,14 +177,71 @@ export const useAuthStore = create<AuthState>()(
         })),
       checkAuth: () => {
         const state = get();
-        const isValid = state.isAuthenticated && state.user !== null && state.token !== null;
+        const isValid = state.isAuthenticated && state.user !== null && state.token !== null && state.token.trim() !== '';
         console.log('🔍 checkAuth result:', { 
           isAuthenticated: state.isAuthenticated, 
           hasUser: !!state.user, 
-          hasToken: !!state.token, 
+          hasToken: !!state.token,
+          tokenLength: state.token?.length,
           isValid 
         });
+        
+        // التحقق من localStorage كبديل
+        if (!isValid && typeof window !== 'undefined') {
+          try {
+            const storedAuth = localStorage.getItem('auth-storage');
+            if (storedAuth) {
+              const parsed = JSON.parse(storedAuth);
+              if (parsed.token && parsed.user && parsed.isAuthenticated) {
+                console.log('🔄 Found valid auth data in localStorage, updating store');
+                set({
+                  user: parsed.user,
+                  token: parsed.token,
+                  isAuthenticated: parsed.isAuthenticated,
+                  isRehydrated: true
+                });
+                return true;
+              }
+            }
+          } catch (error) {
+            console.warn('⚠️ Error checking localStorage:', error);
+          }
+        }
+        
         return isValid;
+      },
+      validateToken: () => {
+        const state = get();
+        const token = state.token;
+        
+        if (!token || token.trim() === '') {
+          console.warn('⚠️ No token found');
+          return false;
+        }
+        
+        // التحقق من صيغة JWT
+        const parts = token.split('.');
+        if (parts.length !== 3) {
+          console.warn('⚠️ Invalid JWT format');
+          return false;
+        }
+        
+        try {
+          // محاولة فك تشفير الرمز للتحقق من صحة الصيغة
+          const payload = JSON.parse(atob(parts[1]));
+          const now = Math.floor(Date.now() / 1000);
+          
+          if (payload.exp && payload.exp < now) {
+            console.warn('⚠️ Token expired');
+            return false;
+          }
+          
+          console.log('✅ Token is valid');
+          return true;
+        } catch (error) {
+          console.warn('⚠️ Invalid token format:', error);
+          return false;
+        }
       },
       clearError: () => set({ error: null }),
       resetAuth: () => {
@@ -144,10 +251,25 @@ export const useAuthStore = create<AuthState>()(
           token: null,
           isAuthenticated: false,
           isLoading: false,
-          error: null
+          error: null,
+          isRehydrated: true
         });
         if (typeof window !== 'undefined') {
+          // مسح جميع البيانات المتعلقة بالمصادقة
           localStorage.removeItem('auth-storage');
+          localStorage.removeItem('auth-storage-persist');
+          
+          // مسح أي بيانات أخرى قد تكون مخزنة
+          const keysToRemove = [];
+          for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (key && (key.includes('auth') || key.includes('user') || key.includes('token'))) {
+              keysToRemove.push(key);
+            }
+          }
+          keysToRemove.forEach(key => localStorage.removeItem(key));
+          
+          console.log('🗑️ تم مسح جميع بيانات المصادقة');
         }
       },
     }),
@@ -188,6 +310,35 @@ export const useAuthStore = create<AuthState>()(
           hasUser: !!state?.user,
           hasToken: !!state?.token
         });
+        
+        // التحقق من صحة البيانات المستعادة
+        if (state?.token && state?.user && state?.isAuthenticated) {
+          console.log('✅ تم استعادة بيانات الجلسة بنجاح');
+          console.log('✅ Token length:', state.token.length);
+          console.log('✅ User email:', state.user.email);
+          
+          // التحقق من صحة الرمز بعد الاستعادة - بدون مسح البيانات
+          try {
+            const parts = state.token.split('.');
+            if (parts.length === 3) {
+              const payload = JSON.parse(atob(parts[1]));
+              const now = Math.floor(Date.now() / 1000);
+              
+              if (payload.exp && payload.exp < now) {
+                console.warn('⚠️ Token expired during rehydration - but keeping data for now');
+                // لا نمسح البيانات هنا - نترك للمستخدم أن يقرر
+                return;
+              }
+            }
+          } catch (error) {
+            console.warn('⚠️ Invalid token during rehydration - but keeping data for now');
+            // لا نمسح البيانات هنا - نترك للمستخدم أن يقرر
+            return;
+          }
+        } else {
+          console.warn('⚠️ لم يتم استعادة بيانات الجلسة بشكل صحيح');
+          console.warn('⚠️ State:', state);
+        }
       },
     }
   )

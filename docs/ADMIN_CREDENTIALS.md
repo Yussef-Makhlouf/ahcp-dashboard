@@ -51,7 +51,7 @@ BCRYPT_ROUNDS=12
 
 ```env
 # API Configuration
-NEXT_PUBLIC_API_URL=https://ahcp-backend.vercel.app/api
+NEXT_PUBLIC_API_URL=http://localhost:3001/api
 NEXT_PUBLIC_APP_URL=http://localhost:3000
 
 # Development

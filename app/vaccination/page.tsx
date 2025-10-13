@@ -13,9 +13,12 @@ import { VaccinationDialog } from "./components/vaccination-dialog";
 import { getColumns } from "./components/columns";
 import { vaccinationApi } from "@/lib/api/vaccination";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { ImportExportManager } from "@/components/import-export/import-export-manager";
+
 import { usePermissions } from "@/lib/hooks/usePermissions";
 import { toast } from "sonner";
+import { ImportExportManager } from "@/components/import-export";
+import { apiConfig } from "@/lib/api-config";
+
 
 export default function VaccinationPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -39,22 +42,6 @@ export default function VaccinationPage() {
 
   const data = vaccinationData?.data || [];
 
-  const handleExport = async (type: "csv" | "pdf") => {
-    if (type === "csv") {
-      try {
-        const blob = await vaccinationApi.exportToCsv();
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = `vaccination-records-${new Date().toISOString().split("T")[0]}.csv`;
-        a.click();
-        window.URL.revokeObjectURL(url);
-      } catch (error) {
-        console.error('Export failed:', error);
-        alert('فشل في تصدير البيانات');
-      }
-    }
-  };
 
 
   const handleDelete = async (item: Vaccination) => {
@@ -90,13 +77,24 @@ export default function VaccinationPage() {
           </div>
           <div className="flex gap-2">
             <ImportExportManager
-              exportEndpoint="/vaccination/export"
-              importEndpoint="/vaccination/import"
-              templateEndpoint="/vaccination/template"
+              exportEndpoint={apiConfig.endpoints.vaccination.export}
+              importEndpoint={apiConfig.endpoints.vaccination.import}
+              templateEndpoint={apiConfig.endpoints.vaccination.template}
               title="التحصينات"
               queryKey="vaccination"
               acceptedFormats={[".csv", ".xlsx"]}
               maxFileSize={10}
+              onImportSuccess={() => {
+                queryClient.invalidateQueries({ queryKey: ['vaccination'] });
+                queryClient.invalidateQueries({ queryKey: ['vaccination-stats'] });
+              }}
+              onExportSuccess={() => {
+                toast.success('تم تصدير البيانات بنجاح');
+              }}
+              onRefresh={() => {
+                queryClient.invalidateQueries({ queryKey: ['vaccination'] });
+                queryClient.invalidateQueries({ queryKey: ['vaccination-stats'] });
+              }}
             />
             {checkPermission({ module: 'vaccination', action: 'create' }) && (
               <Button 
@@ -163,12 +161,12 @@ export default function VaccinationPage() {
           </Card>
         </div>
 
+
         {/* Data Table */}
         <DataTable
           columns={getColumns({ onEdit: handleEdit, onDelete: handleDelete })}
           data={data}
           isLoading={isLoading}
-          onExport={handleExport}
         />
 
         {/* Vaccination Dialog */}

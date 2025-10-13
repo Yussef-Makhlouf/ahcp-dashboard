@@ -1,61 +1,35 @@
 "use client";
 
-import React, { useState, useCallback } from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
-import { Badge } from "@/components/ui/badge";
+import React, { useState, useRef } from 'react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Progress } from '@/components/ui/progress';
+import { Badge } from '@/components/ui/badge';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { 
   Upload, 
   Download, 
-  FileText, 
+  FileSpreadsheet, 
+  AlertCircle, 
   CheckCircle, 
-  XCircle, 
-  AlertCircle,
-  FileSpreadsheet,
-  FileImage,
-  FileArchive
-} from "lucide-react";
-import { toast } from "sonner";
-import { api } from '@/lib/api/base-api';
+  X,
+  Loader2,
+  RefreshCw
+} from 'lucide-react';
+import { toast } from 'sonner';
+import { cn } from '@/lib/utils';
 
 interface ImportExportManagerProps {
-  // API endpoints
   exportEndpoint: string;
   importEndpoint: string;
   templateEndpoint?: string;
-  
-  // Configuration
   title: string;
   queryKey: string;
-  
-  // File settings
-  acceptedFormats: string[];
-  maxFileSize?: number; // in MB
-  
-  // Export options
-  exportFormats?: Array<{
-    value: string;
-    label: string;
-    icon?: React.ReactNode;
-  }>;
-  
-  // Import validation
-  requiredColumns?: string[];
-  
-  // Callbacks
-  onImportSuccess?: (result: any) => void;
+  acceptedFormats?: string[];
+  maxFileSize?: number;
+  onImportSuccess?: () => void;
   onExportSuccess?: () => void;
+  onRefresh?: () => void;
 }
 
 interface ImportResult {
@@ -63,13 +37,47 @@ interface ImportResult {
   totalRows: number;
   successRows: number;
   errorRows: number;
-  errors: Array<{
-    row: number;
-    field: string;
-    message: string;
-  }>;
-  importedRecords?: any[]; // البيانات المستوردة الجديدة
+  errors: Array<{ row: number; field: string; message: string }>;
+  importedRecords?: any[];
 }
+
+// Helper function to get token from auth-storage
+const getAuthToken = (): string | null => {
+  if (typeof window === 'undefined') return null;
+  
+  try {
+    // First try to get from Zustand store
+    const { useAuthStore } = require('@/lib/store/auth-store');
+    const { token, isAuthenticated } = useAuthStore.getState();
+    
+    if (token && isAuthenticated) {
+      console.log('✅ Using token from Zustand store');
+      return token;
+    }
+    
+    // Fallback to localStorage
+    const storedAuth = localStorage.getItem('auth-storage');
+    if (storedAuth) {
+      const parsed = JSON.parse(storedAuth);
+      console.log('🔍 Stored auth:', { 
+        hasToken: !!parsed.token, 
+        isAuthenticated: parsed.isAuthenticated,
+        user: parsed.user?.email 
+      });
+      
+      if (parsed.token && parsed.isAuthenticated) {
+        console.log('✅ Using token from localStorage');
+        return parsed.token;
+      }
+    }
+    
+    console.warn('⚠️ No valid token found');
+    return null;
+  } catch (error) {
+    console.error('❌ Error getting auth token:', error);
+    return null;
+  }
+};
 
 export function ImportExportManager({
   exportEndpoint,
@@ -77,147 +85,20 @@ export function ImportExportManager({
   templateEndpoint,
   title,
   queryKey,
-  acceptedFormats,
+  acceptedFormats = ['.csv', '.xlsx'],
   maxFileSize = 10,
-  exportFormats = [
-    { value: 'csv', label: 'CSV', icon: <FileText className="h-4 w-4" /> },
-    { value: 'excel', label: 'Excel', icon: <FileSpreadsheet className="h-4 w-4" /> },
-    { value: 'pdf', label: 'PDF', icon: <FileArchive className="h-4 w-4" /> }
-  ],
-  requiredColumns = [],
   onImportSuccess,
-  onExportSuccess
+  onExportSuccess,
+  onRefresh
 }: ImportExportManagerProps) {
-  const [importDialogOpen, setImportDialogOpen] = useState(false);
-  const [exportDialogOpen, setExportDialogOpen] = useState(false);
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [isImporting, setIsImporting] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
+  const [importProgress, setImportProgress] = useState(0);
   const [importResult, setImportResult] = useState<ImportResult | null>(null);
-  const [exportFormat, setExportFormat] = useState('csv');
-  const [uploadProgress, setUploadProgress] = useState(0);
-  const [isDragOver, setIsDragOver] = useState(false);
+  const [showImportResult, setShowImportResult] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const queryClient = useQueryClient();
-
-  // Import mutation
-  const importMutation = useMutation({
-    mutationFn: async (file: File) => {
-      const formData = new FormData();
-      formData.append('file', file);
-      
-      return api.post(importEndpoint, formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-        onUploadProgress: (progressEvent) => {
-          const progress = Math.round(
-            (progressEvent.loaded * 100) / (progressEvent.total || 1)
-          );
-          setUploadProgress(progress);
-        },
-      });
-    },
-    onSuccess: (response: any) => {
-      // Handle response structure: { success: true, data: {...} } or direct result
-      const result = response?.data || response;
-      setImportResult(result);
-      if (result.success) {
-        toast.success(`تم استيراد ${result.successRows} سجل بنجاح`);
-        
-        // إضافة البيانات الجديدة إلى الكاش مباشرة بدلاً من invalidate
-        if (result.importedRecords && result.importedRecords.length > 0) {
-          queryClient.setQueryData([queryKey], (oldData: any) => {
-            if (!oldData) return oldData;
-            
-            // إضافة السجلات الجديدة في بداية القائمة
-            const newData = {
-              ...oldData,
-              data: [...result.importedRecords, ...(oldData.data || [])],
-              total: (oldData.total || 0) + result.successRows
-            };
-            return newData;
-          });
-          
-          // إشعار إضافي بعرض البيانات الجديدة
-          setTimeout(() => {
-            toast.success(`تم عرض ${result.importedRecords.length} سجل جديد في الجدول`, {
-              description: 'يمكنك رؤية السجلات الجديدة في أعلى الجدول'
-            });
-          }, 1000);
-        } else {
-          // إذا لم تكن البيانات متوفرة، استخدم invalidate كما هو
-          queryClient.invalidateQueries({ queryKey: [queryKey] });
-        }
-        
-        onImportSuccess?.(result);
-      } else {
-        toast.error(`فشل في استيراد ${result.errorRows} سجل`);
-      }
-      setUploadProgress(0);
-    },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.message || 'حدث خطأ أثناء الاستيراد');
-      setUploadProgress(0);
-    }
-  });
-
-  // Export mutation
-  const exportMutation = useMutation({
-    mutationFn: async (format: string) => {
-      const response = await api.get(`${exportEndpoint}?format=${format}`, {
-        responseType: 'blob'
-      });
-      return { blob: response as Blob, format };
-    },
-    onSuccess: ({ blob, format }) => {
-      // Create download link
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.style.display = 'none';
-      a.href = url;
-      
-      const extension = format === 'excel' ? 'xlsx' : format;
-      a.download = `${queryKey}-export-${new Date().toISOString().split('T')[0]}.${extension}`;
-      
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
-      
-      toast.success('تم تصدير البيانات بنجاح');
-      onExportSuccess?.();
-      setExportDialogOpen(false);
-    },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.message || 'حدث خطأ أثناء التصدير');
-    }
-  });
-
-  // Download template
-  const downloadTemplate = useCallback(async () => {
-    if (!templateEndpoint) return;
-    
-    try {
-      const response = await api.get(templateEndpoint, {
-        responseType: 'blob'
-      });
-      
-      const url = window.URL.createObjectURL(response as Blob);
-      const a = document.createElement('a');
-      a.style.display = 'none';
-      a.href = url;
-      a.download = `${queryKey}-template.csv`;
-      
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
-      
-      toast.success('تم تحميل القالب بنجاح');
-    } catch (error: any) {
-      toast.error('حدث خطأ أثناء تحميل القالب');
-    }
-  }, [templateEndpoint, queryKey]);
-
+  // Handle file selection
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -229,357 +110,373 @@ export function ImportExportManager({
     }
 
     // Validate file type
-    const fileExtension = file.name.split('.').pop()?.toLowerCase();
-    if (!acceptedFormats.includes(`.${fileExtension}`)) {
+    const fileExtension = '.' + file.name.split('.').pop()?.toLowerCase();
+    if (!acceptedFormats.includes(fileExtension)) {
       toast.error(`نوع الملف غير مدعوم. الأنواع المدعومة: ${acceptedFormats.join(', ')}`);
       return;
     }
 
-    setSelectedFile(file);
+    handleImport(file);
+  };
+
+  // Handle import
+  const handleImport = async (file: File) => {
+    setIsImporting(true);
+    setImportProgress(0);
     setImportResult(null);
+    setShowImportResult(false);
+
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      // Simulate progress
+      const progressInterval = setInterval(() => {
+        setImportProgress(prev => {
+          if (prev >= 90) {
+            clearInterval(progressInterval);
+            return 90;
+          }
+          return prev + 10;
+        });
+      }, 200);
+
+      const token = getAuthToken();
+      if (!token) {
+        throw new Error('لم يتم العثور على رمز المصادقة. يرجى تسجيل الدخول مرة أخرى.');
+      }
+
+      const response = await fetch(importEndpoint, {
+        method: 'POST',
+        body: formData,
+        headers: {
+          'Authorization': `Bearer ${token}`
+          // Don't set Content-Type header - let browser set it with boundary for FormData
+        }
+      });
+
+      clearInterval(progressInterval);
+      setImportProgress(100);
+
+      if (!response.ok) {
+        if (response.status === 401) {
+          throw new Error('انتهت صلاحية الجلسة. يرجى تسجيل الدخول مرة أخرى.');
+        } else if (response.status === 403) {
+          throw new Error('ليس لديك صلاحية للوصول إلى هذه البيانات.');
+        } else if (response.status === 404) {
+          throw new Error('المسار غير موجود. تحقق من إعدادات API.');
+        } else {
+          throw new Error(`خطأ في الخادم: ${response.status}`);
+        }
+      }
+
+      const result: ImportResult = await response.json();
+      setImportResult(result);
+      setShowImportResult(true);
+
+      if (result.success) {
+        toast.success(`تم استيراد ${result.successRows} سجل بنجاح`);
+        onImportSuccess?.();
+      } else {
+        toast.error(`تم استيراد ${result.successRows} من ${result.totalRows} سجل`);
+      }
+
+    } catch (error: any) {
+      console.error('Import error:', error);
+      toast.error(`فشل في الاستيراد: ${error.message}`);
+    } finally {
+      setIsImporting(false);
+      setImportProgress(0);
+    }
   };
 
-  const handleImport = () => {
-    if (!selectedFile) return;
-    importMutation.mutate(selectedFile);
+  // Handle export
+  const handleExport = async () => {
+    setIsExporting(true);
+
+    try {
+      const token = getAuthToken();
+      if (!token) {
+        throw new Error('لم يتم العثور على رمز المصادقة. يرجى تسجيل الدخول مرة أخرى.');
+      }
+
+      const response = await fetch(exportEndpoint, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, text/csv, */*'
+        }
+      });
+
+      if (!response.ok) {
+        if (response.status === 401) {
+          throw new Error('انتهت صلاحية الجلسة. يرجى تسجيل الدخول مرة أخرى.');
+        } else if (response.status === 403) {
+          throw new Error('ليس لديك صلاحية للوصول إلى هذه البيانات.');
+        } else if (response.status === 404) {
+          throw new Error('المسار غير موجود. تحقق من إعدادات API.');
+        } else {
+          throw new Error(`خطأ في الخادم: ${response.status}`);
+        }
+      }
+
+      const blob = await response.blob();
+      
+      // Check if blob is empty
+      if (blob.size === 0) {
+        throw new Error('الملف المُصدر فارغ. تحقق من وجود البيانات في النظام.');
+      }
+      
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      
+      // Determine file extension based on content type
+      const contentType = response.headers.get('content-type');
+      let extension = 'xlsx';
+      if (contentType?.includes('text/csv')) {
+        extension = 'csv';
+      }
+      
+      a.download = `${title}-${new Date().toISOString().split('T')[0]}.${extension}`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+
+      toast.success(`تم تصدير البيانات بنجاح (${blob.size} بايت)`);
+      onExportSuccess?.();
+
+    } catch (error: any) {
+      console.error('Export error:', error);
+      toast.error(`فشل في التصدير: ${error.message}`);
+    } finally {
+      setIsExporting(false);
+    }
   };
 
-  const handleExport = (format: string) => {
-    exportMutation.mutate(format);
-  };
+  // Handle template download
+  const handleTemplateDownload = async () => {
+    if (!templateEndpoint) return;
 
-  const resetImport = () => {
-    setSelectedFile(null);
-    setImportResult(null);
-    setUploadProgress(0);
+    try {
+      const token = getAuthToken();
+      if (!token) {
+        throw new Error('لم يتم العثور على رمز المصادقة. يرجى تسجيل الدخول مرة أخرى.');
+      }
+
+      const response = await fetch(templateEndpoint, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (!response.ok) {
+        if (response.status === 401) {
+          throw new Error('انتهت صلاحية الجلسة. يرجى تسجيل الدخول مرة أخرى.');
+        } else if (response.status === 403) {
+          throw new Error('ليس لديك صلاحية للوصول إلى هذه البيانات.');
+        } else if (response.status === 404) {
+          throw new Error('المسار غير موجود. تحقق من إعدادات API.');
+        } else {
+          throw new Error(`خطأ في الخادم: ${response.status}`);
+        }
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `template-${title}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+
+      toast.success('تم تحميل القالب بنجاح');
+
+    } catch (error: any) {
+      console.error('Template download error:', error);
+      toast.error(`فشل في تحميل القالب: ${error.message}`);
+    }
   };
 
   return (
     <div className="flex gap-2">
-      {/* Export Button */}
-      <Dialog open={exportDialogOpen} onOpenChange={setExportDialogOpen}>
-        <DialogTrigger asChild>
-          <Button variant="outline" size="sm" className="h-9 px-3">
-            <Download className="h-4 w-4 mr-2" />
-            تصدير
-          </Button>
-        </DialogTrigger>
-        <DialogContent className="w-[95vw] max-w-md mx-auto">
-          <DialogHeader className="text-center">
-            <DialogTitle className="text-lg font-semibold">تصدير {title}</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 p-4">
-            <p className="text-sm text-muted-foreground text-center">
-              اختر تنسيق التصدير المطلوب
-            </p>
-            
-            <div className="grid gap-3">
-              {exportFormats ? (
-                exportFormats.map((format) => (
-                  <Button
-                    key={format.value}
-                    onClick={() => exportMutation.mutate(format.value)}
-                    disabled={exportMutation.isPending}
-                    variant="outline"
-                    className="justify-center h-12 text-base font-medium hover:bg-primary hover:text-primary-foreground transition-colors"
-                  >
-                    {format.icon && <span className="ml-2 text-lg">{format.icon}</span>}
-                    <FileText className="ml-2 h-4 w-4" />
-                    تصدير كملف {format.label}
-                  </Button>
-                ))
-              ) : (
-                <>
-                  <Button
-                    onClick={() => exportMutation.mutate('csv')}
-                    disabled={exportMutation.isPending}
-                    variant="outline"
-                    className="justify-center h-12 text-base font-medium hover:bg-primary hover:text-primary-foreground transition-colors"
-                  >
-                    <span className="ml-2 text-lg">📄</span>
-                    <FileText className="ml-2 h-4 w-4" />
-                    تصدير كملف CSV
-                  </Button>
-                  
-                  <Button
-                    onClick={() => exportMutation.mutate('excel')}
-                    disabled={exportMutation.isPending}
-                    variant="outline"
-                    className="justify-center h-12 text-base font-medium hover:bg-primary hover:text-primary-foreground transition-colors"
-                  >
-                    <span className="ml-2 text-lg">📊</span>
-                    <FileSpreadsheet className="ml-2 h-4 w-4" />
-                    تصدير كملف Excel
-                  </Button>
-                </>
-              )}
-            </div>
-            
-            {exportMutation.isPending && (
-              <div className="flex items-center justify-center py-4">
-                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
-                <span className="mr-2 text-sm text-muted-foreground">جاري التصدير...</span>
-              </div>
-            )}
-          </div>
-        </DialogContent>
-      </Dialog>
-
       {/* Import Button */}
-      <Dialog open={importDialogOpen} onOpenChange={setImportDialogOpen}>
-        <DialogTrigger asChild>
-          <Button variant="outline" size="sm" className="h-9 px-3">
+      <div className="relative">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => fileInputRef.current?.click()}
+          disabled={isImporting}
+          className="h-9 px-3"
+        >
+          {isImporting ? (
+            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+          ) : (
             <Upload className="h-4 w-4 mr-2" />
-            استيراد
-          </Button>
-        </DialogTrigger>
-        <DialogContent className="w-[95vw] max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader className="pb-4">
-            <DialogTitle className="text-lg font-semibold text-right">
-              استيراد {title}
-            </DialogTitle>
-          </DialogHeader>
-          
-          <div className="space-y-6 px-1">
+          )}
+          استيراد
+        </Button>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept={acceptedFormats.join(',')}
+          onChange={handleFileSelect}
+          className="hidden"
+        />
+      </div>
 
-            {/* File Upload */}
-            <div className="space-y-4">
-              <div className="text-center">
-                <h3 className="text-base font-medium mb-2">اختر ملف للاستيراد</h3>
-                <p className="text-sm text-muted-foreground mb-4">
-                  الأنواع المدعومة: {acceptedFormats.join(', ')} | الحد الأقصى: {maxFileSize} ميجابايت
+      {/* Export Button */}
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={handleExport}
+        disabled={isExporting}
+        className="h-9 px-3"
+      >
+        {isExporting ? (
+          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+        ) : (
+          <Download className="h-4 w-4 mr-2" />
+        )}
+        تصدير
+      </Button>
+
+      {/* Template Button */}
+      {templateEndpoint && (
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleTemplateDownload}
+          className="h-9 px-3"
+        >
+          <FileSpreadsheet className="h-4 w-4 mr-2" />
+          قالب
+        </Button>
+      )}
+
+      {/* Refresh Button */}
+      {onRefresh && (
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={onRefresh}
+          className="h-9 px-3"
+        >
+          <RefreshCw className="h-4 w-4 mr-2" />
+          تحديث
+        </Button>
+      )}
+
+      {/* Import Progress Modal */}
+      {isImporting && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <Card className="w-96">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Loader2 className="h-5 w-5 animate-spin" />
+                جاري الاستيراد...
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <Progress value={importProgress} className="w-full" />
+                <p className="text-sm text-muted-foreground text-center">
+                  {importProgress}% مكتمل
                 </p>
               </div>
-              
-              <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-gray-400 transition-colors">
-                <div className="space-y-4">
-                  <div className="mx-auto w-12 h-12 bg-blue-50 rounded-full flex items-center justify-center">
-                    <Upload className="h-6 w-6 text-blue-500" />
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Import Result Modal */}
+      {showImportResult && importResult && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <Card className="w-96 max-h-96 overflow-y-auto">
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle className="flex items-center gap-2">
+                {importResult.success ? (
+                  <CheckCircle className="h-5 w-5 text-green-500" />
+                ) : (
+                  <AlertCircle className="h-5 w-5 text-yellow-500" />
+                )}
+                نتائج الاستيراد
+              </CardTitle>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowImportResult(false)}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-green-600">
+                    {importResult.successRows}
                   </div>
-                  
-                  <div>
-                    <Input
-                      type="file"
-                      accept={acceptedFormats.join(',')}
-                      onChange={handleFileSelect}
-                      disabled={importMutation.isPending}
-                      className="hidden"
-                      id="file-upload"
-                    />
-                    <label 
-                      htmlFor="file-upload" 
-                      className="cursor-pointer inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
-                    >
-                      <Upload className="h-4 w-4 mr-2" />
-                      اختر ملف
-                    </label>
+                  <div className="text-sm text-muted-foreground">نجح</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-red-600">
+                    {importResult.errorRows}
                   </div>
-                  
-                  <p className="text-xs text-gray-500">
-                    أو اسحب الملف وأفلته هنا
-                  </p>
+                  <div className="text-sm text-muted-foreground">فشل</div>
                 </div>
               </div>
-              
-              {selectedFile && (
-                <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
-                      <FileText className="h-5 w-5 text-green-600" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-green-800 truncate">
-                        {selectedFile.name}
-                      </p>
-                      <p className="text-xs text-green-600">
-                        {(selectedFile.size / 1024 / 1024).toFixed(2)} ميجابايت
-                      </p>
-                    </div>
-                    <Badge variant="outline" className="bg-green-100 text-green-700 border-green-300">
-                      جاهز للرفع
-                    </Badge>
-                  </div>
-                </div>
-              )}
-            </div>
 
-            {/* Upload Progress */}
-            {importMutation.isPending && (
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                <div className="space-y-3">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                      <Upload className="h-4 w-4 text-blue-600 animate-pulse" />
-                    </div>
-                    <div className="flex-1">
-                      <div className="flex justify-between items-center mb-2">
-                        <span className="text-sm font-medium text-blue-800">جاري رفع الملف...</span>
-                        <span className="text-sm font-bold text-blue-600">{uploadProgress}%</span>
+              {importResult.errors.length > 0 && (
+                <div className="space-y-2">
+                  <h4 className="font-medium text-sm">الأخطاء:</h4>
+                  <div className="max-h-32 overflow-y-auto space-y-1">
+                    {importResult.errors.slice(0, 5).map((error, index) => (
+                      <div key={index} className="text-xs text-red-600 bg-red-50 p-2 rounded">
+                        <Badge variant="destructive" className="mr-1">
+                          صف {error.row}
+                        </Badge>
+                        {error.message}
                       </div>
-                      <Progress value={uploadProgress} className="h-2" />
-                    </div>
-                  </div>
-                  <p className="text-xs text-blue-600 text-center">
-                    يرجى عدم إغلاق النافذة أثناء الرفع
-                  </p>
-                </div>
-              </div>
-            )}
-
-            {/* Import Results */}
-            {importResult && (
-              <div className={`rounded-lg border p-4 ${importResult.success ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'}`}>
-                <div className="space-y-4">
-                  {/* Header */}
-                  <div className="flex items-center gap-2 pb-2 border-b border-gray-200">
-                    {importResult.success ? (
-                      <CheckCircle className="h-5 w-5 text-green-500" />
-                    ) : (
-                      <XCircle className="h-5 w-5 text-red-500" />
+                    ))}
+                    {importResult.errors.length > 5 && (
+                      <div className="text-xs text-muted-foreground">
+                        و {importResult.errors.length - 5} أخطاء أخرى...
+                      </div>
                     )}
-                    <h3 className="font-medium text-base">
-                      {importResult.success ? 'تم الاستيراد بنجاح!' : 'نتائج الاستيراد'}
-                    </h3>
                   </div>
-
-                  {/* Statistics */}
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                    <div className="bg-white rounded-lg p-3 text-center border">
-                      <div className="text-xl font-bold text-gray-700">{importResult.totalRows}</div>
-                      <div className="text-xs text-gray-500 mt-1">إجمالي السجلات</div>
-                    </div>
-                    <div className="bg-white rounded-lg p-3 text-center border">
-                      <div className="text-xl font-bold text-green-600">{importResult.successRows}</div>
-                      <div className="text-xs text-gray-500 mt-1">نجح</div>
-                    </div>
-                    <div className="bg-white rounded-lg p-3 text-center border">
-                      <div className="text-xl font-bold text-red-600">{importResult.errorRows}</div>
-                      <div className="text-xs text-gray-500 mt-1">فشل</div>
-                    </div>
-                  </div>
-
-                  {/* عرض السجلات المستوردة بنجاح */}
-                  {importResult.importedRecords && importResult.importedRecords.length > 0 && (
-                    <div className="space-y-2 mb-4">
-                      <h4 className="font-medium flex items-center gap-2 text-green-700">
-                        <CheckCircle className="h-4 w-4 text-green-500" />
-                        السجلات المستوردة بنجاح ({importResult.importedRecords.length})
-                      </h4>
-                      <div className="max-h-40 overflow-y-auto space-y-2 bg-green-50 p-3 rounded-lg border border-green-200">
-                        {importResult.importedRecords.slice(0, 5).map((record: any, index: number) => (
-                          <div key={index} className="text-sm p-2 bg-white rounded border border-green-100">
-                            <div className="flex items-center justify-between">
-                              <div className="flex items-center gap-2">
-                                <Badge variant="outline" className="bg-green-100 text-green-700 border-green-300">
-                                  {record.serialNo || `#${index + 1}`}
-                                </Badge>
-                                <span className="font-medium">
-                                  {record.client?.name || record.clientName || 'غير محدد'}
-                                </span>
-                              </div>
-                              <div className="text-xs text-gray-500">
-                                {record.date ? new Date(record.date).toLocaleDateString('ar-EG') : ''}
-                              </div>
-                            </div>
-                            {record.client?.nationalId && (
-                              <div className="text-xs text-gray-600 mt-1">
-                                هوية: {record.client.nationalId}
-                              </div>
-                            )}
-                          </div>
-                        ))}
-                        {importResult.importedRecords.length > 5 && (
-                          <div className="text-sm text-green-600 text-center font-medium">
-                            ... و {importResult.importedRecords.length - 5} سجلات أخرى تم استيرادها بنجاح
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  )}
-                  
-                  {importResult.errors.length > 0 && (
-                    <div className="space-y-2">
-                      <h4 className="font-medium flex items-center gap-2 text-red-700">
-                        <AlertCircle className="h-4 w-4 text-red-500" />
-                        الأخطاء ({importResult.errors.length})
-                      </h4>
-                      <div className="max-h-32 overflow-y-auto space-y-1 bg-white rounded-lg p-3 border">
-                        {importResult.errors.slice(0, 10).map((error, index) => (
-                          <div key={index} className="text-sm p-2 bg-red-50 rounded border-l-2 border-red-300">
-                            <span className="font-medium text-red-800">السطر {error.row}:</span>
-                            <span className="mr-2 text-red-600">{error.field} - {error.message}</span>
-                          </div>
-                        ))}
-                        {importResult.errors.length > 10 && (
-                          <div className="text-sm text-red-500 text-center font-medium">
-                            ... و {importResult.errors.length - 10} أخطاء أخرى
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  )}
                 </div>
-              </div>
-            )}
-
-            {/* Action Buttons */}
-            <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t border-gray-200">
-              {!importResult ? (
-                <>
-                  <Button
-                    onClick={handleImport}
-                    disabled={!selectedFile || importMutation.isPending}
-                    className="flex-1 h-12 text-base font-medium"
-                    size="lg"
-                  >
-                    <Upload className="h-5 w-5 mr-2" />
-                    {importMutation.isPending ? 'جاري الاستيراد...' : 'بدء الاستيراد'}
-                  </Button>
-                  <Button
-                    variant="outline"
-                    onClick={() => setImportDialogOpen(false)}
-                    className="h-12 px-6"
-                    size="lg"
-                  >
-                    إلغاء
-                  </Button>
-                </>
-              ) : (
-                <>
-                  <Button 
-                    onClick={resetImport} 
-                    className="flex-1 h-12 text-base font-medium"
-                    size="lg"
-                  >
-                    <Upload className="h-5 w-5 mr-2" />
-                    استيراد ملف آخر
-                  </Button>
-                  <Button
-                    variant="outline"
-                    onClick={() => {
-                      setImportDialogOpen(false);
-                      // إذا كان الاستيراد ناجحاً، أظهر رسالة تأكيد
-                      if (importResult.success && importResult.importedRecords && importResult.importedRecords.length > 0) {
-                        setTimeout(() => {
-                          toast.success('تم إغلاق نافذة الاستيراد', {
-                            description: `تم استيراد ${importResult.successRows} سجل بنجاح وعرضها في الجدول`
-                          });
-                        }, 300);
-                      }
-                    }}
-                    className="h-12 px-6"
-                    size="lg"
-                  >
-                    إغلاق
-                  </Button>
-                </>
               )}
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
+
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowImportResult(false)}
+                  className="flex-1"
+                >
+                  إغلاق
+                </Button>
+                {importResult.success && (
+                  <Button
+                    size="sm"
+                    onClick={() => {
+                      setShowImportResult(false);
+                      onImportSuccess?.();
+                    }}
+                    className="flex-1"
+                  >
+                    تحديث البيانات
+                  </Button>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
     </div>
   );
 }
-
-export default ImportExportManager;

@@ -4,7 +4,7 @@ import { useState } from "react";
 import { MainLayout } from "@/components/layout/main-layout";
 import { ApiDataTable } from "@/components/data-table/api-data-table";
 import { ApiForm } from "@/components/forms/api-form";
-import { ImportExportManager } from "@/components/import-export/import-export-manager";
+
 import { Button } from "@/components/ui/button";
 import { Plus, Syringe, Shield, TrendingUp, Activity } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -258,15 +258,6 @@ export default function VaccinationPage() {
             </p>
           </div>
           <div className="flex gap-2">
-            <ImportExportManager
-              exportEndpoint="/vaccination/export"
-              importEndpoint="/vaccination/import"
-              templateEndpoint="/vaccination/template"
-              title="التحصينات"
-              queryKey="vaccination"
-              acceptedFormats={[".csv", ".xlsx"]}
-              maxFileSize={10}
-            />
             <Button onClick={handleAdd}>
               <Plus className="h-4 w-4 mr-2" />
               إضافة تحصين جديد

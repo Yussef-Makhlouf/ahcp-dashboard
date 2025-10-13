@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { MainLayout } from "@/components/layout/main-layout";
 import { DataTable } from "@/components/data-table/data-table";
-import { ImportExportManager } from "@/components/import-export/import-export-manager";
+
 import { getColumns } from "./components/columns";
 import { Button } from "@/components/ui/button";
 import { Plus, Bug, TrendingUp, TrendingDown, Activity } from "lucide-react";
@@ -17,6 +17,9 @@ import { z } from "zod";
 import { usePermissions } from "@/lib/hooks/usePermissions";
 import { ParasiteControlDialog } from "./components/parasite-control-dialog";
 import { toast } from "sonner";
+import { useQueryClient } from "@tanstack/react-query";
+import { ImportExportManager } from "@/components/import-export";
+import { apiConfig } from "@/lib/api-config";
 
 // تعريف حقول النموذج
 const formFields = [
@@ -200,6 +203,7 @@ export default function ParasiteControlPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState<ParasiteControl | null>(null);
   const { checkPermission } = usePermissions();
+  const queryClient = useQueryClient();
 
   // Fetch parasite control data using React Query
   const { data: parasiteControlData, isLoading, refetch } = useQuery({
@@ -217,22 +221,6 @@ export default function ParasiteControlPage() {
 
   const data = parasiteControlData?.data || [];
 
-  const handleExport = async (type: "csv" | "pdf") => {
-    if (type === "csv") {
-      try {
-        const blob = await parasiteControlApi.exportToCsv();
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = `parasite-control-records-${new Date().toISOString().split("T")[0]}.csv`;
-        a.click();
-        window.URL.revokeObjectURL(url);
-      } catch (error) {
-        console.error('Export failed:', error);
-        alert('فشل في تصدير البيانات');
-      }
-    }
-  };
 
 
   const handleDelete = async (id: string | number) => {
@@ -295,13 +283,22 @@ export default function ParasiteControlPage() {
           </div>
           <div className="flex gap-2">
             <ImportExportManager
-              exportEndpoint="/parasite-control/export"
-              importEndpoint="/parasite-control/import"
-              templateEndpoint="/parasite-control/template"
+              exportEndpoint={apiConfig.endpoints.parasiteControl.export}
+              importEndpoint={apiConfig.endpoints.parasiteControl.import}
+              templateEndpoint={apiConfig.endpoints.parasiteControl.template}
               title="مكافحة الطفيليات"
               queryKey="parasite-control"
               acceptedFormats={[".csv", ".xlsx"]}
               maxFileSize={10}
+              onImportSuccess={() => {
+                queryClient.invalidateQueries({ queryKey: ['parasite-control'] });
+              }}
+              onExportSuccess={() => {
+                toast.success('تم تصدير البيانات بنجاح');
+              }}
+              onRefresh={() => {
+                queryClient.invalidateQueries({ queryKey: ['parasite-control'] });
+              }}
             />
             {checkPermission({ module: 'parasite-control', action: 'create' }) && (
               <Button onClick={handleAdd} className="h-9 px-3">
@@ -386,7 +383,6 @@ export default function ParasiteControlPage() {
           columns={getColumns({ onEdit: handleEdit, onDelete: handleDelete, onView: handleView })}
           data={data}
           isLoading={isLoading}
-          onExport={handleExport}
         />
 
         {/* Parasite Control Dialog */}

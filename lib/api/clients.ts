@@ -183,19 +183,6 @@ export const clientsApi = {
     }
   },
 
-  // Export to CSV
-  exportToCsv: async (ids?: string[]): Promise<Blob> => {
-    try {
-      const response = await api.post('/clients/export/csv', { ids }, {
-        responseType: 'blob',
-        timeout: 60000,
-      });
-      return response as Blob;
-    } catch (error: any) {
-      console.error('Error exporting clients CSV:', error);
-      throw new Error(`Failed to export CSV: ${error.message || 'Unknown error'}`);
-    }
-  }
 };
 
 export default clientsApi;

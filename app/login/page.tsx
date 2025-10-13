@@ -163,23 +163,28 @@ export default function LoginPage() {
       
       // اختبار الاتصال بالخادم أولاً
       try {
-        const testResponse = await fetch('https://ahcp-backend.vercel.app/health');
+        const testResponse = await fetch('http://localhost:3001/health');
         console.log('🏥 Server health check:', testResponse.status);
       } catch (testError) {
         console.warn('⚠️ Server health check failed:', testError);
       }
       
       // استدعاء API الحقيقي
-      await login({ email, password });
+      const loginResult = await login({ email, password });
       
-      setSuccess('تم تسجيل الدخول بنجاح! جاري التوجيه...');
-      entityToasts.auth.login();
-      console.log('✅ Login successful, redirecting to:', returnUrl);
-      
-      // إعادة توجيه فورية بعد نجاح تسجيل الدخول
-      setTimeout(() => {
-        router.replace(returnUrl);
-      }, 500);
+      // التحقق من نجاح تسجيل الدخول
+      if (loginResult && loginResult.success) {
+        setSuccess('تم تسجيل الدخول بنجاح! جاري التوجيه...');
+        entityToasts.auth.login();
+        console.log('✅ Login successful, redirecting to:', returnUrl);
+        
+        // إعادة توجيه فورية بعد نجاح تسجيل الدخول
+        setTimeout(() => {
+          router.replace(returnUrl);
+        }, 500);
+      } else {
+        setError('فشل في تسجيل الدخول. يرجى التحقق من البيانات المدخلة');
+      }
       
     } catch (error: any) {
       console.error('❌ Login error:', error);
@@ -375,10 +380,18 @@ export default function LoginPage() {
                     <span className="font-medium text-slate-600">مشرف العيادة المتنقلة:</span>
                     <span className="text-slate-800 font-mono text-xs">clinic@ahcp.gov.sa</span>
                   </div>
+                  <div className="flex items-center justify-between p-2 bg-white rounded-lg border">
+                    <span className="font-medium text-slate-600">مشرف صحة الخيول:</span>
+                    <span className="text-slate-800 font-mono text-xs">equine@ahcp.gov.sa</span>
+                  </div>
+                  <div className="flex items-center justify-between p-2 bg-white rounded-lg border">
+                    <span className="font-medium text-slate-600">مشرف المختبرات:</span>
+                    <span className="text-slate-800 font-mono text-xs">laboratory@ahcp.gov.sa</span>
+                  </div>
                 </div>
                 <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
-                  <p className="text-xs text-blue-700 font-medium">💡 كلمة المرور الافتراضية: Admin@123456</p>
-                  <p className="text-xs text-blue-600 mt-1">للمستخدمين الآخرين، كلمة المرور هي اسم القسم + 123</p>
+                  <p className="text-xs text-blue-700 font-medium">💡 كلمة المرور: admin123! (للمدير) أو اسم القسم + 123!</p>
+                  <p className="text-xs text-blue-600 mt-1">مثال: parasite123! أو vaccination123!</p>
                 </div>
               </div>
             </div>

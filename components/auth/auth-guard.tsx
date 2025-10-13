@@ -10,36 +10,63 @@ interface AuthGuardProps {
 }
 
 export function AuthGuard({ children }: AuthGuardProps) {
-  const { isAuthenticated, user, checkAuth } = useAuthStore();
+  const { isAuthenticated, user, checkAuth, validateToken, isRehydrated } = useAuthStore();
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(true);
+  const [hasChecked, setHasChecked] = useState(false);
+
+  // useEffect للتعامل مع إعادة التحميل
+  useEffect(() => {
+    if (isRehydrated && !hasChecked) {
+      console.log('🔄 Rehydration completed, checking auth...');
+      setHasChecked(true);
+    }
+  }, [isRehydrated, hasChecked]);
 
   useEffect(() => {
-    const checkAuthentication = () => {
-      const isAuth = checkAuth();
+    const checkAuthentication = async () => {
+      // انتظار إعادة التحميل من localStorage
+      if (!isRehydrated) {
+        console.log('⏳ Waiting for rehydration...');
+        return;
+      }
       
-      console.log('🔍 AuthGuard - Checking authentication:', {
+      // منع التحقق المتعدد
+      if (hasChecked) return;
+      
+      console.log('🔍 AuthGuard - Initial check:', {
         isAuthenticated,
-        isAuth,
         hasUser: !!user,
-        userRole: user?.role
+        isRehydrated
       });
       
-      if (!isAuth || !user) {
-        console.log('❌ AuthGuard - User not authenticated, redirecting to login');
+      // التحقق من وجود بيانات أساسية - أكثر تساهلاً
+      if (!user) {
+        console.log('❌ AuthGuard - No user data, redirecting to login');
+        setHasChecked(true);
         router.push('/login');
         return;
       }
       
+      // التحقق من صحة الرمز إذا كان موجوداً - بدون إجبار
+      if (user && isAuthenticated) {
+        const isTokenValid = validateToken();
+        if (!isTokenValid) {
+          console.log('⚠️ AuthGuard - Token validation failed, but allowing access for now');
+          // لا نعيد التوجيه هنا - نترك للمستخدم أن يقرر
+        }
+      }
+      
       console.log('✅ AuthGuard - User authenticated, allowing access');
+      setHasChecked(true);
       setIsLoading(false);
     };
 
-    // تأخير قصير للتأكد من تحميل البيانات
-    const timer = setTimeout(checkAuthentication, 100);
+    // تأخير قصير للتأكد من تحميل البيانات من localStorage
+    const timer = setTimeout(checkAuthentication, 200);
     
     return () => clearTimeout(timer);
-  }, [isAuthenticated, user, checkAuth, router]);
+  }, [isAuthenticated, user, checkAuth, validateToken, router, hasChecked, isRehydrated]);
 
   if (isLoading) {
     return (

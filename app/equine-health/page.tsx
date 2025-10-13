@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { MainLayout } from "@/components/layout/main-layout";
 import { DataTable } from "@/components/data-table/data-table";
-import { ImportExportManager } from "@/components/import-export/import-export-manager";
+
 import { Button } from "@/components/ui/button";
 import { Plus, Heart } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
@@ -12,6 +12,10 @@ import { EquineHealthDialog } from "./components/equine-health-dialog";
 import { getColumns } from "./components/columns";
 import { usePermissions } from "@/lib/hooks/usePermissions";
 import type { EquineHealth } from "@/types";
+import { useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
+import { ImportExportManager } from "@/components/import-export";
+import { apiConfig } from "@/lib/api-config";
 
 export default function EquineHealthPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -19,6 +23,7 @@ export default function EquineHealthPage() {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
   const { checkPermission } = usePermissions();
+  const queryClient = useQueryClient();
 
   const { data, isLoading, refetch } = useQuery({
     queryKey: ["equineHealth", page, search],
@@ -30,22 +35,6 @@ export default function EquineHealthPage() {
       }),
   });
 
-  const handleExport = async (type: "csv" | "pdf") => {
-    try {
-      if (type === "csv") {
-        const blob = await equineHealthApi.exportToCsv();
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = `equine-health-${new Date().toISOString().split("T")[0]}.csv`;
-        a.click();
-        window.URL.revokeObjectURL(url);
-      }
-    } catch (error) {
-      console.error('Export failed:', error);
-      alert('فشل في تصدير البيانات');
-    }
-  };
 
 
 
@@ -89,13 +78,22 @@ export default function EquineHealthPage() {
           </div>
           <div className="flex gap-2">
             <ImportExportManager
-              exportEndpoint="/equine-health/export"
-              importEndpoint="/equine-health/import"
-              templateEndpoint="/equine-health/template"
+              exportEndpoint={apiConfig.endpoints.equineHealth.export}
+              importEndpoint={apiConfig.endpoints.equineHealth.import}
+              templateEndpoint={apiConfig.endpoints.equineHealth.template}
               title="صحة الخيول"
               queryKey="equineHealth"
               acceptedFormats={[".csv", ".xlsx"]}
               maxFileSize={10}
+              onImportSuccess={() => {
+                queryClient.invalidateQueries({ queryKey: ['equineHealth'] });
+              }}
+              onExportSuccess={() => {
+                toast.success('تم تصدير البيانات بنجاح');
+              }}
+              onRefresh={() => {
+                queryClient.invalidateQueries({ queryKey: ['equineHealth'] });
+              }}
             />
             {checkPermission({ module: 'equine-health', action: 'create' }) && (
               <Button
@@ -202,7 +200,6 @@ className="h-9 px-3"              >
           columns={getColumns({ onEdit: handleEdit, onDelete: handleDelete, onView: handleView })}
           data={data?.data || []}
           isLoading={isLoading}
-          onExport={handleExport}
         />
 
         {/* Dialog */}

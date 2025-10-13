@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { MainLayout } from "@/components/layout/main-layout";
 import { DataTable } from "@/components/data-table/data-table";
-import { ImportExportManager } from "@/components/import-export/import-export-manager";
+
 import { getColumns } from "./components/columns";
 import { LaboratoryDialog } from "./components/laboratory-dialog";
 import { Button } from "@/components/ui/button";
@@ -15,6 +15,9 @@ import { formatDate } from "@/lib/utils";
 import { laboratoriesApi } from "@/lib/api/laboratories";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { usePermissions } from "@/lib/hooks/usePermissions";
+import { toast } from "sonner";
+import { apiConfig } from "@/lib/api-config";
+import { ImportExportManager } from "@/components/import-export";
 
 // تعريف حقول النموذج
 const formFields = [
@@ -219,39 +222,6 @@ export default function LaboratoriesPage() {
 
   const data = laboratoriesData?.data || [];
 
-  const handleExport = async (type: "csv" | "pdf" | "excel") => {
-    try {
-      let blob: Blob;
-      let filename: string;
-      const dateStr = new Date().toISOString().split("T")[0];
-      
-      if (type === "csv") {
-        blob = await laboratoriesApi.exportToCsv();
-        filename = `laboratories-records-${dateStr}.csv`;
-      } else if (type === "excel") {
-        blob = await laboratoriesApi.exportToExcel();
-        filename = `laboratories-records-${dateStr}.xlsx`;
-      } else if (type === "pdf") {
-        // PDF غير مدعوم حالياً، استخدم Excel بدلاً منه
-        blob = await laboratoriesApi.exportToExcel();
-        filename = `laboratories-records-${dateStr}.xlsx`;
-      } else {
-        throw new Error('نوع التصدير غير مدعوم');
-      }
-      
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = filename;
-      a.click();
-      window.URL.revokeObjectURL(url);
-      
-      alert(`تم تصدير البيانات بنجاح كملف ${type.toUpperCase()}`);
-    } catch (error) {
-      console.error('Export failed:', error);
-      alert('فشل في تصدير البيانات');
-    }
-  };
 
   const handleDelete = async (item: Laboratory) => {
     if (confirm("هل أنت متأكد من حذف هذا السجل؟")) {
@@ -316,17 +286,22 @@ export default function LaboratoriesPage() {
           </div>
           <div className="flex gap-2">
             <ImportExportManager
-              exportEndpoint="/laboratories/export"
-              importEndpoint="/laboratories/import"
-              templateEndpoint="/laboratories/template"
+              exportEndpoint={apiConfig.endpoints.laboratories.export}
+              importEndpoint={apiConfig.endpoints.laboratories.import}
+              templateEndpoint={apiConfig.endpoints.laboratories.template}
               title="المختبرات"
               queryKey="laboratories"
               acceptedFormats={[".csv", ".xlsx"]}
               maxFileSize={10}
-              exportFormats={[
-                { value: "csv", label: "CSV", icon: "📄" },
-                { value: "excel", label: "Excel", icon: "📊" }
-              ]}
+              onImportSuccess={() => {
+                queryClient.invalidateQueries({ queryKey: ['laboratories'] });
+              }}
+              onExportSuccess={() => {
+                toast.success('تم تصدير البيانات بنجاح');
+              }}
+              onRefresh={() => {
+                queryClient.invalidateQueries({ queryKey: ['laboratories'] });
+              }}
             />
             {checkPermission({ module: 'laboratories', action: 'create' }) && (
               <Button onClick={handleAdd} size="sm" className="h-9 px-3">
@@ -491,7 +466,6 @@ export default function LaboratoriesPage() {
           columns={getColumns({ onEdit: handleEdit, onDelete: handleDelete, onView: handleView })}
           data={data}
           isLoading={isLoading}
-          onExport={handleExport}
           onView={handleView}
         />
 

@@ -26,9 +26,17 @@ export function Navbar({ onToggleSidebar, onToggleCollapse, isCollapsed = false 
   const { user, logout } = useAuthStore();
   const router = useRouter();
 
-  const handleLogout = () => {
-    logout();
-    router.push('/login');
+  const handleLogout = async () => {
+    try {
+      console.log('🚪 بدء عملية تسجيل الخروج...');
+      await logout();
+      console.log('✅ تم تسجيل الخروج بنجاح');
+      // logout سيتولى إعادة التوجيه تلقائياً
+    } catch (error) {
+      console.error('❌ خطأ في تسجيل الخروج:', error);
+      // في حالة الخطأ، إعادة توجيه يدوي
+      router.push('/login');
+    }
   };
 
   return (
@@ -82,7 +90,7 @@ export function Navbar({ onToggleSidebar, onToggleCollapse, isCollapsed = false 
               className="relative h-10 w-10 rounded-full hover:bg-white/10"
             >
               <Avatar className="h-10 w-10">
-                <AvatarImage src={user?.avatar} alt={user?.name} />
+                <AvatarImage src="" alt={user?.name} />
                 <AvatarFallback className="bg-white/20 text-white">
                   {user?.name?.split(" ").map(n => n[0]).join("") || "U"}
                 </AvatarFallback>
@@ -94,7 +102,7 @@ export function Navbar({ onToggleSidebar, onToggleCollapse, isCollapsed = false 
               <div className="flex flex-col space-y-1">
                 <p className="text-sm font-medium leading-none">{user?.name || "المستخدم"}</p>
                 <p className="text-xs leading-none text-muted-foreground">
-                  {user?.email || "user@ahcp.gov.eg"}
+                  {user?.email || "غير محدد"}
                 </p>
               </div>
             </DropdownMenuLabel>

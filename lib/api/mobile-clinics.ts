@@ -155,6 +155,40 @@ export const mobileClinicsApi = {
       console.error('Error exporting mobile clinics to CSV:', error);
       throw new Error(`Failed to export: ${error.message || 'Unknown error'}`);
     }
+  },
+
+  // Import from file
+  importFromFile: async (file: File): Promise<{
+    success: boolean;
+    totalRows: number;
+    successRows: number;
+    errorRows: number;
+    errors: Array<{ row: number; field: string; message: string }>;
+    importedRecords?: any[];
+  }> => {
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      const response = await api.post('/import/mobile-clinics', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+        timeout: 120000, // 2 minutes for import
+      });
+      
+      return response as {
+        success: boolean;
+        totalRows: number;
+        successRows: number;
+        errorRows: number;
+        errors: Array<{ row: number; field: string; message: string }>;
+        importedRecords?: any[];
+      };
+    } catch (error: any) {
+      console.error('Error importing mobile clinics:', error);
+      throw new Error(`Failed to import: ${error.message || 'Unknown error'}`);
+    }
   }
 };
 

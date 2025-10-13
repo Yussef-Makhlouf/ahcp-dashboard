@@ -4,7 +4,7 @@ import { useState } from "react";
 import { MainLayout } from "@/components/layout/main-layout";
 import { ApiDataTable } from "@/components/data-table/api-data-table";
 import { ApiForm } from "@/components/forms/api-form";
-import { ImportExportManager } from "@/components/import-export/import-export-manager";
+
 import { Button } from "@/components/ui/button";
 import { Plus, Bug, TrendingUp, TrendingDown, Activity } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -238,15 +238,6 @@ export default function ParasiteControlPage() {
             </p>
           </div>
           <div className="flex gap-2">
-            <ImportExportManager
-              exportEndpoint="/parasite-control/export"
-              importEndpoint="/parasite-control/import"
-              templateEndpoint="/parasite-control/template"
-              title="مكافحة الطفيليات"
-              queryKey="parasite-control"
-              acceptedFormats={[".csv", ".xlsx"]}
-              maxFileSize={10}
-            />
             {checkPermission({ module: 'parasite-control', action: 'create' }) && (
               <Button onClick={handleAdd}>
                 <Plus className="h-4 w-4 mr-2" />

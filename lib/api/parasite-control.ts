@@ -351,6 +351,40 @@ export const parasiteControlApi = {
     }
   },
 
+  // Import from file
+  importFromFile: async (file: File): Promise<{
+    success: boolean;
+    totalRows: number;
+    successRows: number;
+    errorRows: number;
+    errors: Array<{ row: number; field: string; message: string }>;
+    importedRecords?: any[];
+  }> => {
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      const response = await api.post('/import/parasite-control', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+        timeout: 120000, // 2 minutes for import
+      });
+      
+      return response as {
+        success: boolean;
+        totalRows: number;
+        successRows: number;
+        errorRows: number;
+        errors: Array<{ row: number; field: string; message: string }>;
+        importedRecords?: any[];
+      };
+    } catch (error: any) {
+      console.error('Error importing parasite control records:', error);
+      throw new Error(`Failed to import: ${error.message || 'Unknown error'}`);
+    }
+  },
+
   // Export to Excel with new format - Real API only
   exportToExcel: async (filters?: Record<string, any>): Promise<Blob> => {
     try {

@@ -12,14 +12,24 @@ export const usePermissions = () => {
   // تحديد الأقسام لكل مشرف بناءً على القسم الخاص به
   const getSupervisorModule = (section: string): string | null => {
     const sectionModuleMap: Record<string, string> = {
+      // الأقسام باللغة العربية
       'مكافحة الطفيليات': 'parasite-control',
       'التطعيمات': 'vaccination',
-      'التحصينات': 'vaccination', // إضافة التحصينات كمرادف للتطعيمات
+      'التحصينات': 'vaccination',
       'العيادات المتنقلة': 'mobile-clinics',
-      'العيادة المتنقلة': 'mobile-clinics', // إضافة العيادة المتنقلة كمرادف للعيادات المتنقلة
+      'العيادة المتنقلة': 'mobile-clinics',
       'المختبرات': 'laboratories',
       'صحة الخيول': 'equine-health',
-      'الإدارة العامة': 'all' // المدير العام يمكنه الوصول لكل شيء
+      'الإدارة العامة': 'all',
+      
+      // الأقسام بالرموز الإنجليزية (من قاعدة البيانات)
+      'PARA': 'parasite-control',           // مكافحة الطفيليات
+      'VACC': 'vaccination',               // التطعيمات
+      'CLINIC': 'mobile-clinics',          // العيادات المتنقلة
+      'LAB': 'laboratories',               // المختبرات
+      'EQUINE': 'equine-health',           // صحة الخيول
+      'VET': 'parasite-control',           // الطب البيطري (مكافحة الطفيليات)
+      'ADMIN': 'all'                       // الإدارة العامة
     };
     
     const result = sectionModuleMap[section] || null;
