@@ -203,13 +203,18 @@ const tableFilters = [
 export default function LaboratoriesPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState<Laboratory | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize] = useState(30);
   const queryClient = useQueryClient();
   const { checkPermission } = usePermissions();
 
-  // Fetch laboratories data using React Query
+  // Fetch laboratories data using React Query with pagination
   const { data: laboratoriesData, isLoading, refetch } = useQuery({
-    queryKey: ['laboratories'],
-    queryFn: () => laboratoriesApi.getList(),
+    queryKey: ['laboratories', currentPage, pageSize],
+    queryFn: () => laboratoriesApi.getList({
+      page: currentPage,
+      limit: pageSize,
+    }),
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 
@@ -221,6 +226,8 @@ export default function LaboratoriesPage() {
   });
 
   const data = laboratoriesData?.data || [];
+  const totalCount = laboratoriesData?.total || 0;
+  const totalPages = laboratoriesData?.totalPages || 0;
 
 
   const handleDelete = async (item: Laboratory) => {
@@ -235,6 +242,37 @@ export default function LaboratoriesPage() {
         console.error('Delete failed:', error);
         alert('فشل في حذف السجل');
       }
+    }
+  };
+
+  // Handle bulk delete selected records
+  const handleBulkDelete = async (selectedRows: Laboratory[]) => {
+    console.log('🗑️ handleBulkDelete called with:', selectedRows.length, 'rows');
+    try {
+      const ids = selectedRows.map(row => (row as any)._id || row.sampleCode);
+      console.log('🔍 IDs to delete:', ids);
+      const result = await laboratoriesApi.bulkDelete(ids);
+      console.log('✅ Bulk delete result:', result);
+      queryClient.invalidateQueries({ queryKey: ['laboratories'] });
+      queryClient.invalidateQueries({ queryKey: ['laboratories-stats'] });
+      toast.success(`تم حذف ${result.deletedCount || ids.length} سجل بنجاح`);
+    } catch (error) {
+      console.error('❌ Bulk delete failed:', error);
+      toast.error('فشل في حذف السجلات المحددة');
+    }
+  };
+
+  // Handle delete all records
+  const handleDeleteAll = async () => {
+    try {
+      const result = await laboratoriesApi.deleteAll();
+      console.log('✅ Delete all result:', result);
+      queryClient.invalidateQueries({ queryKey: ['laboratories'] });
+      queryClient.invalidateQueries({ queryKey: ['laboratories-stats'] });
+      toast.success(`تم حذف ${result.deletedCount || 'جميع'} السجلات بنجاح`);
+    } catch (error) {
+      console.error('❌ Delete all failed:', error);
+      toast.error('فشل في حذف جميع السجلات');
     }
   };
 
@@ -467,6 +505,16 @@ export default function LaboratoriesPage() {
           data={data}
           isLoading={isLoading}
           onView={handleView}
+          enableBulkDelete={true}
+          onDeleteSelected={handleBulkDelete}
+          onDeleteAll={handleDeleteAll}
+          module="laboratories"
+          totalCount={totalCount}
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={setCurrentPage}
+          pageSize={pageSize}
+          showPagination={true}
         />
 
         {/* Laboratory Dialog */}

@@ -48,6 +48,8 @@ import {
   Hash,
   Clock,
   FileText,
+  Trash2,
+  AlertTriangle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -57,6 +59,18 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { ProtectedDeleteButtons } from "@/components/ui/protected-delete-buttons";
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
@@ -64,7 +78,20 @@ interface DataTableProps<TData, TValue> {
   searchKey?: string;
   onExport?: (type: "csv" | "pdf", selectedRows?: TData[]) => void;
   onView?: (item: TData) => void;
+  onDeleteSelected?: (selectedRows: TData[]) => Promise<void>;
+  onDeleteAll?: () => Promise<void>;
   isLoading?: boolean;
+  enableSelection?: boolean;
+  enableBulkDelete?: boolean;
+  pageSize?: number;
+  module?: 'parasite-control' | 'vaccination' | 'mobile-clinics' | 'laboratories' | 'equine-health' | 'clients';
+  // Pagination props
+  totalCount?: number;
+  currentPage?: number;
+  totalPages?: number;
+  onPageChange?: (page: number) => void;
+  onPageSizeChange?: (pageSize: number) => void;
+  showPagination?: boolean;
 }
 
 export function DataTable<TData, TValue>({
@@ -73,7 +100,19 @@ export function DataTable<TData, TValue>({
   searchKey,
   onExport,
   onView,
+  onDeleteSelected,
+  onDeleteAll,
   isLoading = false,
+  enableSelection = true,
+  enableBulkDelete = true,
+  pageSize = 30,
+  module,
+  totalCount,
+  currentPage = 1,
+  totalPages,
+  onPageChange,
+  onPageSizeChange,
+  showPagination = true,
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
@@ -82,10 +121,40 @@ export function DataTable<TData, TValue>({
   const [globalFilter, setGlobalFilter] = React.useState("");
   const [viewModalOpen, setViewModalOpen] = React.useState(false);
   const [selectedViewItem, setSelectedViewItem] = React.useState<TData | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = React.useState(false);
+  const [deleteType, setDeleteType] = React.useState<'selected' | 'all'>('selected');
+  const [isDeleting, setIsDeleting] = React.useState(false);
+
+  // Add selection column to columns
+  const columnsWithSelection = React.useMemo(() => {
+    if (!enableSelection) return columns;
+    
+    const selectionColumn: ColumnDef<TData, TValue> = {
+      id: "select",
+      header: ({ table }) => (
+        <Checkbox
+          checked={table.getIsAllPageRowsSelected()}
+          onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
+          aria-label="تحديد الكل"
+        />
+      ),
+      cell: ({ row }) => (
+        <Checkbox
+          checked={row.getIsSelected()}
+          onCheckedChange={(value) => row.toggleSelected(!!value)}
+          aria-label="تحديد الصف"
+        />
+      ),
+      enableSorting: false,
+      enableHiding: false,
+    };
+    
+    return [selectionColumn, ...columns];
+  }, [columns, enableSelection]);
 
   const table = useReactTable({
     data,
-    columns,
+    columns: columnsWithSelection,
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
     getSortedRowModel: getSortedRowModel(),
@@ -96,12 +165,26 @@ export function DataTable<TData, TValue>({
     onRowSelectionChange: setRowSelection,
     onGlobalFilterChange: setGlobalFilter,
     globalFilterFn: "includesString",
+    enableRowSelection: enableSelection,
+    // Use external pagination if provided, otherwise use internal
+    manualPagination: showPagination && (totalCount !== undefined || totalPages !== undefined),
+    pageCount: totalPages || -1,
+    initialState: {
+      pagination: {
+        pageSize: pageSize,
+        pageIndex: currentPage - 1, // Convert to 0-based index
+      },
+    },
     state: {
       sorting,
       columnFilters,
       columnVisibility,
       rowSelection,
       globalFilter,
+      pagination: {
+        pageIndex: currentPage - 1,
+        pageSize: pageSize,
+      },
     },
   });
 
@@ -114,6 +197,56 @@ export function DataTable<TData, TValue>({
     if (onView) {
       onView(item);
     }
+  };
+
+  // Handle bulk delete
+  const handleBulkDelete = async () => {
+    if (!enableBulkDelete) return;
+    
+    console.log('🗑️ DataTable handleBulkDelete called, deleteType:', deleteType);
+    console.log('🔍 selectedRows length:', selectedRows.length);
+    
+    setIsDeleting(true);
+    try {
+      if (deleteType === 'selected' && onDeleteSelected) {
+        console.log('📤 Calling onDeleteSelected with:', selectedRows.length, 'rows');
+        await onDeleteSelected(selectedRows);
+        console.log('✅ onDeleteSelected completed successfully');
+      } else if (deleteType === 'all' && onDeleteAll) {
+        console.log('📤 Calling onDeleteAll');
+        await onDeleteAll();
+        console.log('✅ onDeleteAll completed successfully');
+      }
+      setRowSelection({});
+      setDeleteDialogOpen(false);
+    } catch (error) {
+      console.error('❌ Delete failed:', error);
+      // إظهار رسالة خطأ للمستخدم
+      alert('فشل في حذف العناصر المحددة. يرجى المحاولة مرة أخرى.');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  // Open delete dialog
+  const openDeleteDialog = (type: 'selected' | 'all') => {
+    console.log('🔘 openDeleteDialog called with type:', type);
+    console.log('🔘 selectedRows length:', selectedRows.length);
+    
+    if (!enableBulkDelete) {
+      console.log('❌ Bulk delete not enabled');
+      return;
+    }
+    
+    if (type === 'selected' && selectedRows.length === 0) {
+      console.log('❌ No rows selected');
+      alert('يرجى تحديد عناصر للحذف');
+      return;
+    }
+    
+    setDeleteType(type);
+    setDeleteDialogOpen(true);
+    console.log('✅ Delete dialog opened');
   };
 
   // Helper function to get field icon
@@ -233,6 +366,22 @@ export function DataTable<TData, TValue>({
           </div>
 
           <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
+            {/* Protected Bulk Delete buttons */}
+            {enableBulkDelete && module && (
+              <ProtectedDeleteButtons
+                module={module}
+                selectedRowsCount={selectedRows.length}
+                onDeleteSelected={() => {
+                  console.log('🔘 Delete selected button clicked');
+                  console.log('🔘 selectedRows length:', selectedRows.length);
+                  openDeleteDialog('selected');
+                }}
+                onDeleteAll={onDeleteAll ? () => openDeleteDialog('all') : undefined}
+                isDeleting={isDeleting}
+                showToast={true}
+              />
+            )}
+
             {/* Export buttons */}
             {onExport && (
               <DropdownMenu>
@@ -259,7 +408,10 @@ export function DataTable<TData, TValue>({
                     onClick={() => onExport("pdf", selectedRows.length > 0 ? selectedRows : undefined)}
                     className="cursor-pointer"
                   >
-                 
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+                      تصدير PDF {selectedRows.length > 0 && `(${selectedRows.length} محدد)`}
+                    </div>
                   </DropdownMenuCheckboxItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -367,63 +519,109 @@ export function DataTable<TData, TValue>({
       </div>
 
       {/* Enhanced Pagination */}
-      <div className="card">
-        <div className="flex flex-col lg:flex-row items-center justify-between gap-4">
-          <div className="text-sm text-secondary bg-card px-3 py-2 rounded-md border order-2 lg:order-1">
-            <span className="font-medium text-primary">
-              {table.getFilteredSelectedRowModel().rows.length}
-            </span> من{" "}
-            <span className="font-medium text-primary">
-              {table.getFilteredRowModel().rows.length}
-            </span> صف محدد
-          </div>
-          
-          <div className="flex items-center gap-1 sm:gap-2 order-1 lg:order-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => table.setPageIndex(0)}
-              disabled={!table.getCanPreviousPage()}
-              className="hidden sm:flex"
-            >
-              <ChevronsRight className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => table.previousPage()}
-              disabled={!table.getCanPreviousPage()}
-            >
-              <ChevronRight className="h-4 w-4" />
-            </Button>
-            
-            <div className="flex items-center gap-2 bg-card px-3 sm:px-4 py-2 rounded-md border shadow-sm">
-              <span className="text-sm font-medium text-primary whitespace-nowrap">
-                صفحة {table.getState().pagination.pageIndex + 1} من{" "}
-                {table.getPageCount()}
-              </span>
+      {showPagination && (
+        <div className="card">
+          <div className="flex flex-col lg:flex-row items-center justify-between gap-4">
+            {/* Selection and Count Info */}
+            <div className="flex flex-col sm:flex-row gap-2 order-2 lg:order-1">
+              <div className="text-sm text-secondary bg-card px-3 py-2 rounded-md border">
+                <span className="font-medium text-primary">
+                  {table.getFilteredSelectedRowModel().rows.length}
+                </span> من{" "}
+                <span className="font-medium text-primary">
+                  {table.getFilteredRowModel().rows.length}
+                </span> صف محدد
+              </div>
+              
+              {/* Total count info */}
+              {totalCount !== undefined && (
+                <div className="text-sm text-secondary bg-card px-3 py-2 rounded-md border">
+                  إجمالي السجلات: <span className="font-medium text-primary">{totalCount}</span>
+                </div>
+              )}
+              
+              {/* Page size info */}
+              <div className="text-sm text-secondary bg-card px-3 py-2 rounded-md border">
+                {pageSize} صف في الصفحة
+              </div>
             </div>
             
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => table.nextPage()}
-              disabled={!table.getCanNextPage()}
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => table.setPageIndex(table.getPageCount() - 1)}
-              disabled={!table.getCanNextPage()}
-              className="hidden sm:flex"
-            >
-              <ChevronsLeft className="h-4 w-4" />
-            </Button>
+            {/* Pagination Controls */}
+            <div className="flex items-center gap-1 sm:gap-2 order-1 lg:order-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  if (onPageChange) {
+                    onPageChange(1);
+                  } else {
+                    table.setPageIndex(0);
+                  }
+                }}
+                disabled={currentPage <= 1}
+                className="hidden sm:flex"
+                title="الصفحة الأولى"
+              >
+                <ChevronsRight className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  if (onPageChange) {
+                    onPageChange(currentPage - 1);
+                  } else {
+                    table.previousPage();
+                  }
+                }}
+                disabled={currentPage <= 1}
+                title="الصفحة السابقة"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+              
+              <div className="flex items-center gap-2 bg-card px-3 sm:px-4 py-2 rounded-md border shadow-sm">
+                <span className="text-sm font-medium text-primary whitespace-nowrap">
+                  صفحة {currentPage} من{" "}
+                  {totalPages || table.getPageCount()}
+                </span>
+              </div>
+              
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  if (onPageChange) {
+                    onPageChange(currentPage + 1);
+                  } else {
+                    table.nextPage();
+                  }
+                }}
+                disabled={currentPage >= (totalPages || table.getPageCount())}
+                title="الصفحة التالية"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  if (onPageChange) {
+                    onPageChange(totalPages || table.getPageCount());
+                  } else {
+                    table.setPageIndex(table.getPageCount() - 1);
+                  }
+                }}
+                disabled={currentPage >= (totalPages || table.getPageCount())}
+                className="hidden sm:flex"
+                title="الصفحة الأخيرة"
+              >
+                <ChevronsLeft className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       {/* View Modal */}
       <Dialog open={viewModalOpen} onOpenChange={setViewModalOpen}>
@@ -480,6 +678,40 @@ export function DataTable<TData, TValue>({
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent className="bg-white">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-right ">
+              {deleteType === 'selected' ? 'حذف العناصر المحددة' : 'حذف جميع العناصر'}
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-right">
+              {deleteType === 'selected' 
+                ? `هل أنت متأكد من حذف ${selectedRows.length} عنصر محدد؟ لا يمكن التراجع عن هذا الإجراء.`
+                : 'هل أنت متأكد من حذف جميع العناصر؟ لا يمكن التراجع عن هذا الإجراء.'
+              }
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex-row-reverse">
+            <AlertDialogCancel disabled={isDeleting}>
+              إلغاء
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                console.log('🔘 AlertDialogAction clicked');
+                console.log('🔘 deleteType:', deleteType);
+                console.log('🔘 selectedRows length:', selectedRows.length);
+                handleBulkDelete();
+              }}
+              disabled={isDeleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isDeleting ? 'جاري الحذف...' : 'حذف'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

@@ -120,7 +120,7 @@ Download the React DevTools for a better development experience
 // جلب جميع السجلات
 const { data, isLoading, error } = useQuery({
   queryKey: ["parasiteControl", page, search],
-  queryFn: () => parasiteControlApi.getList({ page, limit: 20, search }),
+  queryFn: () => parasiteControlApi.getList({ page, limit: 30, search }),
 });
 ```
 

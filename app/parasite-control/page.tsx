@@ -202,13 +202,18 @@ const tableFilters = [
 export default function ParasiteControlPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState<ParasiteControl | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize] = useState(30);
   const { checkPermission } = usePermissions();
   const queryClient = useQueryClient();
 
-  // Fetch parasite control data using React Query
+  // Fetch parasite control data using React Query with pagination
   const { data: parasiteControlData, isLoading, refetch } = useQuery({
-    queryKey: ['parasite-control'],
-    queryFn: () => parasiteControlApi.getList(),
+    queryKey: ['parasite-control', currentPage, pageSize],
+    queryFn: () => parasiteControlApi.getList({
+      page: currentPage,
+      limit: pageSize,
+    }),
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 
@@ -220,6 +225,8 @@ export default function ParasiteControlPage() {
   });
 
   const data = parasiteControlData?.data || [];
+  const totalCount = parasiteControlData?.total || 0;
+  const totalPages = parasiteControlData?.totalPages || 0;
 
 
 
@@ -233,6 +240,37 @@ export default function ParasiteControlPage() {
         console.error('Delete failed:', error);
         alert('فشل في حذف السجل');
       }
+    }
+  };
+
+  // Handle bulk delete selected records
+  const handleBulkDelete = async (selectedRows: ParasiteControl[]) => {
+    console.log('🗑️ handleBulkDelete called with:', selectedRows.length, 'rows');
+    try {
+      const ids = selectedRows.map(row => row._id || row.serialNo);
+      console.log('🔍 IDs to delete:', ids);
+      const result = await parasiteControlApi.bulkDelete(ids);
+      console.log('✅ Bulk delete result:', result);
+      queryClient.invalidateQueries({ queryKey: ['parasite-control'] });
+      queryClient.invalidateQueries({ queryKey: ['parasite-control-stats'] });
+      toast.success(`تم حذف ${result.deletedCount || ids.length} سجل بنجاح`);
+    } catch (error) {
+      console.error('❌ Bulk delete failed:', error);
+      toast.error('فشل في حذف السجلات المحددة');
+    }
+  };
+
+  // Handle delete all records
+  const handleDeleteAll = async () => {
+    try {
+      const result = await parasiteControlApi.deleteAll();
+      console.log('✅ Delete all result:', result);
+      queryClient.invalidateQueries({ queryKey: ['parasite-control'] });
+      queryClient.invalidateQueries({ queryKey: ['parasite-control-stats'] });
+      toast.success(`تم حذف ${result.deletedCount || 'جميع'} السجلات بنجاح`);
+    } catch (error) {
+      console.error('❌ Delete all failed:', error);
+      toast.error('فشل في حذف جميع السجلات');
     }
   };
 
@@ -383,6 +421,16 @@ export default function ParasiteControlPage() {
           columns={getColumns({ onEdit: handleEdit, onDelete: handleDelete, onView: handleView })}
           data={data}
           isLoading={isLoading}
+          enableBulkDelete={true}
+          onDeleteSelected={handleBulkDelete}
+          onDeleteAll={handleDeleteAll}
+          module="parasite-control"
+          totalCount={totalCount}
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={setCurrentPage}
+          pageSize={pageSize}
+          showPagination={true}
         />
 
         {/* Parasite Control Dialog */}

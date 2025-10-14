@@ -48,7 +48,7 @@ export const equineHealthApi = {
       // Filter out empty search parameters to avoid validation errors
       const cleanParams: Record<string, any> = {
         page: params?.page || 1,
-        limit: params?.limit || 20,
+        limit: params?.limit || 30,
       };
       
       if (params?.search && params.search.trim()) {
@@ -69,7 +69,7 @@ export const equineHealthApi = {
       });
 
       // Use the universal response handler
-      return handleAPIResponse<EquineHealth>(response, params?.limit || 20);
+      return handleAPIResponse<EquineHealth>(response, params?.limit || 30);
     } catch (error: any) {
       console.error('Error fetching equine health list:', error);
       throw new Error(`Failed to fetch records: ${error.message || 'Unknown error'}`);
@@ -216,6 +216,22 @@ export const equineHealthApi = {
     } catch (error: any) {
       console.error('Error importing CSV:', error);
       throw new Error(`Failed to import CSV: ${error.message || 'Unknown error'}`);
+    }
+  },
+
+  // Bulk delete records
+  bulkDelete: async (ids: (string | number)[]): Promise<{ deletedCount: number }> => {
+    try {
+      console.log('🗑️ Calling bulk delete with IDs:', ids.length, 'items');
+      const response = await api.delete('/equine-health/bulk-delete', {
+        data: { ids },
+        timeout: 30000,
+      });
+      console.log('✅ Bulk delete response:', response.data);
+      return response.data;
+    } catch (error: any) {
+      console.error('❌ Bulk delete failed:', error);
+      throw new Error(`Failed to delete records: ${error.message || 'Unknown error'}`);
     }
   },
 };

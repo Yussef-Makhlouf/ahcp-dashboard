@@ -23,13 +23,18 @@ import { apiConfig } from "@/lib/api-config";
 export default function VaccinationPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState<Vaccination | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize] = useState(30);
   const queryClient = useQueryClient();
   const { checkPermission } = usePermissions();
 
-  // Fetch vaccination data using React Query
+  // Fetch vaccination data using React Query with pagination
   const { data: vaccinationData, isLoading } = useQuery({
-    queryKey: ['vaccination'],
-    queryFn: () => vaccinationApi.getList(),
+    queryKey: ['vaccination', currentPage, pageSize],
+    queryFn: () => vaccinationApi.getList({
+      page: currentPage,
+      limit: pageSize,
+    }),
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 
@@ -41,6 +46,8 @@ export default function VaccinationPage() {
   });
 
   const data = vaccinationData?.data || [];
+  const totalCount = vaccinationData?.total || 0;
+  const totalPages = vaccinationData?.totalPages || 0;
 
 
 
@@ -52,10 +59,42 @@ export default function VaccinationPage() {
         await vaccinationApi.delete(deleteId);
         queryClient.invalidateQueries({ queryKey: ['vaccination'] });
         queryClient.invalidateQueries({ queryKey: ['vaccination-stats'] });
+        toast.success('تم حذف السجل بنجاح');
       } catch (error) {
         console.error('Delete failed:', error);
-        alert('فشل في حذف السجل');
+        toast.error('فشل في حذف السجل');
       }
+    }
+  };
+
+  // Handle bulk delete selected records
+  const handleBulkDelete = async (selectedRows: Vaccination[]) => {
+    console.log('🗑️ handleBulkDelete called with:', selectedRows.length, 'rows');
+    try {
+      const ids = selectedRows.map(row => row._id || row.id || row.serialNo);
+      console.log('🔍 IDs to delete:', ids);
+      const result = await vaccinationApi.bulkDelete(ids);
+      console.log('✅ Bulk delete result:', result);
+      queryClient.invalidateQueries({ queryKey: ['vaccination'] });
+      queryClient.invalidateQueries({ queryKey: ['vaccination-stats'] });
+      toast.success(`تم حذف ${result.deletedCount || ids.length} سجل بنجاح`);
+    } catch (error) {
+      console.error('❌ Bulk delete failed:', error);
+      toast.error('فشل في حذف السجلات المحددة');
+    }
+  };
+
+  // Handle delete all records
+  const handleDeleteAll = async () => {
+    try {
+      const result = await vaccinationApi.deleteAll();
+      console.log('✅ Delete all result:', result);
+      queryClient.invalidateQueries({ queryKey: ['vaccination'] });
+      queryClient.invalidateQueries({ queryKey: ['vaccination-stats'] });
+      toast.success(`تم حذف ${result.deletedCount || 'جميع'} السجلات بنجاح`);
+    } catch (error) {
+      console.error('❌ Delete all failed:', error);
+      toast.error('فشل في حذف جميع السجلات');
     }
   };
 
@@ -167,6 +206,17 @@ export default function VaccinationPage() {
           columns={getColumns({ onEdit: handleEdit, onDelete: handleDelete })}
           data={data}
           isLoading={isLoading}
+          enableSelection={true}
+          enableBulkDelete={true}
+          onDeleteSelected={handleBulkDelete}
+          onDeleteAll={handleDeleteAll}
+          module="vaccination"
+          totalCount={totalCount}
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={setCurrentPage}
+          pageSize={pageSize}
+          showPagination={true}
         />
 
         {/* Vaccination Dialog */}

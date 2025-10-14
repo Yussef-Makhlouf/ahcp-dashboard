@@ -1,4 +1,4 @@
-import { api } from './base-api';
+import apiClient, { api } from './base-api';
 import type { Client, PaginatedResponse } from '@/types';
 import { handleAPIResponse, handleStatisticsResponse } from './api-response-handler';
 import { entityToasts } from '@/lib/utils/toast-utils';
@@ -112,6 +112,37 @@ export const clientsApi = {
     } catch (error: any) {
       console.error('Error deleting client:', error);
       throw new Error(error.userMessage || `Failed to delete client: ${error.message || 'Unknown error'}`);
+    }
+  },
+
+  // Bulk delete clients
+  bulkDelete: async (ids: (string | number)[]): Promise<{ deletedCount: number }> => {
+    try {
+      console.log('🗑️ Calling bulk delete with IDs:', ids.length, 'items');
+      const response = await apiClient.delete('/clients/bulk-delete', {
+        data: { ids },
+        timeout: 30000,
+      });
+      console.log('✅ Bulk delete response:', response.data);
+      return response.data.data || response.data;
+    } catch (error: any) {
+      console.error('❌ Error bulk deleting clients:', error);
+      throw new Error(`Failed to delete records: ${error.message || 'Unknown error'}`);
+    }
+  },
+
+  // Delete all clients
+  deleteAll: async (): Promise<{ deletedCount: number }> => {
+    try {
+      console.log('🗑️ Calling delete all clients');
+      const response = await apiClient.delete('/clients/delete-all', {
+        timeout: 30000,
+      });
+      console.log('✅ Delete all response:', response.data);
+      return response.data.data || response.data;
+    } catch (error: any) {
+      console.error('❌ Error deleting all clients:', error);
+      throw new Error(`Failed to delete all records: ${error.message || 'Unknown error'}`);
     }
   },
 

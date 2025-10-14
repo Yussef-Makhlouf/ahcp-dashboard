@@ -14,7 +14,7 @@ export const mobileClinicsApi = {
       const response = await api.get('/mobile-clinics/', {
         params: {
           page: params?.page || 1,
-          limit: params?.limit || 20,
+          limit: params?.limit || 30,
           search: params?.search || '',
           ...params?.filter,
         },
@@ -22,7 +22,7 @@ export const mobileClinicsApi = {
       });
 
       // Use the universal response handler
-      return handleAPIResponse<MobileClinic>(response, params?.limit || 20);
+      return handleAPIResponse<MobileClinic>(response, params?.limit || 30);
     } catch (error: any) {
       console.error('Error fetching mobile clinics list:', error);
       throw new Error(`Failed to fetch records: ${error.message || 'Unknown error'}`);

@@ -32,14 +32,19 @@ import { apiConfig } from "@/lib/api-config";
 export default function ClientsPage() {
   const [isClientDialogOpen, setIsClientDialogOpen] = useState(false);
   const [selectedClient, setSelectedClient] = useState<Client | undefined>(undefined);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize] = useState(30);
 
   const queryClient = useQueryClient();
   const { checkPermission, isAdmin } = usePermissions();
 
-  // استخدام React Query لجلب البيانات من API
+  // استخدام React Query لجلب البيانات من API مع الترقيم
   const { data: clientsResponse, isLoading, error, refetch } = useQuery({
-    queryKey: ['clients'],
-    queryFn: () => clientsApi.getList(),
+    queryKey: ['clients', currentPage, pageSize],
+    queryFn: () => clientsApi.getList({
+      page: currentPage,
+      limit: pageSize,
+    }),
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 
@@ -62,6 +67,37 @@ export default function ClientsPage() {
       toast.error(error.message || 'حدث خطأ أثناء الحذف');
     }
   });
+
+  // Handle bulk delete selected records
+  const handleBulkDelete = async (selectedRows: Client[]) => {
+    console.log('🗑️ handleBulkDelete called with:', selectedRows.length, 'rows');
+    try {
+      const ids = selectedRows.map(row => row._id || row.id || row.nationalId || row.national_id).filter((id): id is string => id !== undefined);
+      console.log('🔍 IDs to delete:', ids);
+      const result = await clientsApi.bulkDelete(ids);
+      console.log('✅ Bulk delete result:', result);
+      queryClient.invalidateQueries({ queryKey: ['clients'] });
+      queryClient.invalidateQueries({ queryKey: ['clients-stats'] });
+      toast.success(`تم حذف ${result.deletedCount || ids.length} سجل بنجاح`);
+    } catch (error) {
+      console.error('❌ Bulk delete failed:', error);
+      toast.error('فشل في حذف السجلات المحددة');
+    }
+  };
+
+  // Handle delete all records
+  const handleDeleteAll = async () => {
+    try {
+      const result = await clientsApi.deleteAll();
+      console.log('✅ Delete all result:', result);
+      queryClient.invalidateQueries({ queryKey: ['clients'] });
+      queryClient.invalidateQueries({ queryKey: ['clients-stats'] });
+      toast.success(`تم حذف ${result.deletedCount || 'جميع'} السجلات بنجاح`);
+    } catch (error) {
+      console.error('❌ Delete all failed:', error);
+      toast.error('فشل في حذف جميع السجلات');
+    }
+  };
 
   // Mutation لإنشاء/تحديث العميل
   const saveMutation = useMutation({
@@ -90,25 +126,10 @@ export default function ClientsPage() {
   });
 
   const data = clientsResponse?.data || [];
+  const totalCount = clientsResponse?.total || 0;
+  const totalPages = clientsResponse?.totalPages || 0;
 
   const columns: ColumnDef<Client>[] = [
-    {
-      id: "select",
-      header: ({ table }) => (
-        <Checkbox
-          checked={table.getIsAllPageRowsSelected()}
-          onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
-          aria-label="Select all"
-        />
-      ),
-      cell: ({ row }) => (
-        <Checkbox
-          checked={row.getIsSelected()}
-          onCheckedChange={(value) => row.toggleSelected(!!value)}
-          aria-label="Select row"
-        />
-      ),
-    },
     {
       accessorKey: "nationalId",
       header: "الرقم القومي",
@@ -450,6 +471,16 @@ export default function ClientsPage() {
           columns={columns}
           data={data}
           isLoading={isLoading}
+          enableBulkDelete={true}
+          onDeleteSelected={handleBulkDelete}
+          onDeleteAll={handleDeleteAll}
+          module="clients"
+          totalCount={totalCount}
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={setCurrentPage}
+          pageSize={pageSize}
+          showPagination={true}
         />
 
         {/* Client Dialog */}

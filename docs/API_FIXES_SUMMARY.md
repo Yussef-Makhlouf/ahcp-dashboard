@@ -54,7 +54,7 @@ return {
 };
 
 // بعد الإصلاح
-const result = handleAPIResponse<ParasiteControlAPIResponse>(response, params?.limit || 20);
+const result = handleAPIResponse<ParasiteControlAPIResponse>(response, params?.limit || 30);
 return {
   data: result.data.map(transformAPIResponse), // ✅ Works!
   total: result.total,
@@ -71,7 +71,7 @@ return {
 };
 
 // بعد الإصلاح
-return handleAPIResponse<Vaccination>(response, params?.limit || 20); // ✅ Always returns correct structure
+return handleAPIResponse<Vaccination>(response, params?.limit || 30); // ✅ Always returns correct structure
 ```
 
 ## 📊 **النتائج:**
@@ -107,7 +107,7 @@ import { handleAPIResponse } from './api-response-handler';
 
 // في getList function:
 const response = await api.get('/endpoint/');
-return handleAPIResponse<DataType>(response, params?.limit || 20);
+return handleAPIResponse<DataType>(response, params?.limit || 30);
 ```
 
 ### **3. اختبار الصفحات:**

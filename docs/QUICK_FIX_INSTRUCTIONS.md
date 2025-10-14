@@ -19,7 +19,7 @@ export const mobileClinicsApi = {
       const response = await api.get('/mobile-clinics/', {
         params: {
           page: params?.page || 1,
-          limit: params?.limit || 20,
+          limit: params?.limit || 30,
           search: params?.search || '',
           ...params?.filter,
         },
@@ -34,8 +34,8 @@ export const mobileClinicsApi = {
         data: records,
         total: pagination.total || 0,
         page: pagination.page || 1,
-        limit: params?.limit || 20,
-        totalPages: pagination.pages || Math.ceil((pagination.total || 0) / (params?.limit || 20)),
+        limit: params?.limit || 30,
+        totalPages: pagination.pages || Math.ceil((pagination.total || 0) / (params?.limit || 30)),
       };
     } catch (error: any) {
       console.error('Error fetching mobile clinics list:', error);
@@ -77,7 +77,7 @@ export const laboratoriesApi = {
       const response = await api.get('/laboratories/', {
         params: {
           page: params?.page || 1,
-          limit: params?.limit || 20,
+          limit: params?.limit || 30,
           search: params?.search || '',
           ...params?.filter,
         },
@@ -92,8 +92,8 @@ export const laboratoriesApi = {
         data: records,
         total: pagination.total || 0,
         page: pagination.page || 1,
-        limit: params?.limit || 20,
-        totalPages: pagination.pages || Math.ceil((pagination.total || 0) / (params?.limit || 20)),
+        limit: params?.limit || 30,
+        totalPages: pagination.pages || Math.ceil((pagination.total || 0) / (params?.limit || 30)),
       };
     } catch (error: any) {
       console.error('Error fetching laboratories list:', error);
@@ -129,7 +129,7 @@ return {
   data: records,
   total: pagination.total || response.total || 0,
   page: pagination.page || response.page || 1,
-  limit: params?.limit || 20,
+  limit: params?.limit || 30,
   totalPages: pagination.pages || response.totalPages || 1,
 };
 ```

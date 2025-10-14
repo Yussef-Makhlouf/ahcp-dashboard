@@ -30,7 +30,7 @@ export default function EquineHealthPage() {
     queryFn: () =>
       equineHealthApi.getList({
         page,
-        limit: 20,
+        limit: 30,
         search,
       }),
   });
@@ -53,6 +53,23 @@ export default function EquineHealthPage() {
   const handleView = (item: EquineHealth) => {
     // This will be handled by the DataTable's built-in view modal
     console.log("Viewing item:", item);
+  };
+
+  // Handle bulk delete selected records
+  const handleBulkDelete = async (selectedRows: EquineHealth[]) => {
+    console.log('🗑️ handleBulkDelete called with:', selectedRows.length, 'rows');
+    try {
+      const ids: (string | number)[] = selectedRows
+        .map(row => row.serialNo || row._id)
+        .filter(id => id !== undefined && id !== null && id !== '') as (string | number)[];
+      const result = await equineHealthApi.bulkDelete(ids);
+      console.log('✅ Bulk delete result:', result);
+      toast.success(`تم حذف ${result.deletedCount} سجل بنجاح`);
+      refetch();
+    } catch (error) {
+      console.error('❌ Bulk delete failed:', error);
+      toast.error('فشل في حذف السجلات المحددة');
+    }
   };
 
   // Calculate statistics
@@ -200,6 +217,15 @@ className="h-9 px-3"              >
           columns={getColumns({ onEdit: handleEdit, onDelete: handleDelete, onView: handleView })}
           data={data?.data || []}
           isLoading={isLoading}
+          enableBulkDelete={true}
+          onDeleteSelected={handleBulkDelete}
+          module="equine-health"
+          totalCount={data?.total || 0}
+          currentPage={page}
+          totalPages={data?.totalPages || 0}
+          onPageChange={setPage}
+          pageSize={30}
+          showPagination={true}
         />
 
         {/* Dialog */}

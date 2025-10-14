@@ -75,7 +75,7 @@
 // جلب جميع العملاء مع الفلترة
 const clients = await clientsApi.getList({
   page: 1,
-  limit: 20,
+  limit: 30,
   search: "أحمد",
   village: "قرية النور"
 });

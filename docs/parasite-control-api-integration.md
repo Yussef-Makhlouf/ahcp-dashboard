@@ -48,7 +48,7 @@ const API_BASE_URL = 'https://barns-g2ou.vercel.app/';
 - **Purpose**: Get paginated list of records
 - **Parameters**: 
   - `page`: Page number (default: 1)
-  - `limit`: Records per page (default: 20)
+  - `limit`: Records per page (default: 30)
   - `search`: Search term
   - `filter`: Filter object
 - **Returns**: `PaginatedResponse<ParasiteControl>`

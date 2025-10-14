@@ -233,13 +233,18 @@ const tableFilters = [
 export default function MobileClinicsPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState<MobileClinic | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize] = useState(30);
   const { checkPermission } = usePermissions();
   const queryClient = useQueryClient();
 
-  // Fetch mobile clinics data using React Query
+  // Fetch mobile clinics data using React Query with pagination
   const { data: mobileClinicsData, isLoading, refetch } = useQuery({
-    queryKey: ['mobile-clinics'],
-    queryFn: () => mobileClinicsApi.getList(),
+    queryKey: ['mobile-clinics', currentPage, pageSize],
+    queryFn: () => mobileClinicsApi.getList({
+      page: currentPage,
+      limit: pageSize,
+    }),
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 
@@ -251,6 +256,8 @@ export default function MobileClinicsPage() {
   });
 
   const data = mobileClinicsData?.data || [];
+  const totalCount = mobileClinicsData?.total || 0;
+  const totalPages = mobileClinicsData?.totalPages || 0;
 
 
 
@@ -266,6 +273,37 @@ export default function MobileClinicsPage() {
         console.error('Delete failed:', error);
         alert('فشل في حذف السجل');
       }
+    }
+  };
+
+  // Handle bulk delete selected records
+  const handleBulkDelete = async (selectedRows: MobileClinic[]) => {
+    console.log('🗑️ handleBulkDelete called with:', selectedRows.length, 'rows');
+    try {
+      const ids = selectedRows.map(row => row._id || row.serialNo);
+      console.log('🔍 IDs to delete:', ids);
+      const result = await mobileClinicsApi.bulkDelete(ids);
+      console.log('✅ Bulk delete result:', result);
+      queryClient.invalidateQueries({ queryKey: ['mobile-clinics'] });
+      queryClient.invalidateQueries({ queryKey: ['mobile-clinics-stats'] });
+      toast.success(`تم حذف ${result.deletedCount || ids.length} سجل بنجاح`);
+    } catch (error) {
+      console.error('❌ Bulk delete failed:', error);
+      toast.error('فشل في حذف السجلات المحددة');
+    }
+  };
+
+  // Handle delete all records
+  const handleDeleteAll = async () => {
+    try {
+      const result = await mobileClinicsApi.deleteAll();
+      console.log('✅ Delete all result:', result);
+      queryClient.invalidateQueries({ queryKey: ['mobile-clinics'] });
+      queryClient.invalidateQueries({ queryKey: ['mobile-clinics-stats'] });
+      toast.success(`تم حذف ${result.deletedCount || 'جميع'} السجلات بنجاح`);
+    } catch (error) {
+      console.error('❌ Delete all failed:', error);
+      toast.error('فشل في حذف جميع السجلات');
     }
   };
 
@@ -417,6 +455,16 @@ export default function MobileClinicsPage() {
           columns={getColumns({ onEdit: handleEdit, onDelete: handleDelete, onView: handleView })}
           data={data}
           isLoading={isLoading}
+          enableBulkDelete={true}
+          onDeleteSelected={handleBulkDelete}
+          onDeleteAll={handleDeleteAll}
+          module="mobile-clinics"
+          totalCount={totalCount}
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={setCurrentPage}
+          pageSize={pageSize}
+          showPagination={true}
         />
 
         {/* Mobile Clinic Dialog */}

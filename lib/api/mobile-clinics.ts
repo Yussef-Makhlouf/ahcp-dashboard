@@ -1,4 +1,4 @@
-import { api } from './base-api';
+import apiClient, { api } from './base-api';
 import type { MobileClinic, PaginatedResponse } from "@/types";
 import { handleAPIResponse } from './api-response-handler';
 
@@ -14,7 +14,7 @@ export const mobileClinicsApi = {
       // Filter out empty search parameters to avoid validation errors
       const cleanParams: Record<string, any> = {
         page: params?.page || 1,
-        limit: params?.limit || 20,
+        limit: params?.limit || 30,
       };
       
       if (params?.search && params.search.trim()) {
@@ -36,7 +36,7 @@ export const mobileClinicsApi = {
       });
 
       // Use universal response handler
-      return handleAPIResponse<MobileClinic>(response, params?.limit || 20);
+      return handleAPIResponse<MobileClinic>(response, params?.limit || 30);
     } catch (error: any) {
       console.error('Error fetching mobile clinics list:', error);
       throw new Error(`Failed to fetch records: ${error.message || 'Unknown error'}`);
@@ -106,6 +106,37 @@ export const mobileClinicsApi = {
     } catch (error: any) {
       console.error('Error deleting record:', error);
       throw new Error(`Failed to delete record: ${error.message || 'Unknown error'}`);
+    }
+  },
+
+  // Bulk delete records
+  bulkDelete: async (ids: (string | number)[]): Promise<{ deletedCount: number }> => {
+    try {
+      console.log('🗑️ Calling bulk delete with IDs:', ids.length, 'items');
+      const response = await apiClient.delete('/mobile-clinics/bulk-delete', {
+        data: { ids },
+        timeout: 30000,
+      });
+      console.log('✅ Bulk delete response:', response.data);
+      return response.data.data || response.data;
+    } catch (error: any) {
+      console.error('❌ Error bulk deleting mobile clinic records:', error);
+      throw new Error(`Failed to delete records: ${error.message || 'Unknown error'}`);
+    }
+  },
+
+  // Delete all records
+  deleteAll: async (): Promise<{ deletedCount: number }> => {
+    try {
+      console.log('🗑️ Calling delete all mobile clinic records');
+      const response = await apiClient.delete('/mobile-clinics/delete-all', {
+        timeout: 30000,
+      });
+      console.log('✅ Delete all response:', response.data);
+      return response.data.data || response.data;
+    } catch (error: any) {
+      console.error('❌ Error deleting all mobile clinic records:', error);
+      throw new Error(`Failed to delete all records: ${error.message || 'Unknown error'}`);
     }
   },
 

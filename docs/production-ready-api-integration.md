@@ -114,7 +114,7 @@ getList: async (params) => {
       data: response.data.map(transformAPIResponse),
       total: response.total,
       page: response.page,
-      limit: params?.limit || 20,
+      limit: params?.limit || 30,
       totalPages: response.totalPages,
     };
   } catch (error: any) {
