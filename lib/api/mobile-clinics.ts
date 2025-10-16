@@ -49,9 +49,12 @@ export const mobileClinicsApi = {
       const response = await api.get(`/mobile-clinics/${id}`, {
         timeout: 30000,
       });
-      // Handle response structure: { success: true, data: {...} }
-      const recordData = (response as any).data || response;
-      return recordData;
+      // Handle response structure: { success: true, data: { record: {...} } }
+      const apiResponse = response as any;
+      if (apiResponse.success && apiResponse.data) {
+        return apiResponse.data.record || apiResponse.data;
+      }
+      return apiResponse.data || apiResponse;
     } catch (error: any) {
       console.error('Error fetching record by ID:', error);
       throw new Error(`Failed to fetch record: ${error.message || 'Unknown error'}`);
@@ -59,14 +62,17 @@ export const mobileClinicsApi = {
   },
 
   // Create new record
-  create: async (data: Omit<MobileClinic, 'serialNo'>): Promise<MobileClinic> => {
+  create: async (data: any): Promise<MobileClinic> => {
     try {
       const response = await api.post('/mobile-clinics/', data, {
         timeout: 30000,
       });
-      // Handle response structure: { success: true, data: {...} }
-      const recordData = (response as any).data || response;
-      return recordData;
+      // Handle response structure: { success: true, data: { record: {...} } }
+      const apiResponse = response as any;
+      if (apiResponse.success && apiResponse.data) {
+        return apiResponse.data.record || apiResponse.data;
+      }
+      return apiResponse.data || apiResponse;
     } catch (error: any) {
       console.error('Error creating record:', error);
       throw new Error(`Failed to create record: ${error.message || 'Unknown error'}`);
@@ -74,14 +80,17 @@ export const mobileClinicsApi = {
   },
 
   // Update record
-  update: async (id: string | number, data: Partial<MobileClinic>): Promise<MobileClinic> => {
+  update: async (id: string | number, data: any): Promise<MobileClinic> => {
     try {
       const response = await api.put(`/mobile-clinics/${id}`, data, {
         timeout: 30000,
       });
-      // Handle response structure: { success: true, data: {...} }
-      const recordData = (response as any).data || response;
-      return recordData;
+      // Handle response structure: { success: true, data: { record: {...} } }
+      const apiResponse = response as any;
+      if (apiResponse.success && apiResponse.data) {
+        return apiResponse.data.record || apiResponse.data;
+      }
+      return apiResponse.data || apiResponse;
     } catch (error: any) {
       console.error('Error updating record:', error);
       throw new Error(`Failed to update record: ${error.message || 'Unknown error'}`);
@@ -111,7 +120,17 @@ export const mobileClinicsApi = {
       const response = await api.get('/mobile-clinics/statistics', {
         timeout: 30000,
       });
-      return (response as any).data || {};
+      // Handle response structure: { success: true, data: {...} }
+      const apiResponse = response as any;
+      if (apiResponse.success && apiResponse.data) {
+        return apiResponse.data;
+      }
+      return apiResponse.data || {
+        totalRecords: 0,
+        recordsThisMonth: 0,
+        totalAnimalsExamined: 0,
+        emergencyCases: 0,
+      };
     } catch (error: any) {
       console.error('Error fetching mobile clinics statistics:', error);
       return {
@@ -127,6 +146,7 @@ export const mobileClinicsApi = {
   exportToCsv: async (): Promise<Blob> => {
     try {
       const response = await api.get('/mobile-clinics/export', {
+        params: { format: 'csv' },
         responseType: 'blob',
         timeout: 60000,
       });

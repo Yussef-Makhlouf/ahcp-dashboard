@@ -9,7 +9,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Edit, MoreHorizontal, Trash2, Eye } from "lucide-react";
+import { Edit, MoreHorizontal, Trash2, Eye, MapPin, Phone, Calendar, User } from "lucide-react";
+import { usePermissions } from "@/lib/hooks/usePermissions";
 import type { MobileClinic } from "@/types";
 
 interface GetColumnsProps {
@@ -23,205 +24,262 @@ export function getColumns({
   onDelete,
   onView
 }: GetColumnsProps): ColumnDef<MobileClinic>[] {
+  const { checkPermission } = usePermissions();
   return [
+    // Serial No
     {
       accessorKey: "serialNo",
-      header: "رقم التسلسل",
+      header: "Serial No",
       cell: ({ row }) => (
         <div className="font-medium">#{row.getValue("serialNo")}</div>
       ),
     },
+    // Date
     {
       accessorKey: "date",
-      header: "التاريخ",
+      header: "Date",
       cell: ({ row }) => {
         const date = new Date(row.getValue("date"));
-        return date.toLocaleDateString("ar-EG");
+        return date.toLocaleDateString("en-US");
       },
     },
+    // Client Info (Name, ID, Birth Date, Phone)
     {
-      accessorKey: "client.name",
-      header: "اسم المربي",
+      id: "clientInfo",
+      header: "Client Info",
       cell: ({ row }) => {
         const client = row.original.client;
-        const ownerName = client?.name || row.original.owner?.name;
+        const name = client?.name || '-';
+        const nationalId = client?.nationalId || '';
+        const phone = client?.phone || '';
+        const birthDate = (client as any)?.birthDate ? new Date((client as any).birthDate).toLocaleDateString("en-US") : '';
+        
         return (
-          <div className="space-y-1">
-            <div className="font-medium">{ownerName || 'غير محدد'}</div>
-            {client?.nationalId && (
-              <div className="text-xs text-muted-foreground">
-                هوية: {client.nationalId}
+          <div className="space-y-1 min-w-[200px]">
+            <div className="font-medium flex items-center gap-1">
+              <User className="h-3 w-3" />
+              {name}
+            </div>
+            {nationalId && (
+              <div className="text-xs text-gray-500">ID: {nationalId}</div>
+            )}
+            {birthDate && (
+              <div className="text-xs text-gray-500 flex items-center gap-1">
+                <Calendar className="h-3 w-3" />
+                DOB: {birthDate}
               </div>
             )}
-            {client?.phone && (
-              <div className="text-xs text-muted-foreground">
-                {client.phone}
+            {phone && (
+              <div className="text-xs text-gray-500 flex items-center gap-1">
+                <Phone className="h-3 w-3" />
+                {phone}
               </div>
             )}
           </div>
         );
       },
     },
+    // Location
     {
       accessorKey: "farmLocation",
-      header: "موقع المزرعة",
+      header: "Location",
       cell: ({ row }) => (
-        <div className="text-sm">{row.getValue("farmLocation") || 'غير محدد'}</div>
+        <div className="text-sm">{row.getValue("farmLocation")}</div>
       ),
     },
+    // N Coordinate, E Coordinate
+    {
+      id: "coordinates",
+      header: "N, E Coordinates",
+      cell: ({ row }) => {
+        const coords = row.original.coordinates;
+        if (!coords?.latitude || !coords?.longitude) {
+          return <span className="text-gray-400">-</span>;
+        }
+        return (
+          <div className="text-xs space-y-1">
+            <div className="flex items-center gap-1">
+              <MapPin className="h-3 w-3" />
+              <span>N: {coords.latitude.toFixed(4)}</span>
+            </div>
+            <div>E: {coords.longitude.toFixed(4)}</div>
+          </div>
+        );
+      },
+    },
+    // Supervisor
     {
       accessorKey: "supervisor",
-      header: "المشرف",
+      header: "Supervisor",
       cell: ({ row }) => (
-        <div className="text-sm">{row.getValue("supervisor") || 'غير محدد'}</div>
+        <div className="text-sm">{row.getValue("supervisor")}</div>
       ),
     },
+    // Vehicle No
     {
       accessorKey: "vehicleNo",
-      header: "رقم المركبة",
+      header: "Vehicle No.",
       cell: ({ row }) => (
-        <Badge variant="secondary">{row.getValue("vehicleNo") || 'غير محدد'}</Badge>
+        <div className="text-sm">{row.getValue("vehicleNo")}</div>
       ),
     },
+    // Animal Counts
     {
-      id: "totalAnimals",
-      header: "عدد الحيوانات",
+      id: "animalCounts",
+      header: "Animal Counts",
       cell: ({ row }) => {
-        const record = row.original;
-        // Use backend virtual field first, then calculate from animalCounts, then legacy fields
-        let total = record.totalAnimals || 0;
+        const counts = row.original.animalCounts;
+        if (!counts) return <span className="text-gray-400">-</span>;
         
-        if (!total && record.animalCounts) {
-          total = (record.animalCounts.sheep || 0) + 
-                  (record.animalCounts.goats || 0) + 
-                  (record.animalCounts.camel || 0) + 
-                  (record.animalCounts.horse || 0) + 
-                  (record.animalCounts.cattle || 0);
-        }
-        
-        // Fallback to legacy fields
-        if (!total) {
-          total = (record.sheep || 0) + (record.goats || 0) + 
-                  (record.camel || 0) + (record.horse || 0) + 
-                  (record.cattle || 0);
-        }
+        const totalAnimals = (counts.sheep || 0) + (counts.goats || 0) + 
+                           (counts.camel || 0) + (counts.horse || 0) + (counts.cattle || 0);
         
         return (
-          <div className="text-sm space-y-1">
-            <Badge variant="secondary" className="font-medium">
-              {total} رأس
+          <div className="text-xs space-y-1">
+            <Badge variant="secondary">Total: {totalAnimals}</Badge>
+            {counts.sheep > 0 && <div>Sheep: {counts.sheep}</div>}
+            {counts.goats > 0 && <div>Goats: {counts.goats}</div>}
+            {counts.camel > 0 && <div>Camel: {counts.camel}</div>}
+            {counts.horse > 0 && <div>Horse: {counts.horse}</div>}
+            {counts.cattle > 0 && <div>Cattle: {counts.cattle}</div>}
+          </div>
+        );
+      },
+    },
+    // Diagnosis & Treatment
+    {
+      id: "medical",
+      header: "Medical Info",
+      cell: ({ row }) => {
+        const diagnosis = row.original.diagnosis;
+        const treatment = row.original.treatment;
+        const category = row.original.interventionCategory;
+        
+        const categoryColors = {
+          "Emergency": "bg-red-500 text-white",
+          "Routine": "bg-blue-500 text-white",
+          "Preventive": "bg-green-500 text-white",
+          "Follow-up": "bg-yellow-500 text-white",
+        };
+        
+        return (
+          <div className="text-xs space-y-1 max-w-[200px]">
+            <Badge className={categoryColors[category as keyof typeof categoryColors] || "bg-gray-500 text-white"}>
+              {category}
             </Badge>
-            {record.animalCounts && (
-              <div className="text-xs text-muted-foreground">
-                {record.animalCounts.sheep > 0 && `أغنام: ${record.animalCounts.sheep} `}
-                {record.animalCounts.goats > 0 && `ماعز: ${record.animalCounts.goats} `}
-                {record.animalCounts.camel > 0 && `إبل: ${record.animalCounts.camel} `}
-                {record.animalCounts.cattle > 0 && `أبقار: ${record.animalCounts.cattle} `}
-                {record.animalCounts.horse > 0 && `خيول: ${record.animalCounts.horse}`}
+            {diagnosis && (
+              <div className="truncate" title={diagnosis}>
+                <strong>Diagnosis:</strong> {diagnosis}
+              </div>
+            )}
+            {treatment && (
+              <div className="truncate" title={treatment}>
+                <strong>Treatment:</strong> {treatment}
               </div>
             )}
           </div>
         );
       },
     },
+    // Request Info
     {
-      accessorKey: "interventionCategory",
-      header: "فئة التدخل",
+      id: "request",
+      header: "Request Info",
       cell: ({ row }) => {
-        const category = row.getValue("interventionCategory") as string;
-        const categoryColors = {
-          "Emergency": "bg-red-500 text-white border-red-600",
-          "Routine": "bg-blue-500 text-white border-blue-600",
-          "Preventive": "bg-green-500 text-white border-green-600",
-          "Follow-up": "bg-yellow-500 text-white border-yellow-600",
-        };
-        const labels = {
-          "Emergency": "طوارئ",
-          "Routine": "روتيني",
-          "Preventive": "وقائي",
-          "Follow-up": "متابعة",
-        };
-        return (
-          <Badge className={categoryColors[category as keyof typeof categoryColors] || "bg-gray-500 text-white border-gray-600"}>
-            {labels[category as keyof typeof labels] || category || 'غير محدد'}
-          </Badge>
-        );
-      },
-    },
-    {
-      accessorKey: "diagnosis",
-      header: "التشخيص",
-      cell: ({ row }) => (
-        <div className="max-w-[200px] truncate" title={row.getValue("diagnosis")}>
-          {row.getValue("diagnosis") || 'غير محدد'}
-        </div>
-      ),
-    },
-    {
-      accessorKey: "followUpRequired",
-      header: "متابعة مطلوبة",
-      cell: ({ row }) => {
-        const required = row.getValue("followUpRequired");
-        return (
-          <Badge className={required ? "bg-orange-500 text-white border-orange-600" : "bg-green-500 text-white border-green-600"}>
-            {required ? "نعم" : "لا"}
-          </Badge>
-        );
-      },
-    },
-    {
-      accessorKey: "request.situation",
-      header: "حالة الطلب",
-      cell: ({ row }) => {
-        const status = row.original.request?.situation;
+        const request = row.original.request;
+        if (!request) return <span className="text-gray-400">-</span>;
+        
+        const requestDate = request.date ? new Date(request.date).toLocaleDateString("en-US") : '';
+        const fulfillingDate = request.fulfillingDate ? new Date(request.fulfillingDate).toLocaleDateString("en-US") : '';
+        
         const statusColors = {
-          "Open": "bg-blue-500 text-white border-blue-600",
-          "Closed": "bg-green-500 text-white border-green-600",
-          "Pending": "bg-yellow-500 text-white border-yellow-600",
+          "Open": "bg-blue-500 text-white",
+          "Closed": "bg-green-500 text-white",
+          "Pending": "bg-yellow-500 text-white",
         };
-
+        
         return (
-          <Badge className={statusColors[status as keyof typeof statusColors] || "bg-gray-500 text-white border-gray-600"}>
-            {status === "Open" && "مفتوح"}
-            {status === "Closed" && "مغلق"}
-            {status === "Pending" && "معلق"}
-            {!status && "غير محدد"}
-          </Badge>
+          <div className="text-xs space-y-1">
+            <div>Date: {requestDate}</div>
+            <Badge className={statusColors[request.situation as keyof typeof statusColors] || "bg-gray-500 text-white"}>
+              {request.situation}
+            </Badge>
+            {fulfillingDate && (
+              <div>Fulfilled: {fulfillingDate}</div>
+            )}
+          </div>
         );
       },
     },
+    // Category & Remarks
+    {
+      id: "additional",
+      header: "Additional Info",
+      cell: ({ row }) => {
+        const category = (row.original as any).category;
+        const remarks = row.original.remarks;
+        
+        return (
+          <div className="text-xs space-y-1 max-w-[150px]">
+            {category && (
+              <Badge variant="outline">{category}</Badge>
+            )}
+            {remarks && (
+              <div className="truncate" title={remarks}>
+                <strong>Remarks:</strong> {remarks}
+              </div>
+            )}
+          </div>
+        );
+      },
+    },
+    // Actions
     {
       id: "actions",
       header: "الإجراءات",
-      cell: ({ row }) => (
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="h-8 w-8 p-0">
-              <span className="sr-only">فتح القائمة</span>
-              <MoreHorizontal className="h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            {onView && (
-              <DropdownMenuItem onClick={() => onView(row.original)}>
-                <Eye className="mr-2 h-4 w-4" />
-                عرض
-              </DropdownMenuItem>
-            )}
-            <DropdownMenuItem onClick={() => onEdit(row.original)}>
-              <Edit className="mr-2 h-4 w-4" />
-              تعديل
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={() => onDelete(row.original)}
-              className="text-red-600"
-            >
-              <Trash2 className="mr-2 h-4 w-4" />
-              حذف
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      ),
+      cell: ({ row }) => {
+        const canEdit = checkPermission({ module: 'mobile-clinics', action: 'edit' });
+        const canDelete = checkPermission({ module: 'mobile-clinics', action: 'delete' });
+        
+        // إذا لم يكن لديه صلاحيات التعديل أو الحذف، لا تظهر خانة الإجراءات
+        if (!canEdit && !canDelete) {
+          return null;
+        }
+        
+        return (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" className="h-8 w-8 p-0">
+                <span className="sr-only">فتح القائمة</span>
+                <MoreHorizontal className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              {onView && (
+                <DropdownMenuItem onClick={() => onView(row.original)}>
+                  <Eye className="mr-2 h-4 w-4" />
+                  عرض
+                </DropdownMenuItem>
+              )}
+              {canEdit && (
+                <DropdownMenuItem onClick={() => onEdit(row.original)}>
+                  <Edit className="mr-2 h-4 w-4" />
+                  تعديل
+                </DropdownMenuItem>
+              )}
+              {canDelete && (
+                <DropdownMenuItem
+                  onClick={() => onDelete(row.original)}
+                  className="text-red-600"
+                >
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  حذف
+                </DropdownMenuItem>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        );
+      },
     },
   ];
 }

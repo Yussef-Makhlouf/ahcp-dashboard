@@ -112,6 +112,24 @@ export const vaccinationApi = {
     }
   },
 
+  // Export to Excel with new format
+  exportToExcel: async (filters?: Record<string, any>): Promise<Blob> => {
+    try {
+      const params = new URLSearchParams({
+        format: 'csv',
+        ...filters
+      });
+      
+      return await api.get(`/vaccination/export?${params.toString()}`, {
+        responseType: 'blob',
+        timeout: 60000,
+      });
+    } catch (error: any) {
+      console.error('Error exporting Excel:', error);
+      throw new Error(`Failed to export Excel: ${error.message || 'Unknown error'}`);
+    }
+  },
+
   // Get statistics
   getStatistics: async (): Promise<{
     totalRecords: number;

@@ -13,6 +13,13 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 
 // الأشهر بالعربية
@@ -24,6 +31,15 @@ const ARABIC_MONTHS = [
 // أيام الأسبوع بالعربية
 const ARABIC_DAYS = ["الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت"];
 const ARABIC_DAYS_SHORT = ["أح", "إث", "ثل", "أر", "خم", "جم", "سب"];
+
+// دالة لتوليد قائمة السنين
+const generateYearOptions = (currentYear: number, range: number = 10) => {
+  const years = [];
+  for (let i = currentYear - range; i <= currentYear + range; i++) {
+    years.push(i);
+  }
+  return years;
+};
 
 interface ModernCalendarProps {
   selected?: Date | null;
@@ -48,6 +64,9 @@ function ModernCalendar({
 }: ModernCalendarProps) {
   const [currentMonth, setCurrentMonth] = React.useState(selected || new Date());
   const [rangeStart, setRangeStart] = React.useState<Date | null>(null);
+  
+  // قائمة السنين المتاحة
+  const availableYears = generateYearOptions(new Date().getFullYear(), 15);
 
   const monthStart = startOfMonth(currentMonth);
   const monthEnd = endOfMonth(currentMonth);
@@ -84,6 +103,18 @@ function ModernCalendar({
         setRangeStart(null);
       }
     }
+  };
+
+  const handleMonthChange = (monthIndex: string) => {
+    const newDate = new Date(currentMonth);
+    newDate.setMonth(parseInt(monthIndex));
+    setCurrentMonth(newDate);
+  };
+
+  const handleYearChange = (year: string) => {
+    const newDate = new Date(currentMonth);
+    newDate.setFullYear(parseInt(year));
+    setCurrentMonth(newDate);
   };
 
   const isDateSelected = (date: Date) => {
@@ -125,10 +156,40 @@ function ModernCalendar({
           <ChevronRight className="h-4 w-4" />
         </Button>
         
-        <div className="text-center">
-          <h3 className="font-semibold text-lg text-gray-900">
-            {ARABIC_MONTHS[currentMonth.getMonth()]} {currentMonth.getFullYear()}
-          </h3>
+        <div className="flex items-center gap-2">
+          {/* قائمة الشهور */}
+          <Select
+            value={currentMonth.getMonth().toString()}
+            onValueChange={handleMonthChange}
+          >
+            <SelectTrigger className="w-24 h-8 text-sm">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {ARABIC_MONTHS.map((month, index) => (
+                <SelectItem key={index} value={index.toString()}>
+                  {month}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          
+          {/* قائمة السنين */}
+          <Select
+            value={currentMonth.getFullYear().toString()}
+            onValueChange={handleYearChange}
+          >
+            <SelectTrigger className="w-20 h-8 text-sm">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {availableYears.map((year) => (
+                <SelectItem key={year} value={year.toString()}>
+                  {year}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
         
         <Button

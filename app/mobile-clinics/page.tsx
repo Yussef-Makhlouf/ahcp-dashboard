@@ -14,6 +14,7 @@ import type { MobileClinic } from "@/types";
 import { formatDate } from "@/lib/utils";
 import { mobileClinicsApi } from "@/lib/api/mobile-clinics";
 import { useQuery } from "@tanstack/react-query";
+import { usePermissions } from "@/lib/hooks/usePermissions";
 
 // تعريف حقول النموذج
 const formFields = [
@@ -228,6 +229,7 @@ const tableFilters = [
 export default function MobileClinicsPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState<MobileClinic | null>(null);
+  const { checkPermission } = usePermissions();
 
   // Fetch mobile clinics data using React Query
   const { data: mobileClinicsData, isLoading, refetch } = useQuery({
@@ -244,6 +246,7 @@ export default function MobileClinicsPage() {
   });
 
   const data = mobileClinicsData?.data || [];
+
 
   const handleExport = async (type: "csv" | "pdf") => {
     if (type === "csv") {
@@ -265,7 +268,9 @@ export default function MobileClinicsPage() {
   const handleDelete = async (item: MobileClinic) => {
     if (confirm("هل أنت متأكد من حذف هذا السجل؟")) {
       try {
-        await mobileClinicsApi.delete(item.serialNo);
+        // استخدام _id أو serialNo للحذف
+        const deleteId = item._id || item.serialNo;
+        await mobileClinicsApi.delete(deleteId);
         refetch(); // Refresh data after deletion
         alert('تم حذف السجل بنجاح');
       } catch (error) {
@@ -278,7 +283,9 @@ export default function MobileClinicsPage() {
   const handleSave = async (data: any) => {
     try {
       if (selectedItem) {
-        await mobileClinicsApi.update(selectedItem.serialNo, data);
+        // استخدام _id أو serialNo للتحديث
+        const updateId = selectedItem._id || selectedItem.serialNo;
+        await mobileClinicsApi.update(updateId, data);
         alert('تم تحديث السجل بنجاح');
       } else {
         await mobileClinicsApi.create(data);
@@ -329,10 +336,12 @@ export default function MobileClinicsPage() {
               acceptedFormats={[".csv", ".xlsx"]}
               maxFileSize={10}
             />
-            <Button onClick={handleAdd}>
-              <Plus className="h-4 w-4 mr-2" />
-              إضافة زيارة جديدة
-            </Button>
+            {checkPermission({ module: 'mobile-clinics', action: 'create' }) && (
+              <Button onClick={handleAdd} className="h-9 px-3 " >
+                <Plus className="h-4 w-4 mr-2" />
+                إضافة زيارة جديدة
+              </Button>
+            )}
           </div>
         </div>
 

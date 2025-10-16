@@ -38,10 +38,16 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { EnhancedMobileTabs } from "@/components/ui/mobile-tabs";
 import { equineHealthApi } from "@/lib/api/equine-health";
 import type { EquineHealth } from "@/types";
-import { validateEgyptianPhone, validateSaudiPhone } from "@/lib/utils";
+import { validateEgyptianPhone, validateSaudiPhone, validatePhoneNumber, validateNationalId } from "@/lib/utils";
 import { User, Heart, Shield, Activity } from "lucide-react";
 import { useState } from "react";
 import { ModernDatePicker } from "@/components/ui/modern-date-picker";
+import { SupervisorSelect } from "@/components/ui/supervisor-select";
+import { entityToasts } from "@/lib/utils/toast-utils";
+import { useFormValidation } from "@/lib/hooks/use-form-validation";
+import { ValidatedInput } from "@/components/ui/validated-input";
+import { ValidatedSelect } from "@/components/ui/validated-select";
+import { ValidatedTextarea } from "@/components/ui/validated-textarea";
 
 const horseDetailSchema = z.object({
   id: z.string().min(1, "معرف الحصان مطلوب"),
@@ -63,33 +69,35 @@ const medicationSchema = z.object({
 });
 
 const formSchema = z.object({
+  serialNo: z.string().min(1, "رقم السجل مطلوب"),
   date: z.string().min(1, "التاريخ مطلوب"),
   client: z.object({
-    _id: z.string().optional(),
     name: z.string().min(2, "الاسم يجب أن يكون أكثر من حرفين"),
-    nationalId: z.string().min(3, "رقم الهوية يجب أن يكون أكثر من 3 أحرف"),
-    phone: z.string().refine(validateSaudiPhone, "رقم الهاتف غير صحيح. يجب أن يبدأ بـ +966 أو 05"),
+    nationalId: z.string().min(3, "رقم الهوية يجب أن يكون أكثر من 3 أحرف").refine(
+      (nationalId) => validateNationalId(nationalId),
+      { message: "رقم الهوية يجب أن يكون بين 10-14 رقم فقط" }
+    ),
+    phone: z.string().refine(validatePhoneNumber, "رقم الهاتف غير صحيح. يجب أن يكون بين 10-15 رقم"),
     village: z.string().optional(),
     detailedAddress: z.string().optional(),
   }),
-  farmLocation: z.string().min(2, "موقع المزرعة مطلوب"),
+  farmLocation: z.string().min(1, "موقع المزرعة مطلوب"),
   coordinates: z.object({
-    latitude: z.number().nullable(),
-    longitude: z.number().nullable(),
-  }).optional(),
+    latitude: z.number().optional(),
+    longitude: z.number().optional(),
+  }),
   supervisor: z.string().min(2, "اسم المشرف يجب أن يكون أكثر من حرفين"),
   vehicleNo: z.string().min(1, "رقم المركبة مطلوب"),
   horseCount: z.number().min(1, "عدد الخيول يجب أن يكون أكبر من صفر"),
   horseDetails: z.array(horseDetailSchema).min(1, "يجب إضافة تفاصيل حصان واحد على الأقل"),
   diagnosis: z.string().min(3, "التشخيص يجب أن يكون أكثر من 3 أحرف"),
   interventionCategory: z.enum([
-    "Clinical Examination",
-    "Surgical Operation",
-    "Ultrasonography",
-    "Lab Analysis",
-    "Farriery",
-    "Routine",
-    "Emergency"
+    "Emergency",
+    "Routine", 
+    "Preventive",
+    "Follow-up",
+    "Breeding",
+    "Performance"
   ]),
   treatment: z.string().min(3, "العلاج يجب أن يكون أكثر من 3 أحرف"),
   medicationsUsed: z.array(medicationSchema).optional(),
@@ -98,8 +106,6 @@ const formSchema = z.object({
     situation: z.enum(["Open", "Closed", "Pending"]),
     fulfillingDate: z.string().optional(),
   }),
-  followUpRequired: z.boolean().optional(),
-  followUpDate: z.string().optional(),
   remarks: z.string().optional(),
 });
 
@@ -119,12 +125,37 @@ export function EquineHealthDialog({
   onSuccess,
 }: EquineHealthDialogProps) {
   const [activeTab, setActiveTab] = useState("basic");
+
+  // Validation rules for unified system
+  const validationRules = {
+    'client.name': { required: true, minLength: 2 },
+    'client.nationalId': { required: true, nationalId: true },
+    'client.phone': { required: true, phone: true },
+    'supervisor': { required: true },
+    'vehicleNo': { required: true },
+    'farmLocation': { required: true },
+    'herdHealth': { required: true },
+    'animalsHandling': { required: true },
+    'labours': { required: true },
+    'reachableLocation': { required: true },
+  };
+
+  const {
+    errors,
+    validateField,
+    validateForm: validateFormData,
+    setFieldError,
+    clearFieldError,
+    clearAllErrors,
+    getFieldError,
+  } = useFormValidation(validationRules);
+
   const form = useForm({
     resolver: zodResolver(formSchema),
     defaultValues: {
+      serialNo: "",
       date: new Date().toISOString().split("T")[0],
       client: {
-        _id: "",
         name: "",
         nationalId: "",
         phone: "",
@@ -133,8 +164,8 @@ export function EquineHealthDialog({
       },
       farmLocation: "",
       coordinates: {
-        latitude: null,
-        longitude: null,
+        latitude: 0,
+        longitude: 0,
       },
       supervisor: "",
       vehicleNo: "",
@@ -153,48 +184,88 @@ export function EquineHealthDialog({
         }
       ],
       diagnosis: "",
-      interventionCategory: "Clinical Examination" as const,
+      interventionCategory: "Routine",
       treatment: "",
       medicationsUsed: [],
       request: {
         date: new Date().toISOString().split("T")[0],
-        situation: "Open" as const,
-        fulfillingDate: undefined,
+        situation: "Open",
+        fulfillingDate: "",
       },
-      followUpRequired: false,
-      followUpDate: undefined,
       remarks: "",
     },
   });
 
   useEffect(() => {
     if (item) {
-      form.reset(item as any);
+      // Ensure all values are defined to prevent uncontrolled to controlled input changes
+      const safeItem = {
+        serialNo: item.serialNo || "",
+        date: item.date || new Date().toISOString().split("T")[0],
+        client: {
+          name: item.client?.name || "",
+          nationalId: item.client?.nationalId || "",
+          phone: item.client?.phone || "",
+          village: item.client?.village || "",
+          detailedAddress: item.client?.detailedAddress || "",
+        },
+        farmLocation: item.farmLocation || "",
+        coordinates: {
+          latitude: item.coordinates?.latitude || 0,
+          longitude: item.coordinates?.longitude || 0,
+        },
+        supervisor: item.supervisor || "",
+        vehicleNo: item.vehicleNo || "",
+        horseCount: item.horseCount || 1,
+        diagnosis: item.diagnosis || "",
+        interventionCategory: item.interventionCategory || "Routine",
+        treatment: item.treatment || "",
+        request: {
+          date: item.request?.date || new Date().toISOString().split("T")[0],
+          situation: item.request?.situation || "Open",
+          fulfillingDate: item.request?.fulfillingDate || "",
+        },
+        remarks: item.remarks || "",
+      };
+      form.reset(safeItem);
     }
   }, [item, form]);
 
-  const onSubmit = async (data: any) => {
+  const onSubmit = async (data: FormData) => {
     try {
-      // Sync horseCount with horseDetails array length
-      const formattedData = {
-        ...data,
-        horseCount: data.horseDetails?.length || 1,
+      // تحويل البيانات إلى الشكل المطلوب من الباك إند
+      const apiData = {
+        serialNo: data.serialNo,
+        date: data.date,
+        client: data.client,
+        farmLocation: data.farmLocation,
+        coordinates: data.coordinates,
+        supervisor: data.supervisor,
+        vehicleNo: data.vehicleNo,
+        horseCount: data.horseCount,
+        diagnosis: data.diagnosis,
+        interventionCategory: data.interventionCategory,
+        treatment: data.treatment,
+        request: {
+          date: data.request.date,
+          situation: data.request.situation,
+          fulfillingDate: data.request.fulfillingDate || undefined,
+        },
+        remarks: data.remarks || "",
       };
 
-      // Clean up empty client._id if it's a new client
-      if (formattedData.client._id === "") {
-        delete formattedData.client._id;
-      }
-
       if (item) {
-        await equineHealthApi.update(item._id || item.serialNo, formattedData);
+        await equineHealthApi.update(item.serialNo, apiData);
+        entityToasts.equineHealth.update();
       } else {
-        await equineHealthApi.create(formattedData);
+        await equineHealthApi.create(apiData);
+        entityToasts.equineHealth.create();
       }
       onSuccess();
       form.reset();
     } catch (error) {
       console.error("Error saving data:", error);
+      entityToasts.equineHealth.error(item ? 'update' : 'create');
     }
   };
 
@@ -249,6 +320,19 @@ export function EquineHealthDialog({
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-4 lg:gap-6">
                   <FormField
                     control={form.control as any}
+                    name="serialNo"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>رقم السجل</FormLabel>
+                        <FormControl>
+                          <Input placeholder="EH001" {...field} />
+                        </FormControl>
+                        <FormMessage className="text-red-500 text-sm font-medium" />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control as any}
                     name="date"
                     render={({ field }) => (
                       <FormItem className="space-y-3">
@@ -266,7 +350,7 @@ export function EquineHealthDialog({
                             size="md"
                           />
                         </FormControl>
-                        <FormMessage />
+                        <FormMessage className="text-red-500 text-sm font-medium" />
                       </FormItem>
                     )}
                   />
@@ -277,9 +361,14 @@ export function EquineHealthDialog({
                       <FormItem>
                         <FormLabel>المشرف</FormLabel>
                         <FormControl>
-                          <Input placeholder="اسم المشرف" {...field} />
+                          <SupervisorSelect
+                            value={field.value}
+                            onValueChange={field.onChange}
+                            placeholder="اختر المشرف"
+                            section="صحة الخيول"
+                          />
                         </FormControl>
-                        <FormMessage />
+                        <FormMessage className="text-red-500 text-sm font-medium" />
                       </FormItem>
                     )}
                   />
@@ -292,7 +381,7 @@ export function EquineHealthDialog({
                         <FormControl>
                           <Input placeholder="VET001" {...field} />
                         </FormControl>
-                        <FormMessage />
+                        <FormMessage className="text-red-500 text-sm font-medium" />
                       </FormItem>
                     )}
                   />
@@ -310,7 +399,20 @@ export function EquineHealthDialog({
                             onChange={(e) => field.onChange(parseInt(e.target.value) || 1)}
                           />
                         </FormControl>
-                        <FormMessage />
+                        <FormMessage className="text-red-500 text-sm font-medium" />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control as any}
+                    name="farmLocation"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>موقع المزرعة</FormLabel>
+                        <FormControl>
+                          <Input placeholder="موقع المزرعة" {...field} />
+                        </FormControl>
+                        <FormMessage className="text-red-500 text-sm font-medium" />
                       </FormItem>
                     )}
                   />
@@ -321,58 +423,46 @@ export function EquineHealthDialog({
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <FormField
                     control={form.control as any}
-                    name="owner.name"
+                    name="client.name"
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>اسم المالك</FormLabel>
                         <FormControl>
                           <Input placeholder="الاسم الكامل" {...field} />
                         </FormControl>
-                        <FormMessage />
+                        <FormMessage className="text-red-500 text-sm font-medium" />
                       </FormItem>
                     )}
                   />
                   <FormField
                     control={form.control as any}
-                    name="owner.id"
+                    name="client.nationalId"
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>رقم الهوية</FormLabel>
                         <FormControl>
                           <Input placeholder="رقم الهوية الوطنية" {...field} />
                         </FormControl>
-                        <FormMessage />
+                        <FormMessage className="text-red-500 text-sm font-medium" />
                       </FormItem>
                     )}
                   />
                   <FormField
                     control={form.control as any}
-                    name="owner.birthDate"
+                    name="client.village"
                     render={({ field }) => (
                       <FormItem>
+                        <FormLabel>القرية/المدينة</FormLabel>
                         <FormControl>
-                          <ModernDatePicker
-                            label="تاريخ الميلاد"
-                            placeholder="اختر تاريخ الميلاد"
-                            value={field.value}
-                            onChange={(date) => {
-                              const dateString = date ? date.toISOString().split('T')[0] : '';
-                              field.onChange(dateString);
-                            }}
-                            required
-                            variant="modern"
-                            size="md"
-                            maxDate={new Date()}
-                            minDate={new Date(1900, 0, 1)}
-                          />
+                          <Input placeholder="القرية أو المدينة" {...field} />
                         </FormControl>
-                        <FormMessage />
+                        <FormMessage className="text-red-500 text-sm font-medium" />
                       </FormItem>
                     )}
                   />
                   <FormField
                     control={form.control as any}
-                    name="owner.phone"
+                    name="client.phone"
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>رقم الهاتف</FormLabel>
@@ -382,7 +472,22 @@ export function EquineHealthDialog({
                         <FormDescription>
                           رقم الموبايل السعودي (يبدأ بـ +966 أو 05)
                         </FormDescription>
-                        <FormMessage />
+                        <FormMessage className="text-red-500 text-sm font-medium" />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+                <div className="grid grid-cols-1 gap-4">
+                  <FormField
+                    control={form.control as any}
+                    name="client.detailedAddress"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>العنوان التفصيلي</FormLabel>
+                        <FormControl>
+                          <Textarea placeholder="العنوان التفصيلي للمزرعة" {...field} />
+                        </FormControl>
+                        <FormMessage className="text-red-500 text-sm font-medium" />
                       </FormItem>
                     )}
                   />
@@ -390,7 +495,7 @@ export function EquineHealthDialog({
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <FormField
                     control={form.control as any}
-                    name="location.e"
+                    name="coordinates.longitude"
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>خط الطول (E)</FormLabel>
@@ -406,13 +511,13 @@ export function EquineHealthDialog({
                             value={field.value || ""}
                           />
                         </FormControl>
-                        <FormMessage />
+                        <FormMessage className="text-red-500 text-sm font-medium" />
                       </FormItem>
                     )}
                   />
                   <FormField
                     control={form.control as any}
-                    name="location.n"
+                    name="coordinates.latitude"
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>خط العرض (N)</FormLabel>
@@ -428,7 +533,7 @@ export function EquineHealthDialog({
                             value={field.value || ""}
                           />
                         </FormControl>
-                        <FormMessage />
+                        <FormMessage className="text-red-500 text-sm font-medium" />
                       </FormItem>
                     )}
                   />
@@ -446,7 +551,7 @@ export function EquineHealthDialog({
                         <FormControl>
                           <Input placeholder="وصف التشخيص" {...field} />
                         </FormControl>
-                        <FormMessage />
+                        <FormMessage className="text-red-500 text-sm font-medium" />
                       </FormItem>
                     )}
                   />
@@ -463,14 +568,15 @@ export function EquineHealthDialog({
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            <SelectItem value="Clinical Examination">فحص سريري</SelectItem>
-                            <SelectItem value="Surgical Operation">عملية جراحية</SelectItem>
-                            <SelectItem value="Ultrasonography">موجات فوق صوتية</SelectItem>
-                            <SelectItem value="Lab Analysis">تحليل مخبري</SelectItem>
-                            <SelectItem value="Farriery">حداء وعلاج الحوافر</SelectItem>
+                            <SelectItem value="Emergency">طوارئ</SelectItem>
+                            <SelectItem value="Routine">روتيني</SelectItem>
+                            <SelectItem value="Preventive">وقائي</SelectItem>
+                            <SelectItem value="Follow-up">متابعة</SelectItem>
+                            <SelectItem value="Breeding">تربية</SelectItem>
+                            <SelectItem value="Performance">أداء</SelectItem>
                           </SelectContent>
                         </Select>
-                        <FormMessage />
+                        <FormMessage className="text-red-500 text-sm font-medium" />
                       </FormItem>
                     )}
                   />
@@ -492,6 +598,23 @@ export function EquineHealthDialog({
                     </FormItem>
                   )}
                 />
+                <FormField
+                  control={form.control as any}
+                  name="remarks"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>ملاحظات إضافية</FormLabel>
+                      <FormControl>
+                        <Textarea
+                          placeholder="أي ملاحظات إضافية..."
+                          className="resize-none"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
               </TabsContent>
 
               <TabsContent value="request" className="tabs-content-modern">
@@ -500,12 +623,22 @@ export function EquineHealthDialog({
                     control={form.control as any}
                     name="request.date"
                     render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>تاريخ الطلب</FormLabel>
+                      <FormItem className="space-y-3">
                         <FormControl>
-                          <Input type="date" {...field} />
+                          <ModernDatePicker
+                            label="تاريخ الطلب"
+                            placeholder="اختر تاريخ الطلب"
+                            value={field.value ? new Date(field.value) : undefined}
+                            onChange={(date) => {
+                              const dateString = date ? date.toISOString().split('T')[0] : '';
+                              field.onChange(dateString);
+                            }}
+                            required
+                            variant="modern"
+                            size="md"
+                          />
                         </FormControl>
-                        <FormMessage />
+                        <FormMessage className="text-red-500 text-sm font-medium" />
                       </FormItem>
                     )}
                   />
@@ -527,7 +660,7 @@ export function EquineHealthDialog({
                             <SelectItem value="Pending">معلق</SelectItem>
                           </SelectContent>
                         </Select>
-                        <FormMessage />
+                        <FormMessage className="text-red-500 text-sm font-medium" />
                       </FormItem>
                     )}
                   />
@@ -537,33 +670,26 @@ export function EquineHealthDialog({
                     control={form.control as any}
                     name="request.fulfillingDate"
                     render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>تاريخ إنجاز الطلب</FormLabel>
+                      <FormItem className="space-y-3">
                         <FormControl>
-                          <Input type="date" {...field} />
+                          <ModernDatePicker
+                            label="تاريخ إنجاز الطلب"
+                            placeholder="اختر تاريخ إنجاز الطلب"
+                            value={field.value ? new Date(field.value) : undefined}
+                            onChange={(date) => {
+                              const dateString = date ? date.toISOString().split('T')[0] : '';
+                              field.onChange(dateString);
+                            }}
+                            required
+                            variant="modern"
+                            size="md"
+                          />
                         </FormControl>
-                        <FormMessage />
+                        <FormMessage className="text-red-500 text-sm font-medium" />
                       </FormItem>
                     )}
                   />
                 )}
-                <FormField
-                  control={form.control as any}
-                  name="remarks"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>ملاحظات</FormLabel>
-                      <FormControl>
-                        <Textarea
-                          placeholder="أي ملاحظات إضافية..."
-                          className="resize-none"
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
               </TabsContent>
               </Tabs>
             </form>

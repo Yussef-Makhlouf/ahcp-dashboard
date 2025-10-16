@@ -63,7 +63,7 @@ export function Navbar({ onToggleSidebar, onToggleCollapse, isCollapsed = false 
     
 
         {/* Theme toggle */}
-        <Button
+        {/* <Button
           variant="ghost"
           size="icon"
           onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
@@ -72,7 +72,7 @@ export function Navbar({ onToggleSidebar, onToggleCollapse, isCollapsed = false 
           <Sun className="h-5 w-5 dark:hidden" />
           <Moon className="h-5 w-5 hidden dark:block" />
           <span className="sr-only">تبديل الوضع</span>
-        </Button>
+        </Button> */}
 
         {/* User menu */}
         <DropdownMenu>

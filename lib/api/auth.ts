@@ -64,16 +64,21 @@ export const authApi = {
   },
 
   // Forgot password
-  forgotPassword: async (email: string): Promise<{ success: boolean; message: string }> => {
+  forgotPassword: async (email: string): Promise<{ success: boolean; message: string; data?: { resetUrl?: string } }> => {
     return await api.post('/auth/forgot-password', { email });
   },
 
   // Reset password
-  resetPassword: async (token: string, newPassword: string): Promise<{ success: boolean; message: string }> => {
+  resetPassword: async (token: string, password: string): Promise<{ success: boolean; message: string }> => {
     return await api.post('/auth/reset-password', {
       token,
-      newPassword
+      password
     });
+  },
+
+  // Verify reset token
+  verifyResetToken: async (token: string): Promise<{ success: boolean; message: string; data?: { email: string; name: string } }> => {
+    return await api.post('/auth/verify-reset-token', { token });
   }
 };
 

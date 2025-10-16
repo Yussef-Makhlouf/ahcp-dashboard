@@ -2,7 +2,7 @@ import { useAuthStore } from '@/lib/store/auth-store';
 import { toast } from 'sonner';
 
 export interface PermissionConfig {
-  module: 'parasite-control' | 'vaccination' | 'mobile-clinics' | 'laboratories' | 'clients';
+  module: 'parasite-control' | 'vaccination' | 'mobile-clinics' | 'laboratories' | 'equine-health' | 'clients';
   action: 'view' | 'create' | 'edit' | 'delete';
 }
 
@@ -13,41 +13,67 @@ export const usePermissions = () => {
   const getSupervisorModule = (section: string): string | null => {
     const sectionModuleMap: Record<string, string> = {
       'مكافحة الطفيليات': 'parasite-control',
-      'التطعيمات': 'vaccination', 
+      'التطعيمات': 'vaccination',
+      'التحصينات': 'vaccination', // إضافة التحصينات كمرادف للتطعيمات
       'العيادات المتنقلة': 'mobile-clinics',
+      'العيادة المتنقلة': 'mobile-clinics', // إضافة العيادة المتنقلة كمرادف للعيادات المتنقلة
       'المختبرات': 'laboratories',
+      'صحة الخيول': 'equine-health',
       'الإدارة العامة': 'all' // المدير العام يمكنه الوصول لكل شيء
     };
     
-    return sectionModuleMap[section] || null;
+    const result = sectionModuleMap[section] || null;
+    console.log(`getSupervisorModule: section="${section}", result="${result}"`);
+    return result;
   };
 
   // التحقق من الصلاحيات
   const checkPermission = ({ module, action }: PermissionConfig): boolean => {
-    if (!user) return false;
+    if (!user) {
+      console.log('No user found');
+      return false;
+    }
+
+    console.log(`Checking permission for user: ${user.email}, role: ${user.role}, section: ${user.section}, module: ${module}, action: ${action}`);
 
     // المدير العام (super_admin) له صلاحيات كاملة
     if (user.role === 'super_admin') {
+      console.log('User is super_admin, granting permission');
       return true;
     }
 
     // العملاء: يمكن للجميع التعديل عليهم
     if (module === 'clients') {
+      console.log('Module is clients, granting permission');
       return true;
     }
 
     // مشرف القسم (section_supervisor)
     if (user.role === 'section_supervisor') {
       const supervisorModule = getSupervisorModule(user.section || '');
+      console.log(`Supervisor module: ${supervisorModule} for section: ${user.section}`);
       
       // يمكن للمشرف رؤية جميع الأقسام
       if (action === 'view') {
+        console.log('Action is view, granting permission');
         return true;
       }
       
       // يمكن للمشرف التعديل/الإضافة/الحذف فقط في قسمه
       if (['create', 'edit', 'delete'].includes(action)) {
-        return supervisorModule === module || supervisorModule === 'Administration';
+        const hasPermission = supervisorModule === module || supervisorModule === 'all';
+        console.log(`Permission check: user.section="${user.section}", supervisorModule="${supervisorModule}", module="${module}", action="${action}", hasPermission=${hasPermission}`);
+        
+        // إضافة تشخيص إضافي
+        if (supervisorModule === module) {
+          console.log(`✅ User has permission for their own module: ${module}`);
+        } else if (supervisorModule === 'all') {
+          console.log(`✅ User has permission for all modules`);
+        } else {
+          console.log(`❌ User does not have permission for module: ${module}`);
+        }
+        
+        return hasPermission;
       }
     }
 
@@ -69,6 +95,7 @@ export const usePermissions = () => {
         'vaccination': 'التطعيمات',
         'mobile-clinics': 'العيادات المتنقلة',
         'laboratories': 'المختبرات',
+        'equine-health': 'صحة الخيول',
         'clients': 'العملاء'
       };
       

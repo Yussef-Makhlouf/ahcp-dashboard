@@ -2,7 +2,8 @@ import axios, { AxiosInstance, AxiosRequestConfig } from 'axios';
 import { useAuthStore } from '@/lib/store/auth-store';
 
 // Base API configuration - إنتاج
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://ahcp-backend.vercel.app/api';
+// const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
 
 // Create axios instance
 const apiClient: AxiosInstance = axios.create({
@@ -44,41 +45,105 @@ apiClient.interceptors.request.use(
 // Response interceptor
 apiClient.interceptors.response.use(
   (response) => {
+    console.log('📥 API Response:', {
+      status: response.status,
+      url: response.config.url,
+      data: response.data
+    });
     return response;
   },
   (error) => {
-    // معالجة أخطاء الشبكة والاتصال
+    // Enhanced error handling with better user messages
+    const originalError = error;
+    
+    // Network and connection errors
     if (error.code === 'ECONNREFUSED' || error.code === 'ERR_NETWORK') {
-      console.error('❌ فشل الاتصال بالخادم:', error.message);
-      error.message = 'فشل الاتصال بالخادم. تأكد من تشغيل الخادم الخلفي على localhost:3001';
+      console.error('❌ Connection failed:', error.message);
+      error.userMessage = 'Connection failed. Please check your internet connection and try again.';
     }
     
-    // معالجة أخطاء CORS
+    // CORS errors
     if (error.message?.includes('CORS')) {
-      console.error('❌ خطأ CORS:', error.message);
-      error.message = 'خطأ في إعدادات CORS. تحقق من إعدادات الخادم الخلفي';
+      console.error('❌ CORS error:', error.message);
+      error.userMessage = 'CORS configuration error. Please check server settings.';
     }
     
-    // معالجة timeout
+    // Timeout errors
     if (error.code === 'ECONNABORTED') {
-      console.error('❌ انتهت مهلة الطلب:', error.message);
-      error.message = 'انتهت مهلة الطلب. الخادم قد يكون بطيئاً أو غير متاح';
+      console.error('❌ Request timeout:', error.message);
+      error.userMessage = 'Request timed out. Please try again.';
     }
     
-    // معالجة 401 Unauthorized
+    // Handle 401 Unauthorized
     if (error.response?.status === 401) {
-      console.warn('⚠️ 401 Unauthorized - إعادة توجيه للدخول');
-      useAuthStore.getState().logout();
-      if (typeof window !== 'undefined') {
-        window.location.href = '/login';
+      const url = error.config?.url || '';
+      const isAuthEndpoint = url.includes('/auth/login') || url.includes('/auth/register') || url.includes('/auth/refresh');
+      const isSupervisorsEndpoint = url.includes('/auth/supervisors');
+      
+      // Don't logout for auth endpoints
+      if (isSupervisorsEndpoint || isAuthEndpoint) {
+        console.warn('⚠️ 401 from auth endpoint - user not logged in');
+        error.userMessage = 'Authentication required. Please log in.';
+        return Promise.reject(error);
       }
+      
+      // Auto logout for other endpoints
+      console.warn('⚠️ 401 Unauthorized - auto logout');
+      const authStore = useAuthStore.getState();
+      
+      if (authStore.token) {
+        console.log('🔄 Logging out due to expired token');
+        authStore.logout();
+        
+        if (typeof window !== 'undefined') {
+          setTimeout(() => {
+            window.location.href = '/login';
+          }, 100);
+        }
+      }
+      error.userMessage = 'Session expired. Please log in again.';
     }
     
-    // معالجة 0 status code (مشكلة الشبكة)
-    if (error.response?.status === 0 || !error.response) {
-      console.error('❌ مشكلة في الشبكة أو CORS:', error);
-      error.message = 'مشكلة في الاتصال. تحقق من تشغيل الخادم الخلفي وإعدادات CORS';
+    // Handle 403 Forbidden
+    if (error.response?.status === 403) {
+      error.userMessage = 'You don\'t have permission to perform this action.';
     }
+    
+    // Handle 404 Not Found
+    if (error.response?.status === 404) {
+      error.userMessage = 'Item not found. It may have been deleted.';
+    }
+    
+    // Handle 409 Conflict
+    if (error.response?.status === 409) {
+      error.userMessage = 'Data conflict. The item may have been modified by another user.';
+    }
+    
+    // Handle 422 Validation Error
+    if (error.response?.status === 422) {
+      const serverMessage = error.response?.data?.message;
+      error.userMessage = serverMessage || 'Please check your input and try again.';
+    }
+    
+    // Handle 500 Server Error
+    if (error.response?.status === 500) {
+      error.userMessage = 'Server error occurred. Please try again later.';
+    }
+    
+    // Handle network issues (0 status code)
+    if (error.response?.status === 0 || !error.response) {
+      console.error('❌ Network issue:', error);
+      error.userMessage = 'Network connection issue. Please check your connection and try again.';
+    }
+    
+    // Set default user message if none set
+    if (!error.userMessage) {
+      const serverMessage = error.response?.data?.message || error.response?.data?.error;
+      error.userMessage = serverMessage || 'An unexpected error occurred. Please try again.';
+    }
+    
+    // Add original error for debugging
+    error.originalError = originalError;
     
     return Promise.reject(error);
   }

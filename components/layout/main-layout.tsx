@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { Sidebar } from "./sidebar";
 import { Navbar } from "./navbar";
 import { cn } from "@/lib/utils";
-import { Menu } from "lucide-react";
+
 
 interface MainLayoutProps {
   children: React.ReactNode;
@@ -59,6 +59,14 @@ export function MainLayout({ children, className }: MainLayoutProps) {
           {children}
         </main>
       </div>
+      
+      {/* Debug Components - Remove in production */}
+      {process.env.NODE_ENV === 'development' && (
+        <>
+          {/* <AuthDebug />
+          <QuickLogin /> */}
+        </>
+      )}
     </div>
   );
 }

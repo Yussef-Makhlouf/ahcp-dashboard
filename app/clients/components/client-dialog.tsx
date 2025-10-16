@@ -40,11 +40,17 @@ import {
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
 import { cn } from "@/lib/utils";
-import { validateSaudiPhone } from "@/lib/utils";
+import { validateSaudiPhone, validatePhoneNumber, validateNationalId } from "@/lib/utils";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { EnhancedMobileTabs } from "@/components/ui/mobile-tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import type { Client, Animal } from "@/types";
+import { entityToasts } from "@/lib/utils/toast-utils";
+import { clientsApi } from "@/lib/api/clients";
+import { useFormValidation } from "@/lib/hooks/use-form-validation";
+import { ValidatedInput } from "@/components/ui/validated-input";
+import { ValidatedSelect } from "@/components/ui/validated-select";
+import { ValidatedTextarea } from "@/components/ui/validated-textarea";
 
 interface ClientDialogProps {
   open: boolean;
@@ -80,6 +86,26 @@ const animalTypes = [
 ];
 
 export function ClientDialog({ open, onOpenChange, client, onSave }: ClientDialogProps) {
+  // Validation rules for unified system
+  const validationRules = {
+    'name': { required: true, minLength: 2 },
+    'nationalId': { required: true, nationalId: true },
+    'phone': { required: true, phone: true },
+    'email': { required: false, pattern: /^[^\s@]+@[^\s@]+\.[^\s@]+$/ },
+    'village': { required: true },
+    'detailedAddress': { required: true },
+  };
+
+  const {
+    errors,
+    validateField,
+    validateForm: validateFormData,
+    setFieldError,
+    clearFieldError,
+    clearAllErrors,
+    getFieldError,
+  } = useFormValidation(validationRules);
+
   const [formData, setFormData] = useState<Client>({
     name: "",
     nationalId: "",
@@ -94,7 +120,6 @@ export function ClientDialog({ open, onOpenChange, client, onSave }: ClientDialo
   });
 
   const [loading, setLoading] = useState(false);
-  const [errors, setErrors] = useState<Record<string, string>>({});
   const [activeTab, setActiveTab] = useState("basic");
 
   const [newAnimal, setNewAnimal] = useState<Animal>({
@@ -145,14 +170,14 @@ export function ClientDialog({ open, onOpenChange, client, onSave }: ClientDialo
     
     if (!formData.nationalId.trim()) {
       newErrors.nationalId = "الرقم القومي مطلوب";
-    } else if (!/^\d{10}$/.test(formData.nationalId)) {
-      newErrors.nationalId = "الرقم القومي يجب أن يكون 10 أرقام";
+    } else if (!validateNationalId(formData.nationalId)) {
+      newErrors.nationalId = "الرقم القومي يجب أن يكون بين 10-14 رقم";
     }
     
     if (!formData.phone.trim()) {
       newErrors.phone = "رقم الهاتف مطلوب";
-    } else if (!validateSaudiPhone(formData.phone)) {
-      newErrors.phone = "رقم الهاتف غير صحيح. يجب أن يبدأ بـ +966 أو 05";
+    } else if (!validatePhoneNumber(formData.phone)) {
+      newErrors.phone = "رقم الهاتف غير صحيح. يجب أن يكون بين 10-15 رقم";
     }
     
     if (!formData.village) {
@@ -168,23 +193,38 @@ export function ClientDialog({ open, onOpenChange, client, onSave }: ClientDialo
       newErrors.email = "البريد الإلكتروني غير صحيح";
     }
     
-    setErrors(newErrors);
+    // setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!validateForm()) return;
+    if (!validateForm()) {
+      // Show field-specific errors directly in the form
+      // The validateForm function already sets errors in the errors state
+      // which will be displayed by FormMessage components
+      return;
+    }
     
     setLoading(true);
     
     try {
-      // استخدام API الحقيقي بدلاً من المحاكاة
+      if (client) {
+        // Update existing client
+        await clientsApi.update(client._id || client.id || '', formData);
+        entityToasts.client.update();
+      } else {
+        // Create new client
+        await clientsApi.create(formData);
+        entityToasts.client.create();
+      }
+      
       onSave(formData);
       onOpenChange(false);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error saving client:", error);
+      entityToasts.client.error('save');
     } finally {
       setLoading(false);
     }
@@ -193,19 +233,19 @@ export function ClientDialog({ open, onOpenChange, client, onSave }: ClientDialo
   const addAnimal = () => {
     // Validate animal data
     if (!newAnimal.identificationNumber?.trim()) {
-      alert("رقم التعريف مطلوب");
+      entityToasts.client.error("validation");
       return;
     }
     if (!newAnimal.breed.trim()) {
-      alert("السلالة مطلوبة");
+      entityToasts.client.error("validation");
       return;
     }
     if (newAnimal.age <= 0) {
-      alert("العمر مطلوب");
+      entityToasts.client.error("validation");
       return;
     }
     if (newAnimal.animalCount <= 0) {
-      alert("عدد الحيوانات يجب أن يكون أكبر من صفر");
+      entityToasts.client.error("validation");
       return;
     }
     
@@ -213,7 +253,7 @@ export function ClientDialog({ open, onOpenChange, client, onSave }: ClientDialo
     if (formData.animals.some(animal => 
       (animal.identificationNumber || animal.identification_number) === newAnimal.identificationNumber
     )) {
-      alert("رقم التعريف موجود بالفعل");
+      entityToasts.client.error("duplicate");
       return;
     }
     

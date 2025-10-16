@@ -9,7 +9,8 @@
 NODE_ENV=development
 
 # API Configuration
-NEXT_PUBLIC_API_URL=http://localhost:3001/api
+NEXT_PUBLIC_API_URL=https://ahcp-backend.vercel.app/api
+<!-- NEXT_PUBLIC_API_URL=http://localhost:3001/api -->
 NEXT_PUBLIC_APP_URL=http://localhost:3000
 
 # Development Settings

@@ -10,18 +10,48 @@ function transformAPIResponse(apiData: any): ParasiteControl {
     _id: apiData._id,
     serialNo: apiData.serialNo || '',
     date: apiData.date?.split('T')[0] || new Date().toISOString().split('T')[0],
+    // Support both client and owner structures
+    client: apiData.client ? {
+      _id: apiData.client._id || '',
+      name: apiData.client.name || '',
+      nationalId: apiData.client.nationalId || '',
+      phone: apiData.client.phone || '',
+      village: apiData.client.village || '',
+      detailedAddress: apiData.client.detailedAddress || '',
+      birthDate: apiData.client.birthDate || '',
+    } : {
+      _id: '',
+      name: '',
+      nationalId: '',
+      phone: '',
+      village: '',
+      detailedAddress: '',
+      birthDate: '',
+    },
     owner: {
       name: apiData.client?.name || '',
       id: apiData.client?.nationalId || '',
-      birthDate: '', // Not provided in current API
+      birthDate: apiData.client?.birthDate || '',
       phone: apiData.client?.phone || '',
     },
+    coordinates: apiData.coordinates ? {
+      latitude: apiData.coordinates.latitude || 0,
+      longitude: apiData.coordinates.longitude || 0,
+    } : undefined,
     location: {
       e: apiData.coordinates?.longitude || 0,
       n: apiData.coordinates?.latitude || 0,
     },
     supervisor: apiData.supervisor || '',
     vehicleNo: apiData.vehicleNo || '',
+    // Support both herdCounts and herd structures
+    herdCounts: apiData.herdCounts ? {
+      sheep: apiData.herdCounts.sheep || { total: 0, young: 0, female: 0, treated: 0 },
+      goats: apiData.herdCounts.goats || { total: 0, young: 0, female: 0, treated: 0 },
+      camel: apiData.herdCounts.camel || { total: 0, young: 0, female: 0, treated: 0 },
+      cattle: apiData.herdCounts.cattle || { total: 0, young: 0, female: 0, treated: 0 },
+      horse: apiData.herdCounts.horse || { total: 0, young: 0, female: 0, treated: 0 },
+    } : undefined,
     herd: {
       sheep: {
         total: apiData.herdCounts?.sheep?.total || 0,
@@ -52,17 +82,19 @@ function transformAPIResponse(apiData: any): ParasiteControl {
       type: apiData.insecticide?.type || '',
       method: apiData.insecticide?.method || "Pour on",
       volume_ml: apiData.insecticide?.volumeMl || 0,
+      volumeMl: apiData.insecticide?.volumeMl || 0,
       status: apiData.insecticide?.status || "Not Sprayed",
       category: apiData.insecticide?.category || '',
     },
     barns: [],
-    breedingSites: apiData.breedingSites ? [{ type: apiData.breedingSites, area: 0, treatment: '' }] : [],
+    breedingSites: apiData.breedingSites || '',
     herdLocation: apiData.herdLocation || '',
     animalBarnSizeSqM: apiData.animalBarnSizeSqM || 0,
     parasiteControlVolume: apiData.parasiteControlVolume || 0,
     parasiteControlStatus: apiData.parasiteControlStatus || '',
     herdHealthStatus: apiData.herdHealthStatus || "Healthy",
     complying: apiData.complyingToInstructions ? "Comply" : "Not Comply",
+    complyingToInstructions: apiData.complyingToInstructions || false,
     request: {
       date: apiData.request?.date?.split('T')[0] || new Date().toISOString().split('T')[0],
       situation: apiData.request?.situation || "Pending",
@@ -70,73 +102,90 @@ function transformAPIResponse(apiData: any): ParasiteControl {
     },
     category: "مكافحة الطفيليات",
     remarks: apiData.remarks || '',
+    // Virtual fields
+    totalHerdCount: apiData.totalHerdCount,
+    totalTreated: apiData.totalTreated,
+    treatmentEfficiency: apiData.treatmentEfficiency,
+    // Timestamps
+    createdAt: apiData.createdAt,
+    updatedAt: apiData.updatedAt,
+    createdBy: apiData.createdBy,
+    updatedBy: apiData.updatedBy,
   };
 }
 
 // Transform app format to API format
-function transformToAPIFormat(appData: Partial<ParasiteControl>): any {
+function transformToAPIFormat(appData: any): any {
+  // دعم البنية الجديدة والقديمة
+  const clientData = appData.clientData || appData.client || appData.owner;
+  const coordinatesData = appData.coordinates || appData.location;
+  const herdData = appData.herdCounts || appData.herd;
+  
   return {
     serialNo: appData.serialNo,
     date: appData.date,
-    client: {
-      name: appData.owner?.name,
-      nationalId: appData.owner?.id,
-      phone: appData.owner?.phone,
-      village: '', // Not available in current app format
-      detailedAddress: '', // Not available in current app format
-    },
+    client: appData.client || clientData?.name, // دعم إرسال client كـ string أو object
+    clientData: clientData ? {
+      name: clientData.name,
+      nationalId: clientData.nationalId || clientData.id,
+      phone: clientData.phone,
+      village: clientData.village || '',
+      detailedAddress: clientData.detailedAddress || '',
+    } : undefined,
     coordinates: {
-      longitude: appData.location?.e,
-      latitude: appData.location?.n,
+      longitude: coordinatesData?.longitude || coordinatesData?.e || 0,
+      latitude: coordinatesData?.latitude || coordinatesData?.n || 0,
     },
     supervisor: appData.supervisor,
     vehicleNo: appData.vehicleNo,
     herdCounts: {
       sheep: {
-        total: appData.herd?.sheep?.total || 0,
-        young: appData.herd?.sheep?.young || 0,
-        female: appData.herd?.sheep?.female || 0,
-        treated: appData.herd?.sheep?.treated || 0,
+        total: herdData?.sheep?.total || 0,
+        young: herdData?.sheep?.young || 0,
+        female: herdData?.sheep?.female || 0,
+        treated: herdData?.sheep?.treated || 0,
       },
       goats: {
-        total: appData.herd?.goats?.total || 0,
-        young: appData.herd?.goats?.young || 0,
-        female: appData.herd?.goats?.female || 0,
-        treated: appData.herd?.goats?.treated || 0,
+        total: herdData?.goats?.total || 0,
+        young: herdData?.goats?.young || 0,
+        female: herdData?.goats?.female || 0,
+        treated: herdData?.goats?.treated || 0,
       },
       camel: {
-        total: appData.herd?.camel?.total || 0,
-        young: appData.herd?.camel?.young || 0,
-        female: appData.herd?.camel?.female || 0,
-        treated: appData.herd?.camel?.treated || 0,
+        total: herdData?.camel?.total || 0,
+        young: herdData?.camel?.young || 0,
+        female: herdData?.camel?.female || 0,
+        treated: herdData?.camel?.treated || 0,
       },
       cattle: {
-        total: appData.herd?.cattle?.total || 0,
-        young: appData.herd?.cattle?.young || 0,
-        female: appData.herd?.cattle?.female || 0,
-        treated: appData.herd?.cattle?.treated || 0,
+        total: herdData?.cattle?.total || 0,
+        young: herdData?.cattle?.young || 0,
+        female: herdData?.cattle?.female || 0,
+        treated: herdData?.cattle?.treated || 0,
       },
       horse: {
-        total: 0,
-        young: 0,
-        female: 0,
-        treated: 0,
+        total: herdData?.horse?.total || 0,
+        young: herdData?.horse?.young || 0,
+        female: herdData?.horse?.female || 0,
+        treated: herdData?.horse?.treated || 0,
       },
     },
     insecticide: {
       type: appData.insecticide?.type,
       method: appData.insecticide?.method || "Pour on",
-      volumeMl: appData.insecticide?.volume_ml,
+      volumeMl: appData.insecticide?.volumeMl, // إصلاح اسم الحقل
       status: appData.insecticide?.status,
       category: appData.insecticide?.category,
     },
     herdLocation: appData.herdLocation,
     animalBarnSizeSqM: appData.animalBarnSizeSqM,
-    breedingSites: appData.breedingSites?.map(site => site.type).join(', ') || 'Not Available',
+    breedingSites: Array.isArray(appData.breedingSites) 
+      ? appData.breedingSites.map((site: any) => site.type).join(', ') 
+      : appData.breedingSites || 'Not Available',
     parasiteControlVolume: appData.parasiteControlVolume,
     parasiteControlStatus: appData.parasiteControlStatus,
     herdHealthStatus: appData.herdHealthStatus,
-    complyingToInstructions: appData.complying === "Comply",
+    complyingToInstructions: appData.complyingToInstructions || appData.complying === "Comply",
     request: {
       date: appData.request?.date,
       situation: appData.request?.situation,
@@ -200,8 +249,13 @@ export const parasiteControlApi = {
       const response = await api.get(`/parasite-control/${id}`, {
         timeout: 30000,
       });
-      // Handle response structure: { success: true, data: {...} }
-      const recordData = (response as any).data || response;
+      // Handle new response structure: { success: true, data: { records: [...] } }
+      const responseData = (response as any).data;
+      if (responseData && responseData.records && responseData.records.length > 0) {
+        return transformAPIResponse(responseData.records[0]);
+      }
+      // Fallback for old structure
+      const recordData = responseData || response;
       return transformAPIResponse(recordData);
     } catch (error: any) {
       console.error('Error fetching record by ID:', error);
@@ -216,8 +270,13 @@ export const parasiteControlApi = {
       const response = await api.post('/parasite-control/', apiData, {
         timeout: 30000,
       });
-      // Handle response structure: { success: true, data: {...} }
-      const recordData = (response as any).data || response;
+      // Handle new response structure: { success: true, data: { records: [...] } }
+      const responseData = (response as any).data;
+      if (responseData && responseData.records && responseData.records.length > 0) {
+        return transformAPIResponse(responseData.records[0]);
+      }
+      // Fallback for old structure
+      const recordData = responseData || response;
       return transformAPIResponse(recordData);
     } catch (error: any) {
       console.error('Error creating record:', error);
@@ -232,8 +291,13 @@ export const parasiteControlApi = {
       const response = await api.put(`/parasite-control/${id}`, apiData, {
         timeout: 30000,
       });
-      // Handle response structure: { success: true, data: {...} }
-      const recordData = (response as any).data || response;
+      // Handle new response structure: { success: true, data: { records: [...] } }
+      const responseData = (response as any).data;
+      if (responseData && responseData.records && responseData.records.length > 0) {
+        return transformAPIResponse(responseData.records[0]);
+      }
+      // Fallback for old structure
+      const recordData = responseData || response;
       return transformAPIResponse(recordData);
     } catch (error: any) {
       console.error('Error updating record:', error);
@@ -248,8 +312,13 @@ export const parasiteControlApi = {
       const response = await api.patch(`/parasite-control/${id}`, apiData, {
         timeout: 30000,
       });
-      // Handle response structure: { success: true, data: {...} }
-      const recordData = (response as any).data || response;
+      // Handle new response structure: { success: true, data: { records: [...] } }
+      const responseData = (response as any).data;
+      if (responseData && responseData.records && responseData.records.length > 0) {
+        return transformAPIResponse(responseData.records[0]);
+      }
+      // Fallback for old structure
+      const recordData = responseData || response;
       return transformAPIResponse(recordData);
     } catch (error: any) {
       console.error('Error patching record:', error);
@@ -282,6 +351,24 @@ export const parasiteControlApi = {
     }
   },
 
+  // Export to Excel with new format - Real API only
+  exportToExcel: async (filters?: Record<string, any>): Promise<Blob> => {
+    try {
+      const params = new URLSearchParams({
+        format: 'csv',
+        ...filters
+      });
+      
+      return await api.get(`/parasite-control/export?${params.toString()}`, {
+        responseType: 'blob',
+        timeout: 60000, // 60 seconds timeout for export
+      });
+    } catch (error: any) {
+      console.error('Error exporting Excel:', error);
+      throw new Error(`Failed to export Excel: ${error.message || 'Unknown error'}`);
+    }
+  },
+
   // Get statistics - Real API only
   getStatistics: async (): Promise<{
     totalRecords: number;
@@ -291,16 +378,20 @@ export const parasiteControlApi = {
     recordsThisMonth: number;
   }> => {
     try {
-      const response = await api.get<{
-        totalRecords: number;
-        healthyRecords: number;
-        sickRecords: number;
-        complyRecords: number;
-        recordsThisMonth: number;
-      }>('/parasite-control/statistics', {
+      const response = await api.get('/parasite-control/statistics', {
         timeout: 30000,
       });
-      return response;
+      
+      // Use handleStatisticsResponse to extract data
+      const data = (response as any).data || response;
+      
+      return {
+        totalRecords: data.totalRecords || 0,
+        healthyRecords: data.healthyHerds || 0,
+        sickRecords: data.sickHerds || 0,
+        complyRecords: data.complyRecords || 0,
+        recordsThisMonth: data.recordsThisMonth || 0,
+      };
     } catch (error: any) {
       console.error('Error fetching statistics:', error);
       // Return default values if API fails

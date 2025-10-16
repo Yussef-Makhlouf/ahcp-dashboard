@@ -2,11 +2,6 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
 export function middleware(request: NextRequest) {
-  // في بيئة التطوير، نسمح بالوصول لجميع الصفحات بدون مصادقة
-  if (process.env.NODE_ENV === 'development') {
-    return NextResponse.next();
-  }
-  
   // الحصول على المسار الحالي
   const { pathname } = request.nextUrl;
   
@@ -20,8 +15,7 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
   
-  // في بيئة الإنتاج، يمكن تفعيل المصادقة هنا
-  // للآن نسمح بالوصول لجميع الصفحات
+  // السماح بالوصول لجميع الصفحات - المصادقة تتم في AuthGuard
   return NextResponse.next();
 }
 

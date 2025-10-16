@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { User } from '@/types';
 import { authApi, type LoginRequest } from '@/lib/api/auth';
+import { set } from 'date-fns';
 
 interface AuthState {
   user: User | null;
@@ -15,7 +16,7 @@ interface AuthState {
   updateUser: (user: Partial<User>) => void;
   checkAuth: () => boolean;
   clearError: () => void;
-  initializeAuth: () => void;
+  resetAuth: () => void;
 }
 export const useAuthStore = create<AuthState>()(
   persist(
@@ -28,76 +29,98 @@ export const useAuthStore = create<AuthState>()(
       error: null,
       login: async (credentials: LoginRequest) => {
         try {
+          console.log('🔐 محاولة تسجيل الدخول:', { email: credentials.email });
           set({ isLoading: true, error: null });
-          console.log(' Attempting login to backend API...');
           
           const response = await authApi.login(credentials);
+          console.log('📥 استجابة API:', response);
           
-          if (response.success && response.data) {
-            const { user, token, refreshToken } = response.data;
-            
-            // حفظ البيانات في localStorage
-            if (typeof window !== 'undefined') {
-              localStorage.setItem('token', token);
-              localStorage.setItem('user', JSON.stringify(user));
-              if (refreshToken) {
-                localStorage.setItem('refreshToken', refreshToken);
-              }
-            }
+          if (response && response.success) {
+            console.log('✅ تسجيل الدخول ناجح:', {
+              user: response.data.user,
+              hasToken: !!response.data.token
+            });
             
             set({
-              user,
-              token,
-              refreshToken: refreshToken || null,
+              user: response.data.user,
+              token: response.data.token,
               isAuthenticated: true,
               isLoading: false,
               error: null
             });
-            
-            console.log(' Login successful:', { 
-              userName: user.name, 
-              role: user.role, 
-              section: user.section 
-            });
           } else {
-            const errorMsg = response.message || 'فشل في تسجيل الدخول';
+            console.error('❌ فشل في تسجيل الدخول:', response);
             set({
-              error: errorMsg,
-              isLoading: false,
-              isAuthenticated: false
+              error: response?.message || 'فشل في تسجيل الدخول',
+              isLoading: false
             });
-            throw new Error(errorMsg);
           }
         } catch (error: any) {
-          console.error('Login error:', error);
-          const errorMsg = error.response?.data?.message || error.message || 'حدث خطأ أثناء تسجيل الدخول';
-          set({
-            error: errorMsg,
-            isLoading: false,
-            isAuthenticated: false
+          console.error('❌ خطأ في تسجيل الدخول:', error);
+          console.error('❌ تفاصيل الخطأ:', {
+            message: error.message,
+            response: error.response?.data,
+            status: error.response?.status
           });
-          throw error;
+          
+          // معالجة أنواع مختلفة من الأخطاء
+          if (error.response?.status === 401) {
+            set({
+              error: 'البريد الإلكتروني أو كلمة المرور غير صحيحة',
+              isLoading: false
+            });
+          } else if (error.response?.status === 403) {
+            set({
+              error: 'الحساب غير مفعل أو محظور',
+              isLoading: false
+            });
+          } else if (error.code === 'NETWORK_ERROR' || error.message.includes('Network Error')) {
+            set({
+              error: 'خطأ في الاتصال بالخادم. تأكد من تشغيل الخادم الخلفي',
+              isLoading: false
+            });
+          } else {
+            set({
+              error: error.response?.data?.message || error.message || 'حدث خطأ أثناء تسجيل الدخول',
+              isLoading: false
+            });
+          }
         }
       },
       logout: async () => {
+        const currentState = get();
+        
+        // منع logout المتعدد إذا كان المستخدم مسجل خروج بالفعل
+        if (!currentState.isAuthenticated && !currentState.token) {
+          console.log('🔄 المستخدم مسجل خروج بالفعل');
+          return;
+        }
+        
+        console.log('🚪 تسجيل خروج...');
+        
         try {
-          await authApi.logout();
-        } catch (error) {
-          console.error('Logout error:', error);
+          // محاولة إعلام الخادم بتسجيل الخروج (اختياري)
+          if (currentState.token) {
+            await authApi.logout();
+          }
+        } catch (error: any) {
+          console.error('⚠️ خطأ في إعلام الخادم بتسجيل الخروج:', error?.message || 'خطأ غير معروف');
+          // لا توقف عملية تسجيل الخروج بسبب خطأ في الخادم
         } finally {
+          // مسح حالة المصادقة محلياً
           set({ 
             user: null,
             token: null,
             refreshToken: null,
             isAuthenticated: false,
-            error: null 
+            error: null,
+            isLoading: false
           });
+          
           // مسح البيانات من localStorage
           if (typeof window !== 'undefined') {
             localStorage.removeItem('auth-storage');
-            localStorage.removeItem('token');
-            localStorage.removeItem('user');
-            localStorage.removeItem('refreshToken');
+            console.log('🗑️ تم مسح بيانات الجلسة');
           }
         }
       },
@@ -107,35 +130,27 @@ export const useAuthStore = create<AuthState>()(
         })),
       checkAuth: () => {
         const state = get();
-        return state.isAuthenticated && state.user !== null && state.token !== null;
+        const isValid = state.isAuthenticated && state.user !== null && state.token !== null;
+        console.log('🔍 checkAuth result:', { 
+          isAuthenticated: state.isAuthenticated, 
+          hasUser: !!state.user, 
+          hasToken: !!state.token, 
+          isValid 
+        });
+        return isValid;
       },
       clearError: () => set({ error: null }),
-      initializeAuth: () => {
-        // تحميل البيانات من localStorage عند بدء التطبيق
+      resetAuth: () => {
+        console.log('🔄 Resetting auth state...');
+        set({
+          user: null,
+          token: null,
+          isAuthenticated: false,
+          isLoading: false,
+          error: null
+        });
         if (typeof window !== 'undefined') {
-          const token = localStorage.getItem('token');
-          const userStr = localStorage.getItem('user');
-          const refreshToken = localStorage.getItem('refreshToken');
-          
-          if (token && userStr) {
-            try {
-              const user = JSON.parse(userStr);
-              set({
-                user,
-                token,
-                refreshToken,
-                isAuthenticated: true,
-                isLoading: false,
-                error: null
-              });
-              console.log('✅ Auth initialized from localStorage');
-            } catch (error) {
-              console.error('Failed to parse user from localStorage:', error);
-              localStorage.removeItem('token');
-              localStorage.removeItem('user');
-              localStorage.removeItem('refreshToken');
-            }
-          }
+          localStorage.removeItem('auth-storage');
         }
       },
     }),
@@ -144,49 +159,40 @@ export const useAuthStore = create<AuthState>()(
       storage: {
         getItem: (name) => {
           if (typeof window === 'undefined') return null;
-          const item = localStorage.getItem(name);
-          return item ? JSON.parse(item) : null;
+          try {
+            const item = localStorage.getItem(name);
+            return item ? JSON.parse(item) : null;
+          } catch (error) {
+            console.error('❌ Error reading auth storage:', error);
+            localStorage.removeItem(name);
+            return null;
+          }
         },
         setItem: (name, value) => {
           if (typeof window === 'undefined') return;
-          localStorage.setItem(name, JSON.stringify(value));
+          try {
+            localStorage.setItem(name, JSON.stringify(value));
+          } catch (error) {
+            console.error('❌ Error writing auth storage:', error);
+          }
         },
         removeItem: (name) => {
           if (typeof window === 'undefined') return;
-          localStorage.removeItem(name);
+          try {
+            localStorage.removeItem(name);
+          } catch (error) {
+            console.error('❌ Error removing auth storage:', error);
+          }
         },
+      },
+      onRehydrateStorage: () => (state) => {
+        console.log('🔄 Auth store rehydrated:', {
+          isAuthenticated: state?.isAuthenticated,
+          hasUser: !!state?.user,
+          hasToken: !!state?.token
+        });
       },
     }
   )
 );
 
-// Mock login function for development
-export const mockLogin = async (role: User['role'] = 'super_admin') => {
-  const mockCredentials: LoginRequest = {
-    email: 'ibrahim@ahcp.gov.eg',
-    password: 'admin123'
-  };
-  
-  try {
-    await useAuthStore.getState().login(mockCredentials);
-  } catch (error) {
-    // If API login fails, use local mock data
-    const mockUser: User = {
-      id: '1',
-      name: 'إبراهيم أحمد',
-      email: 'ibrahim@ahcp.gov.eg',
-      role,
-      section: role === 'section_supervisor' ? 'Parasite Control' : undefined,
-    };
-    
-    useAuthStore.setState({
-      user: mockUser,
-      token: 'mock-token-' + Date.now(),
-      isAuthenticated: true,
-      isLoading: false,
-      error: null
-    });
-    
-    return mockUser;
-  }
-};

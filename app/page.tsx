@@ -16,7 +16,6 @@ import {
   Activity
 } from "lucide-react";
 import { useEffect, useState } from "react";
-import { mockLogin } from "@/lib/store/auth-store";
 import { reportsApi } from "@/lib/api/reports";
 import type { DashboardStats } from "@/lib/api/reports";
 import {
@@ -98,8 +97,6 @@ export default function Home() {
 
   useEffect(() => {
     setMounted(true);
-    // Auto login for development
-    mockLogin("super_admin");
     
     // Load dashboard data
     loadDashboardData();
@@ -257,69 +254,7 @@ export default function Home() {
           </Card>
         </div>
 
-        {/* Recent Activity */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Activity className="h-5 w-5" />
-              النشاط الأخير
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {[
-                {
-                  action: "تحصين قطيع",
-                  owner: "أحمد محمد",
-                  time: "منذ 5 دقائق",
-                  status: "success",
-                },
-                {
-                  action: "مكافحة طفيليات",
-                  owner: "فاطمة علي",
-                  time: "منذ 15 دقيقة",
-                  status: "success",
-                },
-                {
-                  action: "فحص مخبري",
-                  owner: "محمود سيد",
-                  time: "منذ ساعة",
-                  status: "pending",
-                },
-                {
-                  action: "عيادة متنقلة",
-                  owner: "سارة أحمد",
-                  time: "منذ ساعتين",
-                  status: "success",
-                },
-              ].map((activity, index) => (
-                <div
-                  key={index}
-                  className="flex items-center justify-between p-3 rounded-lg bg-muted/50"
-                >
-                  <div className="flex items-center gap-3">
-                    <div
-                      className={`h-2 w-2 rounded-full ${
-                        activity.status === "success"
-                          ? "bg-green-500"
-                          : "bg-yellow-500"
-                      }`}
-                    />
-                    <div>
-                      <p className="font-medium">{activity.action}</p>
-                      <p className="text-sm text-muted-foreground">
-                        {activity.owner}
-                      </p>
-                    </div>
-                  </div>
-                  <span className="text-sm text-muted-foreground">
-                    {activity.time}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+
       </div>
     </MainLayout>
   );

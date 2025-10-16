@@ -168,34 +168,82 @@ export interface ParasiteControlAPIResponse {
   __v: number;
 }
 
-// Legacy interface for backward compatibility
+// Updated ParasiteControl interface to match backend structure
 export interface ParasiteControl {
   _id?: string; // MongoDB ID from API
-  serialNo: number;
+  serialNo: string; // Backend uses string, not number
   date: string;
-  owner: Owner;
-  location: Location;
+  // Support both old and new structures
+  owner?: Owner; // Legacy support
+  client: string | {  // Backend expects string ID, but can also be populated object
+    _id?: string;
+    name: string;
+    nationalId: string;
+    phone: string;
+    village?: string;
+    detailedAddress?: string;
+    birthDate?: string;
+  };
+  location?: Location; // Legacy support
+  coordinates?: {
+    latitude: number;
+    longitude: number;
+  };
   supervisor: string;
   vehicleNo: string;
-  herd: Herd;
-  insecticide: Insecticide;
-  barns: Barn[];
-  breedingSites: BreedingSite[];
-  // New fields from database schema
-  herdLocation: string; // Herd_Location
-  animalBarnSizeSqM: number; // Animal_Barn_Size_sqM
-  parasiteControlVolume: number; // Parasite_Control_Volume
-  parasiteControlStatus: string; // Parasite_Control_Status
+  // Support both old and new herd structures
+  herd?: Herd; // Legacy support
+  herdCounts?: {
+    sheep: AnimalCount;
+    goats: AnimalCount;
+    camel: AnimalCount;
+    cattle: AnimalCount;
+    horse?: AnimalCount;
+  };
+  insecticide: {
+    type: string;
+    method: string;
+    volume_ml?: number; // Legacy support
+    volumeMl?: number; // Backend field
+    status: "Sprayed" | "Not Sprayed";
+    category: string;
+  };
+  barns?: Barn[]; // Legacy support
+  // Backend fields
+  herdLocation: string;
+  animalBarnSizeSqM: number;
+  breedingSites: string; // Backend expects string
+  parasiteControlVolume: number;
+  parasiteControlStatus: string;
   herdHealthStatus: "Healthy" | "Sick" | "Under Treatment";
-  complying: "Comply" | "Not Comply";
+  complying?: "Comply" | "Not Comply"; // Legacy support
+  complyingToInstructions: boolean; // Backend field
   request: Request;
-  category: string;
-  remarks: string;
+  category?: string;
+  remarks?: string;
+  // Virtual fields from backend
+  totalHerdCount?: number;
+  totalTreated?: number;
+  treatmentEfficiency?: number;
+  // Timestamps
+  createdAt?: string;
+  updatedAt?: string;
+  createdBy?: {
+    _id: string;
+    name: string;
+    email: string;
+  };
+  updatedBy?: {
+    _id: string;
+    name: string;
+    email: string;
+  };
 }
 
 // Vaccination Types - Updated to match backend structure
 export interface Vaccination {
-  _id?: string;
+  _id?: string; // MongoDB ID
+  id?: string; // Alternative ID field for compatibility
   serialNo: string; // Backend uses string, not number
   date: string;
   client: {
@@ -352,6 +400,7 @@ export interface HorseDetail {
 }
 
 export interface EquineHealth {
+<<<<<<< HEAD
   _id?: string;
   id?: string;
   serialNo: string;
@@ -367,11 +416,31 @@ export interface EquineHealth {
     id?: string;
   };
   farmLocation: string;
+=======
+  _id?: string; // MongoDB ID
+  serialNo: string;
+  date: string;
+  client: {
+    _id?: string;
+    name: string;
+    nationalId: string;
+    birthDate?: string;
+    phone: string;
+    village?: string;
+    detailedAddress?: string;
+  };
+  farmLocation: string;
+  coordinates: {
+    latitude?: number;
+    longitude?: number;
+  };
+>>>>>>> e291fb9695927472c9c1eef6389dd8fe5d35f5d4
   supervisor: string;
   vehicleNo: string;
   horseCount: number;
   horseDetails: HorseDetail[];
   diagnosis: string;
+<<<<<<< HEAD
   interventionCategory: "Clinical Examination" | "Surgical Operation" | "Ultrasonography" | "Lab Analysis" | "Farriery" | "Routine";
   treatment: string;
   request: {
@@ -391,28 +460,83 @@ export interface EquineHealth {
   underTreatmentCount?: number;
   totalMedications?: number;
   
+=======
+  interventionCategory: "Emergency" | "Routine" | "Preventive" | "Follow-up" | "Breeding" | "Performance";
+  treatment: string;
+  followUpRequired: boolean;
+  followUpDate?: string;
+  request: Request;
+  remarks?: string;
+  // Timestamps
+  createdAt?: string;
+  updatedAt?: string;
+  // createdBy?: {
+  //   _id: string;
+  //   name: string;
+  //   email: string;
+  // };
+  updatedBy?: {
+    _id: string;
+    name: string;
+    email: string;
+  };
+>>>>>>> e291fb9695927472c9c1eef6389dd8fe5d35f5d4
   // Legacy fields for backward compatibility
   owner?: Owner;
   location?: Location;
   category?: string;
 }
 
-// Laboratory Types
+// Laboratory Types - Updated to match the table structure exactly
 export interface Laboratory {
-  sampleCode: string;
-  sampleType: string;
-  collector: string;
-  date: string;
-  speciesCounts: {
-    sheep: number;
-    goats: number;
-    camel: number;
-    cattle: number;
-    horse: number;
+  _id?: string; // MongoDB ID
+  serialNo: number; // Serial number from table
+  date: string; // Date column
+  sampleCode: string; // Sample Code column
+  clientName: string; // Name column (client name)
+  clientId: string; // ID column (client ID - 10 digits)
+  clientBirthDate: string; // Birth Date column
+  clientPhone: string; // phone column (9 digits)
+  farmLocation: string; // Location column
+  coordinates: {
+    latitude: number; // N column (North coordinate)
+    longitude: number; // E column (East coordinate)
   };
-  positiveCases: number;
-  negativeCases: number;
-  remarks: string;
+  speciesCounts: {
+    sheep: number; // Sheep column (Mandatory)
+    goats: number; // Goats column (Mandatory)
+    camel: number; // Camel column (Mandatory)
+    cattle: number; // Cattle column (Mandatory)
+    horse: number; // Horse column (Mandatory)
+    other?: string; // Other (Species) column
+  };
+  collector: string; // Sample Collector column
+  sampleType: string; // Sample Type column (Drop List)
+  sampleNumber: string; // Collector Code column (جامع العينة رمز)
+  positiveCases: number; // positive cases column (Mandatory)
+  negativeCases: number; // Negative Cases column (Mandatory)
+  remarks: string; // Remarks column
+  testResults?: Array<{
+    id: string;
+    animalId: string;
+    animalType: string;
+    testType: string;
+    result: string;
+    notes: string;
+  }>;
+  // Timestamps
+  createdAt?: string;
+  updatedAt?: string;
+  createdBy?: {
+    _id: string;
+    name: string;
+    email: string;
+  };
+  updatedBy?: {
+    _id: string;
+    name: string;
+    email: string;
+  };
 }
 
 // User/Auth Types
@@ -421,6 +545,7 @@ export interface User {
   id?: string;
   name: string;
   email: string;
+<<<<<<< HEAD
   password?: string; // Only for registration, not returned in queries
   role: "super_admin" | "section_supervisor" | "field_worker";
   section?: "Mobile Clinic" | "Vaccination" | "Parasite Control" | "Equine Health" | "Laboratory" | "Administration";
@@ -429,13 +554,23 @@ export interface User {
   lastLogin?: Date | string;
   createdAt?: Date | string;
   updatedAt?: Date | string;
+=======
+  role: 'super_admin' | 'section_supervisor' | 'field_worker';
+  roleNameAr: string;
+  section: string;
+  isActive: boolean;
+  lastLogin?: string;
+  createdAt?: string;
+  updatedAt?: string;
+>>>>>>> e291fb9695927472c9c1eef6389dd8fe5d35f5d4
 }
 
-// API Response Types
-export interface ApiResponse<T> {
-  data: T;
-  message?: string;
-  success: boolean;
+export interface Supervisor {
+  _id: string;
+  name: string;
+  email: string;
+  role: 'super_admin' | 'section_supervisor';
+  section?: string;
 }
 
 export interface PaginatedResponse<T> {

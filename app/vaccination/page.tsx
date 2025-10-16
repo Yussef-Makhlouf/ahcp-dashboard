@@ -4,7 +4,7 @@ import { useState } from "react";
 import { MainLayout } from "@/components/layout/main-layout";
 import { DataTable } from "@/components/data-table/data-table";
 import { Button } from "@/components/ui/button";
-import { Plus, FileDown, Upload } from "lucide-react";
+import { Plus } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import type { Vaccination } from "@/types";
@@ -14,11 +14,14 @@ import { getColumns } from "./components/columns";
 import { vaccinationApi } from "@/lib/api/vaccination";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ImportExportManager } from "@/components/import-export/import-export-manager";
+import { usePermissions } from "@/lib/hooks/usePermissions";
+import { toast } from "sonner";
 
 export default function VaccinationPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState<Vaccination | null>(null);
   const queryClient = useQueryClient();
+  const { checkPermission } = usePermissions();
 
   // Fetch vaccination data using React Query
   const { data: vaccinationData, isLoading } = useQuery({
@@ -53,10 +56,13 @@ export default function VaccinationPage() {
     }
   };
 
+
   const handleDelete = async (item: Vaccination) => {
     if (confirm("هل أنت متأكد من حذف هذا السجل؟")) {
       try {
-        await vaccinationApi.delete(item.serialNo);
+        // Use _id for deletion, fallback to serialNo if _id is not available
+        const deleteId = item._id || item.id || item.serialNo;
+        await vaccinationApi.delete(deleteId);
         queryClient.invalidateQueries({ queryKey: ['vaccination'] });
         queryClient.invalidateQueries({ queryKey: ['vaccination-stats'] });
       } catch (error) {
@@ -92,16 +98,18 @@ export default function VaccinationPage() {
               acceptedFormats={[".csv", ".xlsx"]}
               maxFileSize={10}
             />
-            <Button 
-              onClick={() => {
-                setSelectedItem(null);
-                setIsDialogOpen(true);
-              }}
-              className="bg-blue-600 hover:bg-blue-700 text-white shadow-lg hover:shadow-xl transition-all duration-200"
-            >
-              <Plus className="ml-2 h-4 w-4" />
-              إضافة تحصين جديد
-            </Button>
+            {checkPermission({ module: 'vaccination', action: 'create' }) && (
+              <Button 
+                onClick={() => {
+                  setSelectedItem(null);
+                  setIsDialogOpen(true);
+                }}
+             className="h-9 px-3"
+              >
+                <Plus className="ml-2 h-4 w-4" />
+                إضافة تحصين جديد
+              </Button>
+            )}
           </div>
         </div>
 

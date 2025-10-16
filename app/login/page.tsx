@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { useAuthStore } from '@/lib/store/auth-store';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,6 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Eye, EyeOff, Shield, Building2, AlertCircle, CheckCircle } from 'lucide-react';
+import { entityToasts } from '@/lib/utils/toast-utils';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -21,7 +23,7 @@ export default function LoginPage() {
   const [passwordError, setPasswordError] = useState('');
   const [touched, setTouched] = useState({ email: false, password: false });
   
-  const { login, isAuthenticated } = useAuthStore();
+  const { login, isAuthenticated, resetAuth } = useAuthStore();
   const router = useRouter();
   const [returnUrl, setReturnUrl] = useState('/');
 
@@ -38,16 +40,11 @@ export default function LoginPage() {
   // التحقق من حالة المصادقة
   useEffect(() => {
     if (isAuthenticated) {
-      console.log('User is authenticated, redirecting to:', returnUrl);
+      console.log('✅ User is authenticated, redirecting to:', returnUrl);
       console.log('Current pathname:', window.location.pathname);
-      router.push(returnUrl);
-      // إضافة تأخير للتأكد من التوجيه
-      // setTimeout(() => {
-      //   if (window.location.pathname === '/login') {
-      //     console.log('Still on login page, forcing redirect...');
-      //     window.location.href = returnUrl;
-      //   }
-      // }, 1000);
+      
+      // إعادة توجيه فورية بدون تأخير
+      router.replace(returnUrl);
     }
   }, [isAuthenticated, router, returnUrl]);
 
@@ -164,51 +161,33 @@ export default function LoginPage() {
     try {
       console.log('🔐 Attempting login with:', { email, password: '***' });
       
+      // اختبار الاتصال بالخادم أولاً
+      try {
+        const testResponse = await fetch('http://localhost:3001/health');
+        console.log('🏥 Server health check:', testResponse.status);
+      } catch (testError) {
+        console.warn('⚠️ Server health check failed:', testError);
+      }
+      
       // استدعاء API الحقيقي
       await login({ email, password });
       
       setSuccess('تم تسجيل الدخول بنجاح! جاري التوجيه...');
+      entityToasts.auth.login();
+      console.log('✅ Login successful, redirecting to:', returnUrl);
       
-      // الحصول على بيانات المستخدم من localStorage
-      const userStr = localStorage.getItem('user');
-      if (userStr) {
-        const user = JSON.parse(userStr);
-        console.log('✅ Login successful for:', user.name, '- Role:', user.role, '- Section:', user.section);
-        
-        // التوجيه حسب الدور والقسم
-        let redirectPath = returnUrl;
-        
-        if (returnUrl === '/') {
-          // فقط إذا كان returnUrl هو الصفحة الرئيسية، نوجه حسب الدور
-          if (user.role === 'super_admin') {
-            redirectPath = '/';
-          } else if (user.section === 'Parasite Control') {
-            redirectPath = '/parasite-control';
-          } else if (user.section === 'Vaccination') {
-            redirectPath = '/vaccination';
-          } else if (user.section === 'Equine Health') {
-            redirectPath = '/equine-health';
-          } else if (user.section === 'Mobile Clinic') {
-            redirectPath = '/mobile-clinic';
-          } else if (user.section === 'Laboratory') {
-            redirectPath = '/laboratories';
-          } else if (user.section === 'Administration') {
-            redirectPath = '/';
-          } else {
-            redirectPath = '/';
-          }
-        }
-        
-        console.log('📍 Redirecting to:', redirectPath);
-        router.replace(redirectPath);
-      } else {
+      // إعادة توجيه فورية بعد نجاح تسجيل الدخول
+      setTimeout(() => {
         router.replace(returnUrl);
-      }
+      }, 500);
       
     } catch (error: any) {
       console.error('❌ Login error:', error);
       
-      // معالجة أنواع مختلفة من الأخطاء
+      // استخدام toast-utils الجديد لمعالجة الأخطاء
+      entityToasts.auth.error(error);
+      
+      // معالجة أنواع مختلفة من الأخطاء للعرض في الصفحة
       if (error.response?.status === 401) {
         setError('البريد الإلكتروني أو كلمة المرور غير صحيحة');
       } else if (error.response?.status === 403) {
@@ -360,27 +339,46 @@ export default function LoginPage() {
                   'تسجيل الدخول'
                 )}
               </Button>
+
+              {/* رابط نسيان كلمة المرور */}
+              <div className="text-center mt-4">
+                <Link 
+                  href="/forgot-password"
+                  className="text-sm text-slate-600 hover:text-slate-800 hover:underline transition-colors duration-200"
+                >
+                  نسيت كلمة المرور؟
+                </Link>
+              </div>
             </form>
 
-            {/* معلومات تسجيل الدخول للاختبار */}
+            {/* معلومات تسجيل الدخول */}
             <div className="mt-8 p-6 bg-slate-50 rounded-2xl border border-slate-200">
               <h4 className="text-sm font-semibold text-slate-800 mb-4 flex items-center">
                 <Shield className="w-4 h-4 ml-2 text-slate-600" />
-                بيانات تسجيل الدخول:
+                بيانات تسجيل الدخول المتاحة:
               </h4>
               <div className="text-sm text-slate-700 space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="font-medium text-slate-600">البريد الإلكتروني:</span>
-                  <span className="bg-slate-100 px-3 py-2 rounded-lg text-slate-800 font-mono text-sm">admin@ahcp.gov.sa</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="font-medium text-slate-600">كلمة المرور:</span>
-                  <span className="bg-slate-100 px-3 py-2 rounded-lg text-slate-800 font-mono text-sm">Admin@123456</span>
+                <div className="grid grid-cols-1 gap-3">
+                  <div className="flex items-center justify-between p-2 bg-white rounded-lg border">
+                    <span className="font-medium text-slate-600">مدير النظام:</span>
+                    <span className="text-slate-800 font-mono text-xs">admin@ahcp.gov.sa</span>
+                  </div>
+                  <div className="flex items-center justify-between p-2 bg-white rounded-lg border">
+                    <span className="font-medium text-slate-600">مشرف مكافحة الطفيليات:</span>
+                    <span className="text-slate-800 font-mono text-xs">parasite@ahcp.gov.sa</span>
+                  </div>
+                  <div className="flex items-center justify-between p-2 bg-white rounded-lg border">
+                    <span className="font-medium text-slate-600">مشرف التحصينات:</span>
+                    <span className="text-slate-800 font-mono text-xs">vaccination@ahcp.gov.sa</span>
+                  </div>
+                  <div className="flex items-center justify-between p-2 bg-white rounded-lg border">
+                    <span className="font-medium text-slate-600">مشرف العيادة المتنقلة:</span>
+                    <span className="text-slate-800 font-mono text-xs">clinic@ahcp.gov.sa</span>
+                  </div>
                 </div>
                 <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
-                  <p className="text-xs text-blue-700 font-medium">💡 بيانات إضافية للاختبار:</p>
-                  <p className="text-xs text-blue-600 mt-1">ibrahim@ahcp.gov.eg / admin123</p>
-                  <p className="text-xs text-blue-600">supervisor@ahcp.gov.sa / Supervisor@123</p>
+                  <p className="text-xs text-blue-700 font-medium">💡 كلمة المرور الافتراضية: Admin@123456</p>
+                  <p className="text-xs text-blue-600 mt-1">للمستخدمين الآخرين، كلمة المرور هي اسم القسم + 123</p>
                 </div>
               </div>
             </div>

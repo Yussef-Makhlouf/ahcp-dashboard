@@ -7,13 +7,14 @@ import { ImportExportManager } from "@/components/import-export/import-export-ma
 import { getColumns } from "./components/columns";
 import { LaboratoryDialog } from "./components/laboratory-dialog";
 import { Button } from "@/components/ui/button";
-import { Plus, FlaskConical, TestTube, TrendingUp, Activity } from "lucide-react";
+import { Plus, FlaskConical, TestTube, TrendingUp, Activity, Clock } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import type { Laboratory } from "@/types";
 import { formatDate } from "@/lib/utils";
 import { laboratoriesApi } from "@/lib/api/laboratories";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { usePermissions } from "@/lib/hooks/usePermissions";
 
 // تعريف حقول النموذج
 const formFields = [
@@ -199,6 +200,8 @@ const tableFilters = [
 export default function LaboratoriesPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState<Laboratory | null>(null);
+  const queryClient = useQueryClient();
+  const { checkPermission } = usePermissions();
 
   // Fetch laboratories data using React Query
   const { data: laboratoriesData, isLoading, refetch } = useQuery({
@@ -208,7 +211,7 @@ export default function LaboratoriesPage() {
   });
 
   // Fetch statistics
-  const { data: stats } = useQuery({
+  const { data: stats, isLoading: statsLoading } = useQuery({
     queryKey: ['laboratories-stats'],
     queryFn: () => laboratoriesApi.getStatistics(),
     staleTime: 10 * 60 * 1000, // 10 minutes
@@ -216,28 +219,47 @@ export default function LaboratoriesPage() {
 
   const data = laboratoriesData?.data || [];
 
-  const handleExport = async (type: "csv" | "pdf") => {
-    if (type === "csv") {
-      try {
-        const blob = await laboratoriesApi.exportToCsv();
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = `laboratories-records-${new Date().toISOString().split("T")[0]}.csv`;
-        a.click();
-        window.URL.revokeObjectURL(url);
-      } catch (error) {
-        console.error('Export failed:', error);
-        alert('فشل في تصدير البيانات');
+  const handleExport = async (type: "csv" | "pdf" | "excel") => {
+    try {
+      let blob: Blob;
+      let filename: string;
+      const dateStr = new Date().toISOString().split("T")[0];
+      
+      if (type === "csv") {
+        blob = await laboratoriesApi.exportToCsv();
+        filename = `laboratories-records-${dateStr}.csv`;
+      } else if (type === "excel") {
+        blob = await laboratoriesApi.exportToExcel();
+        filename = `laboratories-records-${dateStr}.xlsx`;
+      } else if (type === "pdf") {
+        // PDF غير مدعوم حالياً، استخدم Excel بدلاً منه
+        blob = await laboratoriesApi.exportToExcel();
+        filename = `laboratories-records-${dateStr}.xlsx`;
+      } else {
+        throw new Error('نوع التصدير غير مدعوم');
       }
+      
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      a.click();
+      window.URL.revokeObjectURL(url);
+      
+      alert(`تم تصدير البيانات بنجاح كملف ${type.toUpperCase()}`);
+    } catch (error) {
+      console.error('Export failed:', error);
+      alert('فشل في تصدير البيانات');
     }
   };
 
   const handleDelete = async (item: Laboratory) => {
     if (confirm("هل أنت متأكد من حذف هذا السجل؟")) {
       try {
-        await laboratoriesApi.delete(item.sampleCode);
+        await laboratoriesApi.delete((item as any)._id || item.sampleCode);
         refetch(); // Refresh data after deletion
+        // Refresh statistics as well
+        queryClient.invalidateQueries({ queryKey: ['laboratories-stats'] });
         alert('تم حذف السجل بنجاح');
       } catch (error) {
         console.error('Delete failed:', error);
@@ -249,13 +271,15 @@ export default function LaboratoriesPage() {
   const handleSave = async (data: any) => {
     try {
       if (selectedItem) {
-        await laboratoriesApi.update(selectedItem.sampleCode, data);
+        await laboratoriesApi.update((selectedItem as any)._id || selectedItem.sampleCode, data);
         alert('تم تحديث السجل بنجاح');
       } else {
         await laboratoriesApi.create(data);
         alert('تم إضافة السجل بنجاح');
       }
       refetch(); // Refresh data
+      // Refresh statistics as well
+      queryClient.invalidateQueries({ queryKey: ['laboratories-stats'] });
       setIsDialogOpen(false);
       setSelectedItem(null);
     } catch (error) {
@@ -270,8 +294,8 @@ export default function LaboratoriesPage() {
   };
 
   const handleView = (item: Laboratory) => {
-    setSelectedItem(item);
-    setIsDialogOpen(true);
+    // This will be handled by the DataTable's built-in view modal
+    console.log("Viewing laboratory item:", item);
   };
 
   const handleAdd = () => {
@@ -299,49 +323,66 @@ export default function LaboratoriesPage() {
               queryKey="laboratories"
               acceptedFormats={[".csv", ".xlsx"]}
               maxFileSize={10}
+              exportFormats={[
+                { value: "csv", label: "CSV", icon: "📄" },
+                { value: "excel", label: "Excel", icon: "📊" }
+              ]}
             />
-            <Button onClick={handleAdd}>
-              <Plus className="h-4 w-4 mr-2" />
-              إضافة عينة جديدة
-            </Button>
+            {checkPermission({ module: 'laboratories', action: 'create' }) && (
+              <Button onClick={handleAdd} size="sm" className="h-9 px-3">
+                <Plus className="h-4 w-4 mr-2" />
+                إضافة عينة جديدة
+              </Button>
+            )}
           </div>
         </div>
 
         {/* Stats Cards */}
-        <div className="grid gap-4 md:grid-cols-4">
-          <Card>
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+          <Card className="hover:shadow-md transition-shadow">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
-                إجمالي العينات
+                إجمالي السجلات
               </CardTitle>
               <FlaskConical className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats?.totalSamples || 0}</div>
+              {statsLoading ? (
+                <div className="text-2xl font-bold animate-pulse bg-gray-200 h-8 w-16 rounded"></div>
+              ) : (
+                <div className="text-2xl font-bold">{data.length || 0}</div>
+              )}
               <p className="text-xs text-muted-foreground">
-                +8.2% من الشهر الماضي
+                جميع سجلات المختبر
               </p>
             </CardContent>
           </Card>
           
-          <Card>
+          <Card className="hover:shadow-md transition-shadow">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
-                العينات هذا الشهر
+                إجمالي العينات
               </CardTitle>
               <TestTube className="h-4 w-4 text-blue-600" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-blue-600">
-                {stats?.samplesThisMonth || 0}
-              </div>
+              {statsLoading ? (
+                <div className="text-2xl font-bold animate-pulse bg-blue-200 h-8 w-16 rounded"></div>
+              ) : (
+                <div className="text-2xl font-bold text-blue-600">
+                  {data.reduce((total, record) => {
+                    const counts = record.speciesCounts || {};
+                    return total + (counts.sheep || 0) + (counts.goats || 0) + (counts.camel || 0) + (counts.cattle || 0) + (counts.horse || 0);
+                  }, 0)}
+                </div>
+              )}
               <p className="text-xs text-muted-foreground">
-                عينة هذا الشهر
+                من جميع الأنواع
               </p>
             </CardContent>
           </Card>
           
-          <Card>
+          <Card className="hover:shadow-md transition-shadow">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
                 الحالات الإيجابية
@@ -349,28 +390,97 @@ export default function LaboratoriesPage() {
               <TrendingUp className="h-4 w-4 text-red-600" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-red-600">
-                {stats?.positiveCases || 0}
-              </div>
+              {statsLoading ? (
+                <div className="text-2xl font-bold animate-pulse bg-red-200 h-8 w-16 rounded"></div>
+              ) : (
+                <div className="text-2xl font-bold text-red-600">
+                  {data.reduce((total, record) => total + (record.positiveCases || 0), 0)}
+                </div>
+              )}
               <p className="text-xs text-muted-foreground">
                 حالة إيجابية
               </p>
             </CardContent>
           </Card>
           
-          <Card>
+          <Card className="hover:shadow-md transition-shadow">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">
+                الحالات السلبية
+              </CardTitle>
+              <Activity className="h-4 w-4 text-green-600" />
+            </CardHeader>
+            <CardContent>
+              {statsLoading ? (
+                <div className="text-2xl font-bold animate-pulse bg-green-200 h-8 w-16 rounded"></div>
+              ) : (
+                <div className="text-2xl font-bold text-green-600">
+                  {data.reduce((total, record) => total + (record.negativeCases || 0), 0)}
+                </div>
+              )}
+              <p className="text-xs text-muted-foreground">
+                حالة سلبية
+              </p>
+            </CardContent>
+          </Card>
+          
+          <Card className="hover:shadow-md transition-shadow">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
                 معدل الإيجابية
               </CardTitle>
-              <Activity className="h-4 w-4 text-orange-600" />
+              <Clock className="h-4 w-4 text-orange-600" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-orange-600">
-                {stats?.positivityRate ? `${Math.round(stats.positivityRate)}%` : '0%'}
-              </div>
+              {statsLoading ? (
+                <div className="text-2xl font-bold animate-pulse bg-orange-200 h-8 w-16 rounded"></div>
+              ) : (
+                (() => {
+                  const totalPositive = data.reduce((total, record) => total + (record.positiveCases || 0), 0);
+                  const totalNegative = data.reduce((total, record) => total + (record.negativeCases || 0), 0);
+                  const totalCases = totalPositive + totalNegative;
+                  const rate = totalCases > 0 ? Math.round((totalPositive / totalCases) * 100) : 0;
+                  
+                  return (
+                    <div className={`text-2xl font-bold ${
+                      rate > 20 ? 'text-red-600' : 
+                      rate > 10 ? 'text-orange-600' : 'text-green-600'
+                    }`}>
+                      {rate}%
+                    </div>
+                  );
+                })()
+              )}
               <p className="text-xs text-muted-foreground">
-                من إجمالي العينات
+                نسبة الإيجابية
+              </p>
+            </CardContent>
+          </Card>
+          
+          <Card className="hover:shadow-md transition-shadow">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">
+                العينات هذا الشهر
+              </CardTitle>
+              <Clock className="h-4 w-4 text-purple-600" />
+            </CardHeader>
+            <CardContent>
+              {statsLoading ? (
+                <div className="text-2xl font-bold animate-pulse bg-purple-200 h-8 w-16 rounded"></div>
+              ) : (
+                <div className="text-2xl font-bold text-purple-600">
+                  {(() => {
+                    const currentMonth = new Date().getMonth();
+                    const currentYear = new Date().getFullYear();
+                    return data.filter(record => {
+                      const recordDate = new Date(record.date);
+                      return recordDate.getMonth() === currentMonth && recordDate.getFullYear() === currentYear;
+                    }).length;
+                  })()}
+                </div>
+              )}
+              <p className="text-xs text-muted-foreground">
+                سجل هذا الشهر
               </p>
             </CardContent>
           </Card>
@@ -382,6 +492,7 @@ export default function LaboratoriesPage() {
           data={data}
           isLoading={isLoading}
           onExport={handleExport}
+          onView={handleView}
         />
 
         {/* Laboratory Dialog */}

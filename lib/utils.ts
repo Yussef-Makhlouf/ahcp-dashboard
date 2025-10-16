@@ -62,7 +62,7 @@ export function validateSaudiPhone(phone: string): boolean {
   // Format: +966XXXXXXXXX or 05XXXXXXXX or 5XXXXXXXX
   const cleaned = phone.replace(/\D/g, '');
   
-  // Check if it starts with 966 (country code)
+  // Check if it starts with 966 (country code  )
   if (cleaned.startsWith('966')) {
     return cleaned.length === 12 && /^9665[0-9]{8}$/.test(cleaned);
   }
@@ -78,4 +78,23 @@ export function validateSaudiPhone(phone: string): boolean {
   }
   
   return false;
+}
+
+// Enhanced phone validation for international numbers
+export function validatePhoneNumber(phone: string): boolean {
+  // Remove all non-digit characters except +
+  const cleanPhone = phone.replace(/[^\d+]/g, '');
+  
+  // Check if it's a valid phone number (10-15 digits)
+  const phoneRegex = /^[\+]?[0-9]{10,15}$/;
+  return phoneRegex.test(cleanPhone);
+}
+
+// Enhanced national ID validation
+export function validateNationalId(nationalId: string): boolean {
+  // Remove all non-digit characters
+  const cleanId = nationalId.replace(/\D/g, '');
+  
+  // Check if it's between 10-14 digits
+  return /^\d{10,14}$/.test(cleanId);
 }

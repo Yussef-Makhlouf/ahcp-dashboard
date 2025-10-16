@@ -39,6 +39,11 @@ import { Badge, StatusBadge } from "@/components/ui/badge-modern";
 import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Switch } from "@/components/ui/switch";
+import { entityToasts } from "@/lib/utils/toast-utils";
+import { useFormValidation } from "@/lib/hooks/use-form-validation";
+import { ValidatedInput } from "@/components/ui/validated-input";
+import { ValidatedSelect } from "@/components/ui/validated-select";
+import { ValidatedTextarea } from "@/components/ui/validated-textarea";
 
 interface InventoryDialogProps {
   open: boolean;
@@ -96,6 +101,31 @@ const locations = [
 export function InventoryDialog({ open, onOpenChange, item, onSave }: InventoryDialogProps) {
   const [activeTab, setActiveTab] = useState("basic");
   const [loading, setLoading] = useState(false);
+
+  // Validation rules for unified system
+  const validationRules = {
+    'name': { required: true, minLength: 2 },
+    'category': { required: true },
+    'quantity': { required: true },
+    'unit': { required: true },
+    'minStock': { required: true },
+    'maxStock': { required: true },
+    'batchNumber': { required: true },
+    'supplier': { required: true },
+    'price': { required: true },
+    'location': { required: true },
+  };
+
+  const {
+    errors,
+    validateField,
+    validateForm: validateFormData,
+    setFieldError,
+    clearFieldError,
+    clearAllErrors,
+    getFieldError,
+  } = useFormValidation(validationRules);
+
   const [formData, setFormData] = useState({
     name: "",
     category: "",
@@ -165,7 +195,6 @@ export function InventoryDialog({ open, onOpenChange, item, onSave }: InventoryD
     }
   }, [item]);
 
-  const [errors, setErrors] = useState<Record<string, string>>({});
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
@@ -219,7 +248,6 @@ export function InventoryDialog({ open, onOpenChange, item, onSave }: InventoryD
       newErrors.expiryDate = "تاريخ الانتهاء لا يمكن أن يكون في الماضي";
     }
     
-    setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
@@ -241,13 +269,41 @@ export function InventoryDialog({ open, onOpenChange, item, onSave }: InventoryD
       status = "expired";
     }
     
-    onSave({
-      ...formData,
-      status,
-      expiryDate: formData.expiryDate ? format(formData.expiryDate, "yyyy-MM-dd") : undefined,
-      lastRestocked: formData.lastRestocked ? format(formData.lastRestocked, "yyyy-MM-dd") : "",
-    });
-    onOpenChange(false);
+    // Validate form data before sending
+    if (!formData.name?.trim()) {
+      console.error('❌ Item name is required');
+      return;
+    }
+    
+    if (!formData.category?.trim()) {
+      console.error('❌ Category is required');
+      return;
+    }
+    
+    if (formData.quantity < 0) {
+      console.error('❌ Quantity cannot be negative');
+      return;
+    }
+    
+    try {
+      // Simulate API call - replace with actual API
+      if (item) {
+        entityToasts.inventory.update();
+      } else {
+        entityToasts.inventory.create();
+      }
+      
+      onSave({
+        ...formData,
+        status,
+        expiryDate: formData.expiryDate ? format(formData.expiryDate, "yyyy-MM-dd") : undefined,
+        lastRestocked: formData.lastRestocked ? format(formData.lastRestocked, "yyyy-MM-dd") : "",
+      });
+      onOpenChange(false);
+    } catch (error) {
+      console.error('Error saving inventory:', error);
+      entityToasts.inventory.error(item ? 'update' : 'create');
+    }
   };
 
   const handleStockMovement = () => {

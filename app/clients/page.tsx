@@ -19,17 +19,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { MoreHorizontal, Edit, Trash, Eye } from "lucide-react";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { ClientDialog } from "./components/client-dialog";
+import { ImportExportManager } from "@/components/import-export/import-export-manager";
 import { clientsApi } from "@/lib/api/clients";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -37,8 +28,6 @@ import { usePermissions } from "@/lib/hooks/usePermissions";
 import { ProtectedButton } from "@/components/ui/protected-button";
 
 export default function ClientsPage() {
-  const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
-  const [csvFile, setCsvFile] = useState<File | null>(null);
   const [isClientDialogOpen, setIsClientDialogOpen] = useState(false);
   const [selectedClient, setSelectedClient] = useState<Client | undefined>(undefined);
 
@@ -339,19 +328,6 @@ export default function ClientsPage() {
     }
   };
 
-  const handleImportCSV = async () => {
-    if (!csvFile) return;
-    
-    try {
-      // يمكن إضافة API للاستيراد هنا
-      toast.success('تم استيراد البيانات بنجاح');
-      setIsImportDialogOpen(false);
-      setCsvFile(null);
-      refetch();
-    } catch (error) {
-      toast.error('حدث خطأ أثناء الاستيراد');
-    }
-  };
 
   const handleSaveClient = (clientData: Client) => {
     saveMutation.mutate({
@@ -390,61 +366,21 @@ export default function ClientsPage() {
             </p>
           </div>
           <div className="flex gap-2">
-            {/* زر التصدير - متاح للجميع */}
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={() => handleExport('csv')}
-              className="border-green-300 hover:bg-green-50 hover:border-green-400 text-green-700 hover:text-green-800"
-            >
-              <Download className="ml-2 h-4 w-4" />
-              تصدير CSV
-            </Button>
-            
-            {/* زر الاستيراد - للمدير العام والمشرفين فقط */}
-            {checkPermission({ module: 'clients', action: 'create' }) && (
-              <Dialog open={isImportDialogOpen} onOpenChange={setIsImportDialogOpen}>
-                <DialogTrigger asChild>
-                  <Button variant="outline" size="sm" className="border-cyan-300 hover:bg-cyan-50 hover:border-cyan-400 text-cyan-700 hover:text-cyan-800">
-                    <Upload className="ml-2 h-4 w-4" />
-                    استيراد CSV
-                  </Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>استيراد بيانات المربيين من CSV</DialogTitle>
-                    <DialogDescription>
-                      قم برفع ملف CSV يحتوي على بيانات المربيين
-                    </DialogDescription>
-                  </DialogHeader>
-                  <div className="space-y-4">
-                    <div>
-                      <Label htmlFor="csv-file">ملف CSV</Label>
-                      <Input
-                        id="csv-file"
-                        type="file"
-                        accept=".csv"
-                        onChange={(e) => setCsvFile(e.target.files?.[0] || null)}
-                      />
-                    </div>
-                    <div className="flex justify-end gap-2">
-                      <Button variant="outline" onClick={() => setIsImportDialogOpen(false)}>
-                        إلغاء
-                      </Button>
-                      <Button onClick={handleImportCSV} disabled={!csvFile}>
-                        استيراد
-                      </Button>
-                    </div>
-                  </div>
-                </DialogContent>
-              </Dialog>
-            )}
+            <ImportExportManager
+              exportEndpoint="/clients/export"
+              importEndpoint="/clients/import"
+              templateEndpoint="/clients/template"
+              title="المربيين"
+              queryKey="clients"
+              acceptedFormats={[".csv", ".xlsx"]}
+              maxFileSize={10}
+            />
             
             {/* زر إضافة مربي جديد - للمدير العام والمشرفين فقط */}
             {checkPermission({ module: 'clients', action: 'create' }) && (
               <Button 
                 onClick={handleAddNewClient}
-                className="bg-cyan-600 hover:bg-cyan-700 text-white shadow-lg hover:shadow-xl transition-all duration-200"
+                className="h-9 px-3"
               >
                 <Plus className="ml-2 h-4 w-4" />
                 إضافة مربي جديد

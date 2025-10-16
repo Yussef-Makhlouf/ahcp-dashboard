@@ -22,18 +22,25 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { ModernDatePicker } from "@/components/ui/modern-date-picker";
-import { CalendarIcon, MapPin, Stethoscope, Plus, Trash2, User, Heart, Shield, Activity } from "lucide-react";
+import { SupervisorSelect } from "@/components/ui/supervisor-select";
+import { CalendarIcon, MapPin, Stethoscope, Plus, Trash2, Activity, User, Heart, Shield, FileText } from "lucide-react";
 import { format } from "date-fns";
-import { ar } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { validateSaudiPhone } from "@/lib/utils";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { EnhancedMobileTabs } from "@/components/ui/mobile-tabs";
-import { Card, CardContent, CardHeader, CardTitle, StatsCard } from "@/components/ui/card-modern";
-import { Badge, StatusBadge } from "@/components/ui/badge-modern";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import React, { useCallback } from "react";
 import { Separator } from "@/components/ui/separator";
 import type { MobileClinic } from "@/types";
+import { entityToasts } from "@/lib/utils/toast-utils";
+import { mobileClinicsApi } from "@/lib/api/mobile-clinics";
+import { useFormValidation } from "@/lib/hooks/use-form-validation";
+import { ValidatedInput } from "@/components/ui/validated-input";
+import { ValidatedSelect } from "@/components/ui/validated-select";
+import { ValidatedTextarea } from "@/components/ui/validated-textarea";
 
 interface MobileClinicDialogProps {
   open: boolean;
@@ -42,13 +49,7 @@ interface MobileClinicDialogProps {
   onSave: (data: any) => void;
 }
 
-const supervisors = [
-  "د. محمد علي",
-  "د. سارة محمود",
-  "د. أحمد حسن",
-  "د. فاطمة عبدالله",
-  "د. خالد إبراهيم",
-];
+// Removed static supervisors array - now using API
 
 const vehicles = [
   { id: "MC1", name: "عيادة متنقلة 1" },
@@ -70,12 +71,10 @@ const diagnoses = [
 ];
 
 const interventionCategories = [
-  "علاج",
-  "وقاية",
-  "علاج طارئ",
-  "فحص روتيني",
-  "تطعيم",
-  "جراحة بسيطة",
+  { value: "Emergency", label: "طوارئ" },
+  { value: "Routine", label: "روتيني" },
+  { value: "Preventive", label: "وقائي" },
+  { value: "Follow-up", label: "متابعة" },
 ];
 
 interface Treatment {
@@ -88,6 +87,31 @@ interface Treatment {
 
 export function MobileClinicDialog({ open, onOpenChange, clinic, onSave }: MobileClinicDialogProps) {
   const [activeTab, setActiveTab] = useState("basic");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  // Validation rules
+  const validationRules = {
+    'client.name': { required: true, minLength: 2 },
+    'client.nationalId': { required: true, nationalId: true },
+    'client.phone': { required: true, phone: true },
+    'supervisor': { required: true },
+    'vehicleNo': { required: true },
+    'farmLocation': { required: true },
+    'date': { required: true },
+    'interventionCategory': { required: true },
+    'diagnosis': { required: true },
+  };
+
+  const {
+    errors,
+    validateField,
+    validateForm: validateFormData,
+    setFieldError,
+    clearFieldError,
+    clearAllErrors,
+    getFieldError,
+  } = useFormValidation(validationRules);
+
   const [formData, setFormData] = useState({
     serialNo: "",
     date: undefined as Date | undefined,
@@ -160,6 +184,7 @@ export function MobileClinicDialog({ open, onOpenChange, clinic, onSave }: Mobil
 
   useEffect(() => {
     if (clinic) {
+      // تحويل البيانات من الخادم إلى بنية النموذج
       setFormData({
         serialNo: clinic.serialNo || "",
         date: clinic.date ? new Date(clinic.date) : undefined,
@@ -190,9 +215,9 @@ export function MobileClinicDialog({ open, onOpenChange, clinic, onSave }: Mobil
         treatment: clinic.treatment || "",
         medicationsUsed: clinic.medicationsUsed || [],
         request: {
-          date: clinic.request?.date || "",
+          date: clinic.request?.date ? format(new Date(clinic.request.date), "yyyy-MM-dd") : format(new Date(), "yyyy-MM-dd"),
           situation: clinic.request?.situation || "Open",
-          fulfillingDate: clinic.request?.fulfillingDate || "",
+          fulfillingDate: clinic.request?.fulfillingDate ? format(new Date(clinic.request.fulfillingDate), "yyyy-MM-dd") : "",
         },
         followUpRequired: clinic.followUpRequired || false,
         followUpDate: clinic.followUpDate ? new Date(clinic.followUpDate) : undefined,
@@ -200,10 +225,10 @@ export function MobileClinicDialog({ open, onOpenChange, clinic, onSave }: Mobil
         
         // Legacy fields for backward compatibility
         owner: {
-          name: clinic.owner?.name || clinic.client?.name || "",
-          id: clinic.owner?.id || clinic.client?.nationalId || "",
+          name: clinic.client?.name || clinic.owner?.name || "",
+          id: clinic.client?.nationalId || clinic.owner?.id || "",
           birthDate: clinic.owner?.birthDate || "",
-          phone: clinic.owner?.phone || clinic.client?.phone || "",
+          phone: clinic.client?.phone || clinic.owner?.phone || "",
         },
         location: clinic.location || { 
           e: clinic.coordinates?.longitude || null, 
@@ -219,7 +244,7 @@ export function MobileClinicDialog({ open, onOpenChange, clinic, onSave }: Mobil
       });
     } else {
       // Generate new serial number
-      const newSerialNo = `MC-${Date.now()}`;
+      const newSerialNo = generateSerialNo();
       setFormData({
         serialNo: newSerialNo,
         date: new Date(),
@@ -275,88 +300,125 @@ export function MobileClinicDialog({ open, onOpenChange, clinic, onSave }: Mobil
         prescriptions: [],
       });
     }
+    
+    // Clear errors when dialog opens
+    clearAllErrors();
   }, [clinic]);
 
-  const [errors, setErrors] = useState<Record<string, string>>({});
 
   const validateForm = () => {
-    const newErrors: Record<string, string> = {};
+    // Use the unified validation system
+    const validationData = {
+      'client.name': formData.client?.name,
+      'client.nationalId': formData.client?.nationalId,
+      'client.phone': formData.client?.phone,
+      'supervisor': formData.supervisor,
+      'vehicleNo': formData.vehicleNo,
+      'farmLocation': formData.farmLocation,
+      'date': formData.date,
+      'interventionCategory': formData.interventionCategory,
+      'diagnosis': formData.diagnosis,
+    };
+
+    const isValid = validateFormData(validationData);
     
-    // Required fields validation
-    if (!formData.client?.name?.trim()) {
-      newErrors.ownerName = "اسم المربي مطلوب";
-    } else if (formData.client.name.trim().length < 2) {
-      newErrors.ownerName = "اسم المربي يجب أن يكون أكثر من حرفين";
-    }
-    
-    if (!formData.client?.nationalId?.trim()) {
-      newErrors.ownerId = "رقم هوية المربي مطلوب";
-    } else if (formData.client.nationalId.trim().length < 3) {
-      newErrors.ownerId = "رقم هوية المربي يجب أن يكون أكثر من 3 أحرف";
-    }
-    
-    if (!formData.client?.phone?.trim()) {
-      newErrors.ownerPhone = "رقم الهاتف مطلوب";
-    } else if (!validateSaudiPhone(formData.client.phone)) {
-      newErrors.ownerPhone = "رقم الهاتف غير صحيح. يجب أن يبدأ بـ +966 أو 05";
-    }
-    
-    if (!formData.supervisor) {
-      newErrors.supervisor = "المشرف مطلوب";
-    }
-    
-    if (!formData.vehicleNo) {
-      newErrors.vehicleNo = "رقم المركبة مطلوب";
-    }
-    
-    if (!formData.farmLocation.trim()) {
-      newErrors.farmLocation = "موقع المزرعة مطلوب";
-    }
-    
-    if (!formData.diagnosis) {
-      newErrors.diagnosis = "التشخيص مطلوب";
-    }
-    
-    if (!formData.interventionCategory) {
-      newErrors.interventionCategory = "نوع التدخل مطلوب";
-    }
-    
-    // Validate animal counts
+    // Additional custom validations
     const totalAnimals = getTotalAnimals();
     if (totalAnimals === 0) {
-      newErrors.animalCount = "يجب إدخال عدد الحيوانات المعالجة";
+      setFieldError('animalCount', 'يجب إدخال عدد الحيوانات المعالجة');
+      return false;
     }
     
-    // Validate treatments
     if (formData.treatments.length === 0 && !formData.treatment.trim()) {
-      newErrors.treatment = "يجب إدخال تفاصيل العلاج";
+      setFieldError('treatment', 'يجب إدخال تفاصيل العلاج');
+      return false;
     }
     
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+    return isValid;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!validateForm()) return;
+    if (!validateForm()) {
+      // Show field-specific errors directly in the form
+      // The validateForm function already sets errors in the errors state
+      // which will be displayed by FormMessage components
+      return;
+    }
     
-    const treatmentText = formData.treatments.length > 0
-      ? formData.treatments.map(t => `${t.medicine} - ${t.dosage}`).join(", ")
-      : formData.treatment;
+    setIsSubmitting(true);
     
-    onSave({
-      ...formData,
-      date: formData.date ? format(formData.date, "yyyy-MM-dd") : "",
-      treatment: treatmentText,
-      request: {
-        ...formData.request,
-        fulfillingDate: formData.request.situation === "Closed" 
-          ? format(new Date(), "yyyy-MM-dd") 
-          : formData.request.fulfillingDate,
-      },
-    });
-    onOpenChange(false);
+    try {
+      const treatmentText = formData.treatments.length > 0
+        ? formData.treatments.map(t => `${t.medicine} - ${t.dosage}`).join(", ")
+        : formData.treatment;
+
+      // تحويل البيانات للشكل المطلوب من الباك إند
+      const submitData = {
+        serialNo: formData.serialNo,
+        date: formData.date ? format(formData.date, "yyyy-MM-dd") : "",
+        // إرسال بيانات العميل للباك إند ليتعامل معها
+        client: formData.client._id || {
+          name: formData.client.name.trim(),
+          nationalId: formData.client.nationalId.trim(),
+          phone: formData.client.phone.trim(),
+          village: formData.client.village || '',
+          detailedAddress: formData.client.detailedAddress || '',
+        },
+        farmLocation: formData.farmLocation,
+        coordinates: {
+          latitude: formData.coordinates.latitude || 0,
+          longitude: formData.coordinates.longitude || 0,
+        },
+        supervisor: formData.supervisor,
+        vehicleNo: formData.vehicleNo,
+        animalCounts: {
+          sheep: formData.animalCounts.sheep || 0,
+          goats: formData.animalCounts.goats || 0,
+          camel: formData.animalCounts.camel || 0,
+          cattle: formData.animalCounts.cattle || 0,
+          horse: formData.animalCounts.horse || 0,
+        },
+        diagnosis: formData.diagnosis,
+        interventionCategory: formData.interventionCategory,
+        treatment: treatmentText,
+        medicationsUsed: formData.medicationsUsed.map(med => ({
+          name: med.name,
+          dosage: med.dosage,
+          quantity: med.quantity,
+          route: med.route,
+        })),
+        request: {
+          date: formData.request.date || format(new Date(), "yyyy-MM-dd"),
+          situation: formData.request.situation,
+          fulfillingDate: formData.request.situation === "Closed" 
+            ? format(new Date(), "yyyy-MM-dd") 
+            : formData.request.fulfillingDate || null,
+        },
+        followUpRequired: formData.followUpRequired,
+        followUpDate: formData.followUpDate ? format(formData.followUpDate, "yyyy-MM-dd") : null,
+        remarks: formData.remarks || '',
+      };
+      
+      if (clinic) {
+        // Update existing clinic
+        await mobileClinicsApi.update(clinic._id || clinic.serialNo || '', submitData);
+        entityToasts.mobileClinic.update();
+      } else {
+        // Create new clinic
+        await mobileClinicsApi.create(submitData);
+        entityToasts.mobileClinic.create();
+      }
+      
+      await onSave(submitData);
+      onOpenChange(false);
+    } catch (error) {
+      console.error('Error submitting form:', error);
+      entityToasts.mobileClinic.error(clinic ? 'update' : 'create');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const addTreatment = () => {
@@ -403,6 +465,14 @@ export function MobileClinicDialog({ open, onOpenChange, clinic, onSave }: Mobil
     return formData.animalCounts.sheep + formData.animalCounts.goats + formData.animalCounts.camel + formData.animalCounts.horse + formData.animalCounts.cattle;
   };
 
+
+  // توليد رقم تسلسلي جديد
+  const generateSerialNo = useCallback(() => {
+    const timestamp = Date.now();
+    const randomNum = Math.floor(Math.random() * 1000);
+    return `MC-${timestamp}-${randomNum}`;
+  }, []);
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto p-2 sm:p-4 lg:p-6">
@@ -417,7 +487,7 @@ export function MobileClinicDialog({ open, onOpenChange, clinic, onSave }: Mobil
 
         <DialogBody>
           <form id="mobile-clinic-form" onSubmit={handleSubmit}>
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="tabs-modern" dir="rtl">
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full tabs-modern" dir="rtl">
               <EnhancedMobileTabs
                 value={activeTab}
                 onValueChange={setActiveTab}
@@ -425,40 +495,61 @@ export function MobileClinicDialog({ open, onOpenChange, clinic, onSave }: Mobil
                   {
                     value: "basic",
                     label: "البيانات الأساسية",
-                    shortLabel: "أساسية",
-                    icon: <User className="w-4 h-4" />
+                    shortLabel: "الأساسية",
+                    icon: <User className="h-4 w-4" />
                   },
                   {
                     value: "animals",
                     label: "الحيوانات",
-                    shortLabel: "حيوانات",
-                    icon: <Heart className="w-4 h-4" />
+                    shortLabel: "الحيوانات",
+                    icon: <Heart className="h-4 w-4" />
                   },
                   {
                     value: "diagnosis",
                     label: "التشخيص والعلاج",
-                    shortLabel: "تشخيص",
-                    icon: <Shield className="w-4 h-4" />
+                    shortLabel: "التشخيص",
+                    icon: <Stethoscope className="h-4 w-4" />
                   },
                   {
                     value: "followup",
                     label: "المتابعة",
-                    shortLabel: "متابعة",
-                    icon: <Activity className="w-4 h-4" />
+                    shortLabel: "المتابعة",
+                    icon: <FileText className="h-4 w-4" />
                   }
                 ]}
               />
 
-            <TabsContent value="basic" className="tabs-content-modern">
+            <TabsContent value="basic" className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>الرقم المسلسل</Label>
-                  <Input
-                    value={formData.serialNo}
-                    onChange={(e) => setFormData({ ...formData, serialNo: e.target.value })}
-                    type="text"
-                    disabled={!!clinic}
-                  />
+                  <div className="flex gap-2">
+                    <Input
+                      value={formData.serialNo}
+                      onChange={(e) => {
+                        setFormData({ ...formData, serialNo: e.target.value });
+                        // Clear error when user starts typing
+                        clearFieldError('serialNo');
+                      }}
+                      type="text"
+                      disabled={!!clinic}
+                      placeholder="سيتم توليده تلقائياً"
+                      className={errors.serialNo ? 'border-red-500' : ''}
+                    />
+                    {!clinic && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => setFormData({ ...formData, serialNo: generateSerialNo() })}
+                        className="whitespace-nowrap"
+                      >
+                        توليد رقم
+                      </Button>
+                    )}
+                  </div>
+                  {errors.serialNo && (
+                    <p className="text-red-500 text-sm font-medium mt-1">{errors.serialNo}</p>
+                  )}
                 </div>
 
                 <div className="space-y-2">
@@ -466,55 +557,87 @@ export function MobileClinicDialog({ open, onOpenChange, clinic, onSave }: Mobil
                     label="التاريخ"
                     placeholder="اختر التاريخ"
                     value={formData.date}
-                    onChange={(date) => setFormData({ ...formData, date: date || undefined })}
+                    onChange={(date) => {
+                      setFormData({ ...formData, date: date || undefined });
+                      // Clear error when user selects date
+                      clearFieldError('date');
+                    }}
                     required
                     variant="modern"
                     size="md"
+                    maxDate={new Date()} // منع اختيار تواريخ مستقبلية
                   />
+                  {errors.date && (
+                    <p className="text-red-500 text-sm font-medium mt-1">{errors.date}</p>
+                  )}
                 </div>
 
-                <div className="space-y-2">
-                  <Label>اسم المربي *</Label>
-                  <Input
-                    value={formData.client?.name || ""}
-                    onChange={(e) => setFormData({
+                <ValidatedInput
+                  label="اسم المربي"
+                  required
+                  value={formData.client?.name || ""}
+                  placeholder="أدخل اسم المربي"
+                  error={getFieldError('client.name')}
+                  onValueChange={(value) => {
+                    setFormData({
                       ...formData,
-                      client: { ...formData.client, name: e.target.value },
-                      owner: { ...formData.owner, name: e.target.value }
-                    })}
-                    required
-                    placeholder="أدخل اسم المربي"
-                  />
-                </div>
+                      client: { ...formData.client, name: value },
+                      owner: { ...formData.owner, name: value }
+                    });
+                    clearFieldError('client.name');
+                  }}
+                  onBlur={() => {
+                    const error = validateField('client.name', formData.client?.name);
+                    if (error) {
+                      setFieldError('client.name', error);
+                    }
+                  }}
+                />
 
-                <div className="space-y-2">
-                  <Label>رقم هوية المربي *</Label>
-                  <Input
-                    value={formData.client?.nationalId || ""}
-                    onChange={(e) => setFormData({
+                <ValidatedInput
+                  label="رقم هوية المربي"
+                  required
+                  value={formData.client?.nationalId || ""}
+                  placeholder="1234567890"
+                  error={getFieldError('client.nationalId')}
+                  onValueChange={(value) => {
+                    setFormData({
                       ...formData,
-                      client: { ...formData.client, nationalId: e.target.value },
-                      owner: { ...formData.owner, id: e.target.value }
-                    })}
-                    required
-                    placeholder="1234567890"
-                  />
-                </div>
+                      client: { ...formData.client, nationalId: value },
+                      owner: { ...formData.owner, id: value }
+                    });
+                    clearFieldError('client.nationalId');
+                  }}
+                  onBlur={() => {
+                    const error = validateField('client.nationalId', formData.client?.nationalId);
+                    if (error) {
+                      setFieldError('client.nationalId', error);
+                    }
+                  }}
+                />
 
-                <div className="space-y-2">
-                  <Label>رقم الهاتف *</Label>
-                  <Input
-                    value={formData.client?.phone || ""}
-                    onChange={(e) => setFormData({
+                <ValidatedInput
+                  label="رقم الهاتف"
+                  required
+                  value={formData.client?.phone || ""}
+                  placeholder="+966501234567 أو 0501234567"
+                  dir="ltr"
+                  error={getFieldError('client.phone')}
+                  onValueChange={(value) => {
+                    setFormData({
                       ...formData,
-                      client: { ...formData.client, phone: e.target.value },
-                      owner: { ...formData.owner, phone: e.target.value }
-                    })}
-                    required
-                    placeholder="+966501234567 أو 0501234567"
-                    dir="ltr"
-                  />
-                </div>
+                      client: { ...formData.client, phone: value },
+                      owner: { ...formData.owner, phone: value }
+                    });
+                    clearFieldError('client.phone');
+                  }}
+                  onBlur={() => {
+                    const error = validateField('client.phone', formData.client?.phone);
+                    if (error) {
+                      setFieldError('client.phone', error);
+                    }
+                  }}
+                />
 
                 <div className="space-y-2">
                   <Label>القرية</Label>
@@ -529,52 +652,57 @@ export function MobileClinicDialog({ open, onOpenChange, clinic, onSave }: Mobil
                 </div>
 
                 <div className="space-y-2">
-                  <Label>المشرف *</Label>
-                  <Select
+                  <Label className="after:content-['*'] after:text-red-500 after:ml-1">المشرف</Label>
+                  <SupervisorSelect
                     value={formData.supervisor}
-                    onValueChange={(value) => setFormData({ ...formData, supervisor: value })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="اختر المشرف" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {supervisors.map((supervisor) => (
-                        <SelectItem key={supervisor} value={supervisor}>
-                          {supervisor}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label>رقم المركبة *</Label>
-                  <Select
-                    value={formData.vehicleNo}
-                    onValueChange={(value) => setFormData({ ...formData, vehicleNo: value })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="اختر المركبة" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {vehicles.map((vehicle) => (
-                        <SelectItem key={vehicle.id} value={vehicle.id}>
-                          {vehicle.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label>موقع المزرعة *</Label>
-                  <Input
-                    value={formData.farmLocation}
-                    onChange={(e) => setFormData({ ...formData, farmLocation: e.target.value })}
-                    required
-                    placeholder="أدخل موقع المزرعة"
+                    onValueChange={(value) => {
+                      setFormData({ ...formData, supervisor: value });
+                      clearFieldError('supervisor');
+                    }}
+                    placeholder="اختر المشرف"
+                    section=" mobile-clinics"
                   />
+                  {getFieldError('supervisor') && (
+                    <p className="text-red-500 text-sm font-medium mt-1">{getFieldError('supervisor')}</p>
+                  )}
                 </div>
+
+                <ValidatedSelect
+                  label="رقم المركبة"
+                  required
+                  value={formData.vehicleNo}
+                  placeholder="اختر المركبة"
+                  options={vehicles.map(vehicle => ({ value: vehicle.id, label: vehicle.name }))}
+                  error={getFieldError('vehicleNo')}
+                  onValueChange={(value) => {
+                    setFormData({ ...formData, vehicleNo: value });
+                    clearFieldError('vehicleNo');
+                  }}
+                  onBlur={() => {
+                    const error = validateField('vehicleNo', formData.vehicleNo);
+                    if (error) {
+                      setFieldError('vehicleNo', error);
+                    }
+                  }}
+                />
+
+                <ValidatedInput
+                  label="موقع المزرعة"
+                  required
+                  value={formData.farmLocation}
+                  placeholder="أدخل موقع المزرعة"
+                  error={getFieldError('farmLocation')}
+                  onValueChange={(value) => {
+                    setFormData({ ...formData, farmLocation: value });
+                    clearFieldError('farmLocation');
+                  }}
+                  onBlur={() => {
+                    const error = validateField('farmLocation', formData.farmLocation);
+                    if (error) {
+                      setFieldError('farmLocation', error);
+                    }
+                  }}
+                />
               </div>
 
               <Separator />
@@ -631,7 +759,7 @@ export function MobileClinicDialog({ open, onOpenChange, clinic, onSave }: Mobil
               </div>
             </TabsContent>
 
-            <TabsContent value="animals" className="tabs-content-modern">
+            <TabsContent value="animals" className="space-y-4">
               <Card>
                 <CardHeader>
                   <CardTitle className="text-lg">عدد الحيوانات المعالجة</CardTitle>
@@ -742,15 +870,19 @@ export function MobileClinicDialog({ open, onOpenChange, clinic, onSave }: Mobil
               </div>
             </TabsContent>
 
-            <TabsContent value="diagnosis" className="tabs-content-modern">
+            <TabsContent value="diagnosis" className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>التشخيص *</Label>
                   <Select
                     value={formData.diagnosis}
-                    onValueChange={(value) => setFormData({ ...formData, diagnosis: value })}
+                    onValueChange={(value) => {
+                      setFormData({ ...formData, diagnosis: value });
+                      // Clear error when user selects diagnosis
+                      clearFieldError('diagnosis');
+                    }}
                   >
-                    <SelectTrigger>
+                    <SelectTrigger className={errors.diagnosis ? 'border-red-500' : ''}>
                       <SelectValue placeholder="اختر التشخيص" />
                     </SelectTrigger>
                     <SelectContent>
@@ -761,76 +893,154 @@ export function MobileClinicDialog({ open, onOpenChange, clinic, onSave }: Mobil
                       ))}
                     </SelectContent>
                   </Select>
+                  {errors.diagnosis && (
+                    <p className="text-red-500 text-sm font-medium mt-1">{errors.diagnosis}</p>
+                  )}
                 </div>
 
                 <div className="space-y-2">
                   <Label>نوع التدخل *</Label>
                   <Select
                     value={formData.interventionCategory}
-                    onValueChange={(value) => setFormData({ ...formData, interventionCategory: value })}
+                    onValueChange={(value) => {
+                      setFormData({ ...formData, interventionCategory: value });
+                      // Clear error when user selects category
+                      clearFieldError('interventionCategory');
+                    }}
                   >
-                    <SelectTrigger>
+                    <SelectTrigger className={errors.interventionCategory ? 'border-red-500' : ''}>
                       <SelectValue placeholder="اختر نوع التدخل" />
                     </SelectTrigger>
                     <SelectContent>
                       {interventionCategories.map((category) => (
-                        <SelectItem key={category} value={category}>
-                          {category}
+                        <SelectItem key={category.value} value={category.value}>
+                          {category.label}
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
+                  {errors.interventionCategory && (
+                    <p className="text-red-500 text-sm font-medium mt-1">{errors.interventionCategory}</p>
+                  )}
                 </div>
               </div>
 
+              {/* قسم الأدوية المستخدمة */}
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-lg">الأدوية والعلاجات</CardTitle>
+                  <CardTitle className="text-lg">الأدوية المستخدمة</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label>اسم الدواء</Label>
-                      <Input
-                        value={newTreatment.medicine}
-                        onChange={(e) => setNewTreatment({ ...newTreatment, medicine: e.target.value })}
-                        placeholder="مثال: أموكسيسيلين"
-                      />
+                  {/* عرض الأدوية الموجودة */}
+                  {formData.medicationsUsed && formData.medicationsUsed.length > 0 && (
+                    <div className="space-y-3">
+                      <Label className="text-sm font-medium text-gray-700">الأدوية المستخدمة ({formData.medicationsUsed.length}):</Label>
+                      <div className="space-y-2">
+                        {formData.medicationsUsed.map((medication, index) => (
+                          <div key={index} className="flex items-center justify-between p-3 border border-gray-200 rounded-md bg-gray-50 hover:bg-gray-100 transition-colors">
+                            <div className="flex-1 grid grid-cols-1 sm:grid-cols-4 gap-2 text-sm">
+                              <div className="font-medium text-gray-900">{medication.name}</div>
+                              <div className="text-gray-600">{medication.dosage}</div>
+                              <div className="text-gray-600">{medication.quantity} وحدة</div>
+                              <div className="text-gray-600">
+                                {medication.route === 'Intramuscular' ? 'عضلي' : 
+                                 medication.route === 'Subcutaneous' ? 'تحت الجلد' :
+                                 medication.route === 'Intravenous' ? 'وريدي' :
+                                 medication.route === 'Oral' ? 'فموي' : medication.route}
+                              </div>
+                            </div>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                const updatedMedications = formData.medicationsUsed.filter((_, i) => i !== index);
+                                setFormData({ ...formData, medicationsUsed: updatedMedications });
+                              }}
+                              className="text-red-500 hover:text-red-700 hover:bg-red-50 h-8 w-8 p-0 ml-2"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
                     </div>
+                  )}
+                  
+                  <Separator />
+                  
+                  {/* إضافة دواء جديد */}
+                  <div className="space-y-4">
+                    <Label className="text-base font-semibold">إضافة دواء جديد:</Label>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label>اسم الدواء</Label>
+                        <Input
+                          value={newTreatment.medicine}
+                          onChange={(e) => setNewTreatment({ ...newTreatment, medicine: e.target.value })}
+                          placeholder="مثال: أموكسيسيلين"
+                        />
+                      </div>
 
-                    <div className="space-y-2">
-                      <Label>الجرعة</Label>
-                      <Input
-                        value={newTreatment.dosage}
-                        onChange={(e) => setNewTreatment({ ...newTreatment, dosage: e.target.value })}
-                        placeholder="مثال: 10 مل مرتين يومياً"
-                      />
-                    </div>
+                      <div className="space-y-2">
+                        <Label>الجرعة</Label>
+                        <Input
+                          value={newTreatment.dosage}
+                          onChange={(e) => setNewTreatment({ ...newTreatment, dosage: e.target.value })}
+                          placeholder="مثال: 10 مل مرتين يومياً"
+                        />
+                      </div>
 
-                    <div className="space-y-2">
-                      <Label>المدة</Label>
-                      <Input
-                        value={newTreatment.duration}
-                        onChange={(e) => setNewTreatment({ ...newTreatment, duration: e.target.value })}
-                        placeholder="مثال: 7 أيام"
-                      />
-                    </div>
+                      <div className="space-y-2">
+                        <Label>الكمية</Label>
+                        <Input
+                          type="number"
+                          value={newTreatment.notes}
+                          onChange={(e) => setNewTreatment({ ...newTreatment, notes: e.target.value })}
+                          placeholder="5"
+                        />
+                      </div>
 
-                    <div className="space-y-2">
-                      <Label>ملاحظات</Label>
-                      <Input
-                        value={newTreatment.notes}
-                        onChange={(e) => setNewTreatment({ ...newTreatment, notes: e.target.value })}
-                        placeholder="ملاحظات إضافية"
-                      />
+                      <div className="space-y-2">
+                        <Label>طريقة الإعطاء</Label>
+                        <Select
+                          value={newTreatment.duration}
+                          onValueChange={(value) => setNewTreatment({ ...newTreatment, duration: value })}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="اختر طريقة الإعطاء" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="Intramuscular">عضلي</SelectItem>
+                            <SelectItem value="Subcutaneous">تحت الجلد</SelectItem>
+                            <SelectItem value="Intravenous">وريدي</SelectItem>
+                            <SelectItem value="Oral">فموي</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
                     </div>
                   </div>
 
                   <Button
                     type="button"
-                    onClick={addTreatment}
+                    onClick={() => {
+                      if (newTreatment.medicine && newTreatment.dosage && newTreatment.notes && newTreatment.duration) {
+                        const newMedication = {
+                          name: newTreatment.medicine,
+                          dosage: newTreatment.dosage,
+                          quantity: parseInt(newTreatment.notes) || 1,
+                          route: newTreatment.duration
+                        };
+                        setFormData({
+                          ...formData,
+                          medicationsUsed: [...formData.medicationsUsed, newMedication]
+                        });
+                        setNewTreatment({ id: "", medicine: "", dosage: "", duration: "", notes: "" });
+                      }
+                    }}
                     variant="secondary"
                     className="w-full"
+                    disabled={!newTreatment.medicine || !newTreatment.dosage || !newTreatment.notes || !newTreatment.duration}
                   >
                     <Plus className="ml-2 h-4 w-4" />
                     إضافة دواء
@@ -868,64 +1078,115 @@ export function MobileClinicDialog({ open, onOpenChange, clinic, onSave }: Mobil
                 </CardContent>
               </Card>
 
+              {/* ملاحظات العلاج */}
               <div className="space-y-2">
                 <Label>ملاحظات العلاج</Label>
                 <Textarea
                   value={formData.treatment}
-                  onChange={(e) => setFormData({ ...formData, treatment: e.target.value })}
+                  onChange={(e) => {
+                    setFormData({ ...formData, treatment: e.target.value });
+                    // Clear error when user starts typing
+                    clearFieldError('treatment');
+                  }}
                   placeholder="أدخل تفاصيل العلاج والملاحظات"
                   rows={3}
+                  className={errors.treatment ? 'border-red-500' : ''}
                 />
+                {errors.treatment && (
+                  <p className="text-red-500 text-sm font-medium mt-1">{errors.treatment}</p>
+                )}
               </div>
             </TabsContent>
 
-            <TabsContent value="followup" className="tabs-content-modern">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>حالة الطلب</Label>
-                  <Select
-                    value={formData.request.situation}
-                    onValueChange={(value: "Open" | "Closed" | "Pending") => 
-                      setFormData({
-                        ...formData,
-                        request: { ...formData.request, situation: value }
-                      })
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Open">مفتوح</SelectItem>
-                      <SelectItem value="Closed">مغلق</SelectItem>
-                      <SelectItem value="Pending">معلق</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <ModernDatePicker
-                    label="تاريخ المتابعة"
-                    placeholder="اختر تاريخ المتابعة"
-                    value={formData.followUpDate}
-                    onChange={(date) => setFormData({ ...formData, followUpDate: date || undefined })}
-                    variant="modern"
-                    size="md"
-                    minDate={new Date()}
-                  />
-                </div>
-              </div>
-
+            <TabsContent value="followup" className="space-y-4">
+              {/* معلومات الطلب */}
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-lg">الوصفات الطبية</CardTitle>
+                  <CardTitle className="text-lg">معلومات الطلب</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="space-y-2">
+                      <Label>تاريخ الطلب</Label>
+                      <Input
+                        type="date"
+                        value={formData.request.date}
+                        onChange={(e) => setFormData({
+                          ...formData,
+                          request: { ...formData.request, date: e.target.value }
+                        })}
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>حالة الطلب</Label>
+                      <Select
+                        value={formData.request.situation}
+                        onValueChange={(value: "Open" | "Closed" | "Pending") => 
+                          setFormData({
+                            ...formData,
+                            request: { ...formData.request, situation: value }
+                          })
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Open">مفتوح</SelectItem>
+                          <SelectItem value="Closed">مغلق</SelectItem>
+                          <SelectItem value="Pending">معلق</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>تاريخ الإنجاز</Label>
+                      <Input
+                        type="date"
+                        value={formData.request.fulfillingDate}
+                        onChange={(e) => setFormData({
+                          ...formData,
+                          request: { ...formData.request, fulfillingDate: e.target.value }
+                        })}
+                        disabled={formData.request.situation !== "Closed"}
+                      />
+                    </div>
+                  </div>
+
+                  {/* ملخص حالة الطلب */}
+                  <div className="p-3 border border-gray-200 rounded-md bg-gray-50">
+                    <div className="flex items-center justify-between text-sm">
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium text-gray-700">حالة الطلب:</span>
+                        <span className={
+                          formData.request.situation === "Open" ? "text-green-700 font-medium" :
+                          formData.request.situation === "Closed" ? "text-gray-700 font-medium" :
+                          "text-yellow-700 font-medium"
+                        }>
+                          {formData.request.situation === "Open" ? "مفتوح" :
+                           formData.request.situation === "Closed" ? "مغلق" : "معلق"}
+                        </span>
+                      </div>
+                      {formData.request.fulfillingDate && (
+                        <span className="text-gray-600">أُنجز في: {formData.request.fulfillingDate}</span>
+                      )}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* الوصفات الطبية */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">الوصفات والتوصيات</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="flex gap-2">
                     <Input
                       value={newPrescription}
                       onChange={(e) => setNewPrescription(e.target.value)}
-                      placeholder="أدخل وصفة طبية"
+                      placeholder="أدخل وصفة طبية أو توصية"
                       onKeyPress={(e) => {
                         if (e.key === 'Enter') {
                           e.preventDefault();
@@ -937,29 +1198,34 @@ export function MobileClinicDialog({ open, onOpenChange, clinic, onSave }: Mobil
                       type="button"
                       onClick={addPrescription}
                       variant="secondary"
+                      disabled={!newPrescription.trim()}
                     >
                       <Plus className="h-4 w-4" />
                     </Button>
                   </div>
 
-                  <div className="space-y-2">
-                    {formData.prescriptions.map((prescription, index) => (
-                      <div
-                        key={index}
-                        className="flex items-center justify-between p-2 rounded-lg bg-muted/50"
-                      >
-                        <span className="text-sm">{prescription}</span>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => removePrescription(index)}
+                  {formData.prescriptions.length > 0 && (
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium text-gray-700">الوصفات المضافة ({formData.prescriptions.length}):</Label>
+                      {formData.prescriptions.map((prescription, index) => (
+                        <div
+                          key={index}
+                          className="flex items-center justify-between p-3 border border-gray-200 rounded-md bg-gray-50 hover:bg-gray-100 transition-colors"
                         >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    ))}
-                  </div>
+                          <span className="text-sm text-gray-900">{prescription}</span>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => removePrescription(index)}
+                            className="text-red-500 hover:text-red-700 hover:bg-red-50 h-8 w-8 p-0 ml-2"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </CardContent>
               </Card>
 
@@ -990,6 +1256,7 @@ export function MobileClinicDialog({ open, onOpenChange, clinic, onSave }: Mobil
             form="mobile-clinic-form"
             variant="default"
             leftIcon={<Activity className="w-4 h-4" />}
+            loading={isSubmitting}
           >
             {clinic ? "حفظ التعديلات" : "إضافة الزيارة"}
           </LoadingButton>

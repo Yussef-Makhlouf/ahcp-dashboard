@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { MainLayout } from "@/components/layout/main-layout";
 import { DataTable } from "@/components/data-table/data-table";
+import { ImportExportManager } from "@/components/import-export/import-export-manager";
 import { Button } from "@/components/ui/button";
 import { 
   Plus, 
@@ -12,7 +13,6 @@ import {
   ShoppingCart,
   Archive,
   BarChart3,
-  Filter,
   Download,
   Upload
 } from "lucide-react";
@@ -32,6 +32,7 @@ import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { InventoryDialog } from "./components/inventory-dialog";
+import { usePermissions } from "@/lib/hooks/usePermissions";
 import {
   BarChart,
   Bar,
@@ -181,6 +182,7 @@ export default function InventoryPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState<InventoryItem | undefined>(undefined);
   const [activeTab, setActiveTab] = useState("all");
+  const { checkPermission } = usePermissions();
 
   const columns: ColumnDef<InventoryItem>[] = [
     {
@@ -400,21 +402,28 @@ export default function InventoryPage() {
             </p>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" size="sm">
-              <Upload className="ml-2 h-4 w-4" />
-              استيراد
-            </Button>
+            <ImportExportManager
+              exportEndpoint="/inventory/export"
+              importEndpoint="/inventory/import"
+              templateEndpoint="/inventory/template"
+              title="المخزون"
+              queryKey="inventory"
+              acceptedFormats={[".csv", ".xlsx"]}
+              maxFileSize={10}
+            />
             <Button variant="outline" size="sm">
               <ShoppingCart className="ml-2 h-4 w-4" />
               طلب شراء
             </Button>
-            <Button onClick={() => {
-              setSelectedItem(undefined);
-              setIsDialogOpen(true);
-            }}>
-              <Plus className="ml-2 h-4 w-4" />
-              إضافة صنف جديد
-            </Button>
+            {checkPermission({ module: 'clients', action: 'create' }) && (
+              <Button onClick={() => {
+                setSelectedItem(undefined);
+                setIsDialogOpen(true);
+              }}>
+                <Plus className="ml-2 h-4 w-4" />
+                إضافة صنف جديد
+              </Button>
+            )}
           </div>
         </div>
 

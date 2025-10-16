@@ -2,8 +2,7 @@
 const nextConfig = {
   // إعدادات البيئة
   env: {
-    NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api',
-    NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
+    NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || 'https://ahcp-backend.vercel.app/api',
   },
   
   // إعدادات CORS محسنة
@@ -25,15 +24,25 @@ const nextConfig = {
           { key: 'X-Frame-Options', value: 'DENY' },
           { key: 'X-Content-Type-Options', value: 'nosniff' },
           { key: 'Referrer-Policy', value: 'origin-when-cross-origin' },
+          { key: 'X-XSS-Protection', value: '1; mode=block' },
+          { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=()' },
         ],
       },
     ];
   },
   
   // إعدادات إضافية محسنة
-  reactStrictMode: false, // تجنب double rendering في التطوير
-  swcMinify: true,
+  reactStrictMode: process.env.NODE_ENV === 'development', // Enable in development, disable in production
   poweredByHeader: false, // إخفاء X-Powered-By header
+  
+  // Production optimizations
+  compress: true,
+  productionBrowserSourceMaps: false, // Disable source maps in production for security
+  
+  // إعدادات Turbopack
+  turbopack: {
+    root: './',
+  },
   
   // تحسين الأداء
   experimental: {

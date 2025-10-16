@@ -9,7 +9,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Edit, MoreHorizontal, Trash2, Eye } from "lucide-react";
+import { Edit, MoreHorizontal, Trash2 } from "lucide-react";
+import { usePermissions } from "@/lib/hooks/usePermissions";
 import type { Laboratory } from "@/types";
 
 interface GetColumnsProps {
@@ -23,170 +24,336 @@ export function getColumns({
   onDelete,
   onView
 }: GetColumnsProps): ColumnDef<Laboratory>[] {
+  const { checkPermission } = usePermissions();
   
   return [
+    // Serial Number
     {
-      accessorKey: "sampleCode",
-      header: "رمز العينة",
+      accessorKey: "serialNo",
+      header: "Serial",
       cell: ({ row }) => (
-        <div className="font-medium">#{row.getValue("sampleCode")}</div>
+        <div className="font-medium">#{row.getValue("serialNo")}</div>
       ),
+      size: 80,
     },
+    // Date
     {
       accessorKey: "date",
-      header: "تاريخ الجمع",
+      header: "Date",
       cell: ({ row }) => {
         const date = new Date(row.getValue("date"));
-        return date.toLocaleDateString("ar-EG");
+        return (
+          <div className="text-sm">
+            {date.toLocaleDateString("ar-EG")}
+          </div>
+        );
       },
+      size: 100,
     },
+    // Sample Code
     {
-      accessorKey: "client.name",
-      header: "اسم المالك",
+      accessorKey: "sampleCode",
+      header: "Sample Code",
       cell: ({ row }) => (
-        <div className="font-medium">{row.original.client?.name || 'غير محدد'}</div>
+        <div className="font-mono text-sm font-medium">{row.getValue("sampleCode")}</div>
       ),
+      size: 120,
     },
+    // Name
+    {
+      accessorKey: "clientName",
+      header: "Name",
+      cell: ({ row }) => (
+        <div className="font-medium">{row.getValue("clientName")}</div>
+      ),
+      size: 150,
+    },
+    // ID
+    {
+      accessorKey: "clientId",
+      header: "ID",
+      cell: ({ row }) => (
+        <div className="font-mono text-sm">{row.getValue("clientId")}</div>
+      ),
+      size: 120,
+    },
+    // Birth Date
+    {
+      accessorKey: "clientBirthDate",
+      header: "Birth Date",
+      cell: ({ row }) => {
+        const birthDate = row.getValue("clientBirthDate") as string;
+        if (!birthDate) return <span className="text-muted-foreground">غير محدد</span>;
+        const date = new Date(birthDate);
+        return (
+          <div className="text-sm">
+            {date.toLocaleDateString("ar-EG")}
+          </div>
+        );
+      },
+      size: 100,
+    },
+    // Phone
+    {
+      accessorKey: "clientPhone",
+      header: "Phone",
+      cell: ({ row }) => (
+        <div className="font-mono text-sm">{row.getValue("clientPhone")}</div>
+      ),
+      size: 120,
+    },
+    // Location
     {
       accessorKey: "farmLocation",
-      header: "موقع المزرعة",
+      header: "Location",
       cell: ({ row }) => (
-        <div className="text-sm">{row.getValue("farmLocation") || 'غير محدد'}</div>
+        <div className="max-w-[120px] truncate" title={row.getValue("farmLocation")}>
+          {row.getValue("farmLocation")}
+        </div>
       ),
+      size: 120,
     },
+    // N (North Coordinate)
+    {
+      accessorKey: "coordinates.latitude",
+      header: "N",
+      cell: ({ row }) => {
+        const coords = row.original.coordinates;
+        return (
+          <div className="font-mono text-xs">
+            {coords?.latitude ? coords.latitude.toFixed(4) : '0'}
+          </div>
+        );
+      },
+      size: 80,
+    },
+    // E (East Coordinate)
+    {
+      accessorKey: "coordinates.longitude",
+      header: "E",
+      cell: ({ row }) => {
+        const coords = row.original.coordinates;
+        return (
+          <div className="font-mono text-xs">
+            {coords?.longitude ? coords.longitude.toFixed(4) : '0'}
+          </div>
+        );
+      },
+      size: 80,
+    },
+    // Sheep
+    {
+      accessorKey: "speciesCounts.sheep",
+      header: "Sheep",
+      cell: ({ row }) => {
+        const counts = row.original.speciesCounts;
+        return (
+          <div className="text-sm font-medium text-center">
+            {counts?.sheep || 0}
+          </div>
+        );
+      },
+      size: 70,
+    },
+    // Goats
+    {
+      accessorKey: "speciesCounts.goats",
+      header: "Goats",
+      cell: ({ row }) => {
+        const counts = row.original.speciesCounts;
+        return (
+          <div className="text-sm font-medium text-center">
+            {counts?.goats || 0}
+          </div>
+        );
+      },
+      size: 70,
+    },
+    // Camel
+    {
+      accessorKey: "speciesCounts.camel",
+      header: "Camel",
+      cell: ({ row }) => {
+        const counts = row.original.speciesCounts;
+        return (
+          <div className="text-sm font-medium text-center">
+            {counts?.camel || 0}
+          </div>
+        );
+      },
+      size: 70,
+    },
+    // Horse
+    {
+      accessorKey: "speciesCounts.horse",
+      header: "Horse",
+      cell: ({ row }) => {
+        const counts = row.original.speciesCounts;
+        return (
+          <div className="text-sm font-medium text-center">
+            {counts?.horse || 0}
+          </div>
+        );
+      },
+      size: 70,
+    },
+    // Cattle
+    {
+      accessorKey: "speciesCounts.cattle",
+      header: "Cattle",
+      cell: ({ row }) => {
+        const counts = row.original.speciesCounts;
+        return (
+          <div className="text-sm font-medium text-center">
+            {counts?.cattle || 0}
+          </div>
+        );
+      },
+      size: 70,
+    },
+    // Other (Species)
+    {
+      accessorKey: "speciesCounts.other",
+      header: "Other (Species)",
+      cell: ({ row }) => {
+        const counts = row.original.speciesCounts;
+        return (
+          <div className="max-w-[100px] truncate text-sm" title={counts?.other}>
+            {counts?.other || 'لا يوجد'}
+          </div>
+        );
+      },
+      size: 120,
+    },
+    // Sample Collector
     {
       accessorKey: "collector",
-      header: "جامع العينة",
+      header: "Sample Collector",
       cell: ({ row }) => (
-        <div className="text-sm">{row.getValue("collector") || 'غير محدد'}</div>
+        <div className="font-medium text-sm">{row.getValue("collector")}</div>
       ),
+      size: 140,
     },
+    // Sample Type
     {
       accessorKey: "sampleType",
-      header: "نوع العينة",
-      cell: ({ row }) => (
-        <Badge variant="secondary">{row.getValue("sampleType") || 'غير محدد'}</Badge>
-      ),
-    },
-    {
-      accessorKey: "testType",
-      header: "نوع الفحص",
-      cell: ({ row }) => (
-        <Badge variant="outline">{row.getValue("testType") || 'غير محدد'}</Badge>
-      ),
-    },
-    {
-      accessorKey: "testStatus",
-      header: "حالة الفحص",
+      header: "Sample Type",
       cell: ({ row }) => {
-        const status = row.getValue("testStatus") as string;
-        const statusColors = {
-          "Pending": "bg-yellow-500 text-white border-yellow-600",
-          "In Progress": "bg-blue-500 text-white border-blue-600",
-          "Completed": "bg-green-500 text-white border-green-600",
-          "Failed": "bg-red-500 text-white border-red-600",
-        };
-        const labels = {
-          "Pending": "معلق",
-          "In Progress": "قيد التنفيذ",
-          "Completed": "مكتمل",
-          "Failed": "فاشل",
+        const type = row.getValue("sampleType") as string;
+        const typeColors: Record<string, string> = {
+          "Blood": "bg-red-100 text-red-800 border-red-200",
+          "Serum": "bg-blue-100 text-blue-800 border-blue-200",
+          "Urine": "bg-yellow-100 text-yellow-800 border-yellow-200",
+          "Feces": "bg-green-100 text-green-800 border-green-200",
+          "Milk": "bg-purple-100 text-purple-800 border-purple-200",
+          "Tissue": "bg-orange-100 text-orange-800 border-orange-200",
+          "Swab": "bg-pink-100 text-pink-800 border-pink-200",
+          "Hair": "bg-gray-100 text-gray-800 border-gray-200",
+          "Skin": "bg-indigo-100 text-indigo-800 border-indigo-200",
         };
         return (
-          <Badge className={statusColors[status as keyof typeof statusColors] || "bg-gray-500 text-white border-gray-600"}>
-            {labels[status as keyof typeof labels] || status || 'غير محدد'}
+          <Badge className={typeColors[type] || "bg-gray-100 text-gray-800 border-gray-200"}>
+            {type}
           </Badge>
         );
       },
+      size: 110,
     },
+    // Samples Number (رمز جامع العينة)
     {
-      accessorKey: "result",
-      header: "النتيجة",
-      cell: ({ row }) => {
-        const result = row.getValue("result") as string;
-        const resultColors = {
-          "Positive": "bg-red-500 text-white border-red-600",
-          "Negative": "bg-green-500 text-white border-green-600",
-          "Inconclusive": "bg-yellow-500 text-white border-yellow-600",
-        };
-        const labels = {
-          "Positive": "إيجابي",
-          "Negative": "سلبي",
-          "Inconclusive": "غير حاسم",
-        };
-        
-        if (!result) {
-          return <Badge variant="outline">غير متوفر</Badge>;
-        }
-        
-        return (
-          <Badge className={resultColors[result as keyof typeof resultColors] || "bg-gray-500 text-white border-gray-600"}>
-            {labels[result as keyof typeof labels] || result}
-          </Badge>
-        );
-      },
-    },
-    {
-      accessorKey: "priority",
-      header: "الأولوية",
-      cell: ({ row }) => {
-        const priority = row.getValue("priority") as string;
-        const priorityColors = {
-          "High": "bg-red-500 text-white border-red-600",
-          "Medium": "bg-yellow-500 text-white border-yellow-600",
-          "Low": "bg-green-500 text-white border-green-600",
-        };
-        const labels = {
-          "High": "عالية",
-          "Medium": "متوسطة",
-          "Low": "منخفضة",
-        };
-        return (
-          <Badge className={priorityColors[priority as keyof typeof priorityColors] || "bg-gray-500 text-white border-gray-600"}>
-            {labels[priority as keyof typeof labels] || priority || 'غير محدد'}
-          </Badge>
-        );
-      },
-    },
-    {
-      accessorKey: "laboratoryTechnician",
-      header: "فني المختبر",
+      accessorKey: "sampleNumber",
+      header: "Samples Number",
       cell: ({ row }) => (
-        <div className="text-sm">{row.getValue("laboratoryTechnician") || 'غير محدد'}</div>
+        <div className="font-mono text-sm">{row.getValue("sampleNumber")}</div>
       ),
+      size: 130,
+    },
+    // Positive Cases
+    {
+      accessorKey: "positiveCases",
+      header: "Positive Cases",
+      cell: ({ row }) => {
+        const positive = row.getValue("positiveCases") as number;
+        return (
+          <Badge className={positive > 0 ? "bg-red-100 text-red-800 border-red-200" : "bg-green-100 text-green-800 border-green-200"}>
+            {positive}
+          </Badge>
+        );
+      },
+      size: 120,
+    },
+    // Negative Cases
+    {
+      accessorKey: "negativeCases",
+      header: "Negative Cases",
+      cell: ({ row }) => {
+        const negative = row.getValue("negativeCases") as number;
+        return (
+          <Badge className="bg-blue-100 text-blue-800 border-blue-200">
+            {negative}
+          </Badge>
+        );
+      },
+      size: 120,
+    },
+    // Remarks
+    {
+      accessorKey: "remarks",
+      header: "Remarks",
+      cell: ({ row }) => {
+        const remarks = row.getValue("remarks") as string;
+        return (
+          <div className="max-w-[150px] truncate" title={remarks}>
+            {remarks || 'لا توجد ملاحظات'}
+          </div>
+        );
+      },
+      size: 150,
     },
     {
       id: "actions",
       header: "الإجراءات",
-      cell: ({ row }) => (
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="h-8 w-8 p-0">
-              <span className="sr-only">فتح القائمة</span>
-              <MoreHorizontal className="h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            {onView && (
-              <DropdownMenuItem onClick={() => onView(row.original)}>
-                <Eye className="mr-2 h-4 w-4" />
-                عرض
-              </DropdownMenuItem>
+      cell: ({ row }) => {
+        const canEdit = checkPermission({ module: 'laboratories', action: 'edit' });
+        const canDelete = checkPermission({ module: 'laboratories', action: 'delete' });
+        
+        return (
+          <div className="flex items-center gap-2">
+            {/* Always show Eye icon for viewing */}
+   
+            
+            {/* Show dropdown only if user has edit or delete permissions */}
+            {(canEdit || canDelete) && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" className="h-8 w-8 p-0">
+                    <span className="sr-only">فتح القائمة</span>
+                    <MoreHorizontal className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  {canEdit && (
+                    <DropdownMenuItem onClick={() => onEdit(row.original)}>
+                      <Edit className="mr-2 h-4 w-4" />
+                      تعديل
+                    </DropdownMenuItem>
+                  )}
+                  {canDelete && (
+                    <DropdownMenuItem
+                      onClick={() => onDelete(row.original)}
+                      className="text-red-600"
+                    >
+                      <Trash2 className="mr-2 h-4 w-4" />
+                      حذف
+                    </DropdownMenuItem>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
             )}
-            <DropdownMenuItem onClick={() => onEdit(row.original)}>
-              <Edit className="mr-2 h-4 w-4" />
-              تعديل
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={() => onDelete(row.original)}
-              className="text-red-600"
-            >
-              <Trash2 className="mr-2 h-4 w-4" />
-              حذف
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      ),
+          </div>
+        );
+      },
+      size: 100,
     },
   ];
 }

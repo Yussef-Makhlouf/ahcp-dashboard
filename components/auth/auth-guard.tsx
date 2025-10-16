@@ -21,47 +21,20 @@ export function AuthGuard({ children }: AuthGuardProps) {
       const userStr = typeof window !== 'undefined' ? localStorage.getItem('user') : null;
       const isAuth = checkAuth();
       
-      console.log('🔐 AuthGuard check:', { 
-        isAuth, 
-        hasUser: !!user, 
-        hasToken: !!token,
-        hasUserInLocalStorage: !!userStr,
-        userName: user?.name,
-        userRole: user?.role,
-        currentPath: window.location.pathname 
+      console.log('🔍 AuthGuard - Checking authentication:', {
+        isAuthenticated,
+        isAuth,
+        hasUser: !!user,
+        userRole: user?.role
       });
       
-      // التحقق من كل من Zustand state و localStorage
-      if ((!isAuth || !user) && (!token || !userStr)) {
-        console.log('❌ Not authenticated (no state and no localStorage), redirecting to login');
-        // حفظ الصفحة الحالية للعودة إليها بعد تسجيل الدخول
-        const currentPath = window.location.pathname;
-        if (currentPath !== '/login') {
-          router.replace(`/login?returnUrl=${encodeURIComponent(currentPath)}`);
-        }
+      if (!isAuth || !user) {
+        console.log('❌ AuthGuard - User not authenticated, redirecting to login');
+        router.push('/login');
         return;
       }
       
-      // إذا كانت البيانات موجودة في localStorage لكن ليس في state، حاول تحميلها
-      if ((!isAuth || !user) && token && userStr) {
-        console.log('⚠️ Data in localStorage but not in state, initializing...');
-        try {
-          const userData = JSON.parse(userStr);
-          useAuthStore.setState({
-            user: userData,
-            token,
-            refreshToken: localStorage.getItem('refreshToken'),
-            isAuthenticated: true,
-            isLoading: false,
-            error: null
-          });
-          console.log('✅ State initialized from localStorage');
-        } catch (error) {
-          console.error('Failed to parse user from localStorage:', error);
-        }
-      }
-      
-      console.log('✅ Authenticated, allowing access');
+      console.log('✅ AuthGuard - User authenticated, allowing access');
       setIsLoading(false);
     };
 

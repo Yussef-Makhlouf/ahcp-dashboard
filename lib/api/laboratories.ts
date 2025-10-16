@@ -80,13 +80,13 @@ export const laboratoriesApi = {
   },
 
   // Create new record
-  create: async (data: Omit<Laboratory, 'sampleCode'>): Promise<Laboratory> => {
+  create: async (data: any): Promise<Laboratory> => {
     try {
       const response = await api.post('/laboratories', data, {
         timeout: 30000,
       });
-      // Handle response structure: { success: true, data: {...} }
-      const recordData = (response as any).data || response;
+      // Handle response structure: { success: true, data: { record: {...} } }
+      const recordData = (response as any).data?.record || (response as any).data || response;
       return recordData;
     } catch (error: any) {
       console.error('Error creating record:', error);
@@ -95,13 +95,13 @@ export const laboratoriesApi = {
   },
 
   // Update record
-  update: async (sampleCode: string, data: Partial<Laboratory>): Promise<Laboratory> => {
+  update: async (sampleCode: string, data: any): Promise<Laboratory> => {
     try {
       const response = await api.put(`/laboratories/${sampleCode}`, data, {
         timeout: 30000,
       });
-      // Handle response structure: { success: true, data: {...} }
-      const recordData = (response as any).data || response;
+      // Handle response structure: { success: true, data: { record: {...} } }
+      const recordData = (response as any).data?.record || (response as any).data || response;
       return recordData;
     } catch (error: any) {
       console.error('Error updating record:', error);
@@ -110,9 +110,9 @@ export const laboratoriesApi = {
   },
 
   // Delete record
-  delete: async (sampleCode: string): Promise<void> => {
+  delete: async (id: string): Promise<void> => {
     try {
-      await api.delete(`/laboratories/${sampleCode}`, {
+      await api.delete(`/laboratories/${id}`, {
         timeout: 30000,
       });
     } catch (error: any) {
@@ -142,22 +142,20 @@ export const laboratoriesApi = {
     positiveCases: number;
     negativeCases: number;
     positivityRate: number;
+    pendingTests: number;
+    completedTests: number;
+    inProgressTests: number;
+    totalTestSamples: number;
     samplesByType?: Array<{ type: string; count: number }>;
     resultsByMonth?: Array<{ month: string; positive: number; negative: number }>;
   }> => {
     try {
-      const response = await api.get<{
-        totalSamples: number;
-        samplesThisMonth: number;
-        positiveCases: number;
-        negativeCases: number;
-        positivityRate: number;
-        samplesByType?: Array<{ type: string; count: number }>;
-        resultsByMonth?: Array<{ month: string; positive: number; negative: number }>;
-      }>('/laboratories/statistics', {
+      const response = await api.get('/laboratories/statistics', {
         timeout: 30000,
       });
-      return response;
+      
+      // Use the statistics response handler to extract data correctly
+      return handleStatisticsResponse(response);
     } catch (error: any) {
       console.error('Error fetching laboratories statistics:', error);
       // Return default values if API fails
@@ -167,6 +165,10 @@ export const laboratoriesApi = {
         positiveCases: 0,
         negativeCases: 0,
         positivityRate: 0,
+        pendingTests: 0,
+        completedTests: 0,
+        inProgressTests: 0,
+        totalTestSamples: 0,
       };
     }
   },
@@ -175,6 +177,73 @@ export const laboratoriesApi = {
   getSampleTypes: async (): Promise<string[]> => {
     const response = await api.get<{ data: string[] }>('/laboratories/sample-types');
     return response.data;
+  },
+
+  // Import from file
+  importFromFile: async (file: File): Promise<{
+    success: boolean;
+    message: string;
+    imported: number;
+    errors?: Array<{ row: number; error: string }>;
+  }> => {
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      const response = await api.post('/laboratories/import', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+        timeout: 120000, // 2 minutes for large files
+      });
+      
+      return response as any;
+    } catch (error: any) {
+      console.error('Error importing file:', error);
+      throw new Error(`Failed to import file: ${error.message || 'Unknown error'}`);
+    }
+  },
+
+  // Download template
+  downloadTemplate: async (): Promise<Blob> => {
+    try {
+      const response = await api.get('/laboratories/template', {
+        responseType: 'blob',
+        timeout: 30000,
+      });
+      return response as Blob;
+    } catch (error: any) {
+      console.error('Error downloading template:', error);
+      throw new Error(`Failed to download template: ${error.message || 'Unknown error'}`);
+    }
+  },
+
+  // Export to Excel
+  exportToExcel: async (sampleCodes?: string[]): Promise<Blob> => {
+    try {
+      const response = await api.post('/laboratories/export/excel', { sampleCodes }, {
+        responseType: 'blob',
+        timeout: 60000,
+      });
+      return response as Blob;
+    } catch (error: any) {
+      console.error('Error exporting Excel:', error);
+      throw new Error(`Failed to export Excel: ${error.message || 'Unknown error'}`);
+    }
+  },
+
+  // Export to PDF
+  exportToPdf: async (sampleCodes?: string[]): Promise<Blob> => {
+    try {
+      const response = await api.post('/laboratories/export/pdf', { sampleCodes }, {
+        responseType: 'blob',
+        timeout: 60000,
+      });
+      return response as Blob;
+    } catch (error: any) {
+      console.error('Error exporting PDF:', error);
+      throw new Error(`Failed to export PDF: ${error.message || 'Unknown error'}`);
+    }
   }
 };
 
