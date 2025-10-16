@@ -178,7 +178,12 @@ export function ImportExportManager({
         toast.success(`تم استيراد ${result.successRows} سجل بنجاح`);
         onImportSuccess?.();
       } else {
-        toast.error(`تم استيراد ${result.successRows} من ${result.totalRows} سجل`);
+        if (result.successRows > 0) {
+          toast.warning(`تم استيراد ${result.successRows} من ${result.totalRows} سجل بنجاح. ${result.errorRows} سجل فشل.`);
+        } else {
+          toast.error(`فشل في استيراد جميع السجلات (${result.totalRows} سجل). يرجى التحقق من صيغة الملف.`);
+        }
+        onImportSuccess?.(); // Refresh data even if some records failed
       }
 
     } catch (error: any) {
@@ -432,21 +437,35 @@ export function ImportExportManager({
 
               {importResult.errors.length > 0 && (
                 <div className="space-y-2">
-                  <h4 className="font-medium text-sm">الأخطاء:</h4>
-                  <div className="max-h-32 overflow-y-auto space-y-1">
-                    {importResult.errors.slice(0, 5).map((error, index) => (
-                      <div key={index} className="text-xs text-red-600 bg-red-50 p-2 rounded">
-                        <Badge variant="destructive" className="mr-1">
-                          صف {error.row}
-                        </Badge>
-                        {error.message}
+                  <h4 className="font-medium text-sm">الأخطاء ({importResult.errors.length}):</h4>
+                  <div className="max-h-40 overflow-y-auto space-y-1">
+                    {importResult.errors.slice(0, 10).map((error, index) => (
+                      <div key={index} className="text-xs text-red-600 bg-red-50 p-2 rounded border-l-2 border-red-400">
+                        <div className="flex items-start gap-2">
+                          <Badge variant="destructive" className="text-xs">
+                            صف {error.row}
+                          </Badge>
+                          <div className="flex-1">
+                            <div className="font-medium text-red-700 mb-1">
+                              {error.field === 'processing' ? 'خطأ في المعالجة' : error.field}
+                            </div>
+                            <div className="text-red-600 leading-relaxed">
+                              {error.message.includes('validation failed') 
+                                ? 'بيانات مطلوبة مفقودة أو غير صحيحة'
+                                : error.message}
+                            </div>
+                          </div>
+                        </div>
                       </div>
                     ))}
-                    {importResult.errors.length > 5 && (
-                      <div className="text-xs text-muted-foreground">
-                        و {importResult.errors.length - 5} أخطاء أخرى...
+                    {importResult.errors.length > 10 && (
+                      <div className="text-xs text-muted-foreground text-center p-2 bg-gray-50 rounded">
+                        و {importResult.errors.length - 10} أخطاء أخرى...
                       </div>
                     )}
+                  </div>
+                  <div className="text-xs text-blue-600 bg-blue-50 p-2 rounded">
+                    💡 نصيحة: تأكد من أن الملف يحتوي على جميع الأعمدة المطلوبة وأن البيانات صحيحة
                   </div>
                 </div>
               )}

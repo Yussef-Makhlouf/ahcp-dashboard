@@ -80,6 +80,24 @@ export function getColumns({
         );
       },
     },
+    // Birth Date
+    {
+      accessorKey: "client.birthDate",
+      header: "Birth Date",
+      cell: ({ row }) => {
+        const client = row.original.client;
+        const birthDate = typeof client === 'object' && client ? client.birthDate : undefined;
+        if (!birthDate) return <span className="text-muted-foreground">غير محدد</span>;
+        const date = new Date(birthDate);
+        return (
+          <div className="text-sm flex items-center gap-1">
+            <Calendar className="h-3 w-3" />
+            {date.toLocaleDateString("ar-EG")}
+          </div>
+        );
+      },
+      size: 120,
+    },
     // E, N (Coordinates)
     {
       id: "coordinates",
@@ -115,6 +133,20 @@ export function getColumns({
       cell: ({ row }) => (
         <Badge variant="secondary">{row.getValue("vehicleNo")}</Badge>
       ),
+    },
+    // Herd Location
+    {
+      accessorKey: "herdLocation",
+      header: "Herd Location",
+      cell: ({ row }) => {
+        const location = row.getValue("herdLocation") as string;
+        return (
+          <div className="max-w-[150px] truncate" title={location}>
+            {location || 'غير محدد'}
+          </div>
+        );
+      },
+      size: 150,
     },
     // Animal Counts - Sheep
     {
@@ -256,12 +288,18 @@ export function getColumns({
       header: "Health & Compliance",
       cell: ({ row }) => {
         const healthStatus = row.original.herdHealthStatus;
-        const compliance = row.original.complyingToInstructions;
+        const compliance = row.original.complyingToInstructions as unknown as string;
         
         const statusColors = {
           "Healthy": "bg-green-500 text-white",
           "Sick": "bg-red-500 text-white",
           "Under Treatment": "bg-yellow-500 text-white",
+        };
+        
+        const complianceColors = {
+          "Comply": "bg-green-500 text-white",
+          "Not Comply": "bg-red-500 text-white", 
+          "Partially Comply": "bg-yellow-500 text-white",
         };
         
         return (
@@ -270,7 +308,9 @@ export function getColumns({
               {healthStatus}
             </Badge>
             <div className="text-xs">
-              Complying: {compliance ? 'Yes' : 'No'}
+              <Badge className={complianceColors[compliance as keyof typeof complianceColors] || "bg-gray-500 text-white"}>
+                {compliance || 'غير محدد'}
+              </Badge>
             </div>
           </div>
         );

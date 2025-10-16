@@ -37,7 +37,7 @@ export const apiConfig = {
     },
     equineHealth: {
       export: `${API_BASE_URL}/import-export/equine-health/export`,
-      import: `${API_BASE_URL}/import-export/equine-health/import`,
+      import: `${API_BASE_URL}/import-export/equine-health/import-enhanced`,
       template: `${API_BASE_URL}/import-export/equine-health/template`
     }
   }

@@ -21,8 +21,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { ModernDatePicker } from "@/components/ui/modern-date-picker";
+import { SimpleDatePicker } from "@/components/ui/simple-date-picker";
 import { SupervisorSelect } from "@/components/ui/supervisor-select";
+import { VillageSelect } from "@/components/ui/village-select";
 import { CalendarIcon, Plus, Trash2, AlertCircle, CheckCircle2, User, Heart, Shield, Activity } from "lucide-react";
 import { useState } from "react";
 import { format } from "date-fns";
@@ -417,7 +418,7 @@ export function LaboratoryDialog({ open, onOpenChange, laboratory, onSave }: Lab
 
                 {/* Date */}
                 <div className="space-y-2">
-                  <ModernDatePicker
+                  <SimpleDatePicker
                     label="التاريخ *"
                     placeholder="اختر التاريخ"
                     value={formData.date}
@@ -507,7 +508,7 @@ export function LaboratoryDialog({ open, onOpenChange, laboratory, onSave }: Lab
 
                 {/* Client Birth Date */}
                 <div className="space-y-2">
-                  <ModernDatePicker
+                  <SimpleDatePicker
                     label="تاريخ الميلاد"
                     placeholder="اختر تاريخ الميلاد"
                     value={formData.clientBirthDate}

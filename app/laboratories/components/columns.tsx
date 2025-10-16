@@ -9,7 +9,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Edit, MoreHorizontal, Trash2 } from "lucide-react";
+import { Edit, MoreHorizontal, Trash2, Calendar, Eye } from "lucide-react";
 import { usePermissions } from "@/lib/hooks/usePermissions";
 import type { Laboratory } from "@/types";
 
@@ -92,6 +92,23 @@ export function getColumns({
         );
       },
       size: 100,
+    },
+    // Birth Date
+    {
+      accessorKey: "clientBirthDate",
+      header: "Birth Date",
+      cell: ({ row }) => {
+        const birthDate = row.getValue("clientBirthDate") as string;
+        if (!birthDate) return <span className="text-muted-foreground">غير محدد</span>;
+        const date = new Date(birthDate);
+        return (
+          <div className="text-sm flex items-center gap-1">
+            <Calendar className="h-3 w-3" />
+            {date.toLocaleDateString("ar-EG")}
+          </div>
+        );
+      },
+      size: 120,
     },
     // Phone
     {
@@ -320,7 +337,16 @@ export function getColumns({
         return (
           <div className="flex items-center gap-2">
             {/* Always show Eye icon for viewing */}
-   
+            {onView && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => onView(row.original)}
+                className="h-8 w-8 p-0 text-blue-600 hover:text-blue-800"
+              >
+                <Eye className="h-4 w-4" />
+              </Button>
+            )}
             
             {/* Show dropdown only if user has edit or delete permissions */}
             {(canEdit || canDelete) && (

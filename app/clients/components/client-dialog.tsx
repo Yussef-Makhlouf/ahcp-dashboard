@@ -23,7 +23,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { ModernDatePicker } from "@/components/ui/modern-date-picker";
+import { SimpleDatePicker } from "@/components/ui/simple-date-picker";
 import { 
   CalendarIcon, 
   MapPin, 
@@ -44,6 +44,7 @@ import { validateSaudiPhone, validatePhoneNumber, validateNationalId } from "@/l
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { EnhancedMobileTabs } from "@/components/ui/mobile-tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { VillageSelect } from "@/components/ui/village-select";
 import type { Client, Animal } from "@/types";
 import { entityToasts } from "@/lib/utils/toast-utils";
 import { clientsApi } from "@/lib/api/clients";
@@ -59,30 +60,22 @@ interface ClientDialogProps {
   onSave: (data: Client) => void;
 }
 
-const villages = [
-  "قرية النور",
-  "قرية السلام",
-  "قرية الأمل",
-  "قرية الخير",
-  "قرية الفردوس",
-  "قرية الرحمة",
-  "قرية البركة",
-];
+// Villages are now loaded dynamically from the API
 
 const availableServices = [
-  { code: "parasite_control", name: "مكافحة الطفيليات", icon: "🦠" },
-  { code: "vaccination", name: "التحصين", icon: "💉" },
-  { code: "mobile_clinic", name: "العيادة المتنقلة", icon: "🚑" },
-  { code: "equine_health", name: "صحة الخيول", icon: "🐎" },
-  { code: "laboratory", name: "المختبر", icon: "🔬" }
+  { code: "parasite_control", name: "parasite control", icon: "🦠" },
+  { code: "vaccination", name: "vaccination", icon: "💉" },
+  { code: "mobile_clinic", name: "mobile clinic", icon: "🚑" },
+  { code: "equine_health", name: "equine health", icon: "🐎" },
+  { code: "laboratory", name: "laboratory", icon: "🔬" }
 ];
 
 const animalTypes = [
-  "خيول",
-  "أغنام", 
-  "ماعز",
-  "أبقار",
-  "إبل"
+  "horses",
+  "sheep",
+  "goats",
+  "cattle",
+  "camel",
 ];
 
 export function ClientDialog({ open, onOpenChange, client, onSave }: ClientDialogProps) {
@@ -123,7 +116,7 @@ export function ClientDialog({ open, onOpenChange, client, onSave }: ClientDialo
   const [activeTab, setActiveTab] = useState("basic");
 
   const [newAnimal, setNewAnimal] = useState<Animal>({
-    animalType: "خيول",
+    animalType: "horses",
     breed: "",
     age: 0,
     gender: "ذكر",
@@ -160,14 +153,14 @@ export function ClientDialog({ open, onOpenChange, client, onSave }: ClientDialo
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
-    
+
     // Required fields validation
     if (!formData.name.trim()) {
       newErrors.name = "الاسم الكامل مطلوب";
     } else if (formData.name.trim().length < 2) {
       newErrors.name = "الاسم يجب أن يكون أكثر من حرفين";
     }
-    
+
     if (!formData.nationalId.trim()) {
       newErrors.nationalId = "الرقم القومي مطلوب";
     } else if (!validateNationalId(formData.nationalId)) {
@@ -374,7 +367,7 @@ export function ClientDialog({ open, onOpenChange, client, onSave }: ClientDialo
                   </FormField>
 
                   <FormField>
-                    <ModernDatePicker
+                    <SimpleDatePicker
                       label="تاريخ الميلاد"
                       placeholder="اختر تاريخ الميلاد"
                       value={formData.birthDate}
@@ -392,7 +385,7 @@ export function ClientDialog({ open, onOpenChange, client, onSave }: ClientDialo
                   </FormField>
 
                   <FormField>
-                    <FormLabel htmlFor="email">البريد الإلكتروني</FormLabel>
+                    <FormLabel htmlFor="email" >البريد الإلكتروني </FormLabel>
                     <Input
                       id="email"
                       type="email"
@@ -408,22 +401,13 @@ export function ClientDialog({ open, onOpenChange, client, onSave }: ClientDialo
 
                   <FormField>
                     <FormLabel htmlFor="village" required>القرية</FormLabel>
-                    <Select
+                    <VillageSelect
                       value={formData.village}
                       onValueChange={(value) => setFormData({ ...formData, village: value })}
-                    >
-                      <SelectTrigger className="form-select-enhanced">
-                        <SelectValue placeholder="اختر القرية" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {villages.map((village) => (
-                          <SelectItem key={village} value={village}>
-                            {village}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    {errors.village && <p className="error-message">{errors.village}</p>}
+                      placeholder="اختر القرية"
+                      error={errors.village}
+                      required
+                    />
                   </FormField>
 
                   <FormField>
@@ -501,6 +485,7 @@ export function ClientDialog({ open, onOpenChange, client, onSave }: ClientDialo
                         placeholder="مثال: 2"
                         min="0"
                       />
+       
                     </div>
 
                     <div className="space-y-2">

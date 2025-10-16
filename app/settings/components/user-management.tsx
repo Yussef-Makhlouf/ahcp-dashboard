@@ -41,8 +41,6 @@ import {
   Edit,
   Trash2,
   Eye,
-  ToggleLeft,
-  ToggleRight,
 } from "lucide-react";
 import { toast } from "sonner";
 import { ColumnDef } from "@tanstack/react-table";
@@ -115,8 +113,8 @@ export function UserManagement({ onRefresh }: UserManagementProps) {
       return;
     }
 
-    if (userType === 'supervisor' && !userForm.section) {
-      toast.error("يرجى اختيار القسم للمشرف");
+    if ((userType === 'supervisor' || userType === 'worker') && !userForm.section) {
+      toast.error("يرجى اختيار القسم");
       return;
     }
 
@@ -173,20 +171,6 @@ export function UserManagement({ onRefresh }: UserManagementProps) {
     }
   };
 
-  const handleToggleStatus = async (userId: string) => {
-    try {
-      const response = await api.put(`/users/${userId}/toggle-status`);
-
-      if ((response as any)?.success) {
-        toast.success("تم تحديث حالة المستخدم بنجاح");
-        loadUsers();
-      } else {
-        toast.error("حدث خطأ أثناء تحديث حالة المستخدم");
-      }
-    } catch (error) {
-      toast.error("حدث خطأ أثناء تحديث حالة المستخدم");
-    }
-  };
 
   const handleEditUser = (user: User) => {
     setEditingUser(user);
@@ -311,18 +295,6 @@ export function UserManagement({ onRefresh }: UserManagementProps) {
       },
     },
     {
-      accessorKey: "isActive",
-      header: "الحالة",
-      cell: ({ row }) => {
-        const isActive = row.getValue("isActive") as boolean;
-        return (
-          <Badge variant={isActive ? "secondary" : "secondary"} className="text-right">
-            {isActive ? "نشط" : "غير نشط"}
-          </Badge>
-        );
-      },
-    },
-    {
       id: "actions",
       header: "الإجراءات",
       cell: ({ row }) => {
@@ -350,20 +322,6 @@ export function UserManagement({ onRefresh }: UserManagementProps) {
                 title="حذف المستخدم"
               >
                 <Trash2 className="h-4 w-4 text-red-600" />
-              </Button>
-            )}
-            {currentUser?.role === 'super_admin' && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => handleToggleStatus(user._id)}
-                title={user.isActive ? "إلغاء تفعيل" : "تفعيل"}
-              >
-                {user.isActive ? (
-                  <ToggleRight className="h-4 w-4 text-green-600" />
-                ) : (
-                  <ToggleLeft className="h-4 w-4 text-gray-400" />
-                )}
               </Button>
             )}
           </div>
@@ -396,6 +354,28 @@ export function UserManagement({ onRefresh }: UserManagementProps) {
 
   return (
     <div className="space-y-6">
+      {/* Header */}
+      <div className="flex justify-between items-center">
+        <div className="flex gap-2">
+          <Button onClick={() => openCreateDialog('admin')} variant="outline">
+            <Shield className="mr-2 h-4 w-4" />
+            مدير نظام
+          </Button>
+          <Button onClick={() => openCreateDialog('supervisor')} variant="outline">
+            <UserCog className="mr-2 h-4 w-4" />
+            مشرف قسم
+          </Button>
+          <Button onClick={() => openCreateDialog('worker')}>
+            <Briefcase className="mr-2 h-4 w-4" />
+            عامل ميداني
+          </Button>
+        </div>
+        <div className="text-right">
+          <h2 className="text-2xl font-bold">إدارة المستخدمين</h2>
+          <p className="text-muted-foreground">إنشاء وإدارة مستخدمي النظام</p>
+        </div>
+      </div>
+
       {/* Quick Actions */}
       <div className="grid gap-4 md:grid-cols-3">
         <Card className="cursor-pointer hover:shadow-md transition-shadow" 
@@ -432,7 +412,7 @@ export function UserManagement({ onRefresh }: UserManagementProps) {
             </div>
             <div className="text-right">
               <h3 className="font-semibold">إضافة عامل ميداني</h3>
-              <p className="text-sm text-muted-foreground">عامل عام بدون قسم محدد</p>
+              <p className="text-sm text-muted-foreground">عامل ميداني في قسم محدد</p>
             </div>
           </CardContent>
         </Card>
@@ -504,7 +484,7 @@ export function UserManagement({ onRefresh }: UserManagementProps) {
               />
             </div>
 
-            {userType === 'supervisor' && (
+            {(userType === 'supervisor' || userType === 'worker') && (
               <div className="space-y-2">
                 <Label htmlFor="section" className="text-right">القسم</Label>
                 <SectionSelect

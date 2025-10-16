@@ -9,7 +9,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Edit, MoreHorizontal, Trash2, Eye } from "lucide-react";
+import { Edit, MoreHorizontal, Trash2, Eye, Calendar } from "lucide-react";
 import { usePermissions } from "@/lib/hooks/usePermissions";
 import type { EquineHealth } from "@/types";
 
@@ -56,22 +56,29 @@ export function getColumns({
       ),
     },
     {
-      accessorKey: "client.birthDate",
-      header: "Birth Date",
-      cell: ({ row }) => {
-        const client = row.original.client as any;
-        const birthDate = client?.birthDate;
-        if (!birthDate) return 'غير محدد';
-        const date = new Date(birthDate);
-        return date.toLocaleDateString("ar-EG");
-      },
-    },
-    {
       accessorKey: "client.phone",
       header: "Phone",
       cell: ({ row }) => (
         <div className="font-mono text-sm">{row.original.client?.phone || 'غير محدد'}</div>
       ),
+    },
+    // Birth Date
+    {
+      accessorKey: "client.birthDate",
+      header: "Birth Date",
+      cell: ({ row }) => {
+        const client = row.original.client as any;
+        const birthDate = client?.birthDate;
+        if (!birthDate) return <span className="text-muted-foreground">غير محدد</span>;
+        const date = new Date(birthDate);
+        return (
+          <div className="text-sm flex items-center gap-1">
+            <Calendar className="h-3 w-3" />
+            {date.toLocaleDateString("ar-EG")}
+          </div>
+        );
+      },
+      size: 120,
     },
     {
       accessorKey: "farmLocation",

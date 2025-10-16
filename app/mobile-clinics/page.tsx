@@ -152,6 +152,15 @@ const tableColumns = [
     render: (value: any, record: MobileClinic) => record.client?.name || "-",
   },
   {
+    key: "client.birthDate",
+    title: "تاريخ ميلاد المربي",
+    render: (value: any, record: MobileClinic) => {
+      const birthDate = record.client?.birthDate;
+      return birthDate ? formatDate(birthDate) : "-";
+    },
+    width: "140px",
+  },
+  {
     key: "farmLocation",
     title: "موقع المزرعة",
     width: "140px",

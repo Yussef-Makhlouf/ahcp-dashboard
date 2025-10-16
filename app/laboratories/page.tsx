@@ -134,6 +134,15 @@ const tableColumns = [
     width: "140px",
   },
   {
+    key: "clientBirthDate",
+    title: "تاريخ ميلاد المربي",
+    render: (value: any, record: Laboratory) => {
+      const birthDate = record.clientBirthDate;
+      return birthDate ? formatDate(birthDate) : "-";
+    },
+    width: "140px",
+  },
+  {
     key: "date",
     title: "تاريخ الجمع",
     render: (value: string) => formatDate(value),

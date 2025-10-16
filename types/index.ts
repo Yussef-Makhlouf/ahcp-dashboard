@@ -1,3 +1,11 @@
+// API Response Types
+export interface ApiResponse<T = any> {
+  success: boolean;
+  data: T;
+  message?: string;
+  error?: string;
+}
+
 // Owner/Client Types
 export interface Owner {
   name: string;
@@ -29,6 +37,16 @@ export interface Client {
   totalAnimals?: number;
   healthyAnimalsCount?: number;
   animalsByType?: Record<string, number>;
+  // Aggregated fields from all forms
+  servicesReceived?: string[];
+  birthDateFromForms?: string;
+  totalVisits?: number;
+  lastServiceDate?: string;
+  mobileClinicCount?: number;
+  vaccinationCount?: number;
+  equineHealthCount?: number;
+  laboratoryCount?: number;
+  parasiteControlCount?: number;
   // Timestamps
   createdAt?: string;
   updatedAt?: string;
@@ -330,6 +348,7 @@ export interface MobileClinic {
     phone: string;
     village?: string;
     detailedAddress?: string;
+    birthDate?: string;
   };
   farmLocation: string;
   coordinates?: {

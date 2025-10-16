@@ -79,12 +79,30 @@ export function getColumns({
         );
       },
     },
+    // Birth Date
+    {
+      accessorKey: "client.birthDate",
+      header: "Birth Date",
+      cell: ({ row }) => {
+        const client = row.original.client;
+        const birthDate = client?.birthDate;
+        if (!birthDate) return <span className="text-muted-foreground">غير محدد</span>;
+        const date = new Date(birthDate);
+        return (
+          <div className="text-sm flex items-center gap-1">
+            <Calendar className="h-3 w-3" />
+            {date.toLocaleDateString("ar-EG")}
+          </div>
+        );
+      },
+      size: 120,
+    },
     // Location
     {
       accessorKey: "farmLocation",
       header: "Location",
       cell: ({ row }) => (
-        <div className="text-sm">{row.getValue("farmLocation")}</div>
+        <div className="text-sm">{row.getValue("farmLocation") || 'غير محدد'}</div>
       ),
     },
     // N Coordinate, E Coordinate

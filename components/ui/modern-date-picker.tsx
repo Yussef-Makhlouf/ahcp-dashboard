@@ -32,10 +32,10 @@ const ARABIC_MONTHS = [
 const ARABIC_DAYS = ["الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت"];
 const ARABIC_DAYS_SHORT = ["أح", "إث", "ثل", "أر", "خم", "جم", "سب"];
 
-// دالة لتوليد قائمة السنين
-const generateYearOptions = (currentYear: number, range: number = 10) => {
+// دالة لتوليد قائمة السنين (من 1900 إلى 2024)
+const generateYearOptions = () => {
   const years = [];
-  for (let i = currentYear - range; i <= currentYear + range; i++) {
+  for (let i = 2024; i >= 1900; i--) {
     years.push(i);
   }
   return years;
@@ -66,7 +66,7 @@ function ModernCalendar({
   const [rangeStart, setRangeStart] = React.useState<Date | null>(null);
   
   // قائمة السنين المتاحة
-  const availableYears = generateYearOptions(new Date().getFullYear(), 15);
+  const availableYears = generateYearOptions();
 
   const monthStart = startOfMonth(currentMonth);
   const monthEnd = endOfMonth(currentMonth);
@@ -179,10 +179,10 @@ function ModernCalendar({
             value={currentMonth.getFullYear().toString()}
             onValueChange={handleYearChange}
           >
-            <SelectTrigger className="w-20 h-8 text-sm">
+            <SelectTrigger className="w-24 h-8 text-sm">
               <SelectValue />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="max-h-60">
               {availableYears.map((year) => (
                 <SelectItem key={year} value={year.toString()}>
                   {year}

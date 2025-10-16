@@ -40,8 +40,11 @@ import { parasiteControlApi } from "@/lib/api/parasite-control";
 import type { ParasiteControl } from "@/types";
 import { validateEgyptianPhone, validateSaudiPhone, validatePhoneNumber, validateNationalId } from "@/lib/utils";
 import { User, Heart, Shield, Activity } from "lucide-react";
-import { ModernDatePicker } from "@/components/ui/modern-date-picker";
+import { SimpleDatePicker } from "@/components/ui/simple-date-picker";
 import { SupervisorSelect } from "@/components/ui/supervisor-select";
+import { VillageSelect } from "@/components/ui/village-select";
+import { ClientSelector } from "@/components/ui/client-selector";
+import { useClientData } from "@/lib/hooks/use-client-data";
 import { entityToasts } from "@/lib/utils/toast-utils";
 import { useFormValidation } from "@/lib/hooks/use-form-validation";
 import { ValidatedInput } from "@/components/ui/validated-input";
@@ -52,11 +55,13 @@ const formSchema = z.object({
   serialNo: z.string().min(1, "رقم السجل مطلوب"),
   date: z.string().min(1, "التاريخ مطلوب"),
   client: z.object({
+    _id: z.string().optional(),
     name: z.string().min(1, "اسم العميل مطلوب"),
     nationalId: z.string().min(1, "رقم الهوية مطلوب"),
     phone: z.string().min(1, "رقم الهاتف مطلوب"),
     village: z.string().default(""),
     detailedAddress: z.string().default(""),
+    birthDate: z.string().optional(),
   }),
   herdLocation: z.string().min(1, "موقع القطيع مطلوب"),
   coordinates: z.object({
@@ -105,11 +110,11 @@ const formSchema = z.object({
     category: z.string().min(1, "فئة المبيد مطلوبة").default("Pour-on"),
   }),
   animalBarnSizeSqM: z.number().min(0, "يجب أن يكون الحجم أكبر من أو يساوي 0").default(0),
-  breedingSites: z.string().default("غير محدد"),
+  breedingSites: z.enum(["Sprayed", "Not Available", "Not Applicable"]).default("Not Available"),
   parasiteControlVolume: z.number().min(0, "يجب أن تكون الكمية أكبر من أو تساوي 0").default(0),
   parasiteControlStatus: z.string().min(1, "حالة مكافحة الطفيليات مطلوبة").default("مكتمل"),
   herdHealthStatus: z.enum(["Healthy", "Sick", "Under Treatment"]).default("Healthy"),
-  complyingToInstructions: z.boolean().default(true),
+  complyingToInstructions: z.enum(["Comply", "Not Comply", "Partially Comply"]).default("Comply"),
   request: z.object({
     date: z.string().min(1, "تاريخ الطلب مطلوب").default(() => new Date().toISOString().split('T')[0]),
     situation: z.enum(["Open", "Closed", "Pending"]).default("Open"),
@@ -174,6 +179,7 @@ export function ParasiteControlDialog({
         phone: "",
         village: "",
         detailedAddress: "",
+        birthDate: undefined,
       },
       herdLocation: "",
       coordinates: { latitude: 0, longitude: 0 },
@@ -194,11 +200,11 @@ export function ParasiteControlDialog({
         category: "Pour-on",
       },
       animalBarnSizeSqM: 0,
-      breedingSites: "غير محدد",
+      breedingSites: "Not Available",
       parasiteControlVolume: 0,
       parasiteControlStatus: "مكتمل",
       herdHealthStatus: "Healthy",
-      complyingToInstructions: true,
+      complyingToInstructions: "Comply",
       request: {
         date: new Date().toISOString().split("T")[0],
         situation: "Open",
@@ -220,7 +226,8 @@ export function ParasiteControlDialog({
           phone: typeof item.client === 'object' ? item.client?.phone || '' : '',
           village: typeof item.client === 'object' ? item.client?.village || '' : '',
           detailedAddress: typeof item.client === 'object' ? item.client?.detailedAddress || '' : '',
-        },
+          birthDate: typeof item.client === 'object' ? item.client?.birthDate || '' : '',
+        },        
         herdLocation: item.herdLocation || '',
         coordinates: {
           latitude: item.coordinates?.latitude || 0,
@@ -243,48 +250,11 @@ export function ParasiteControlDialog({
           category: item.insecticide?.category || 'Pour-on',
         },
         animalBarnSizeSqM: item.animalBarnSizeSqM || 0,
-        breedingSites: (() => {
-          if (typeof item.breedingSites === 'string') {
-            return item.breedingSites;
-          } else if (Array.isArray(item.breedingSites)) {
-            // If it's an array, extract meaningful information
-            const sites = (item.breedingSites as any[]).map((site: any) => {
-              if (typeof site === 'string' && site.trim()) return site;
-              
-              const parts = [];
-              if (site.type && site.type !== 'Not Available' && site.type.trim()) {
-                parts.push(site.type);
-              }
-              if (site.area && site.area > 0) {
-                parts.push(`المساحة: ${site.area} م²`);
-              }
-              if (site.treatment && site.treatment.trim()) {
-                parts.push(`المعالجة: ${site.treatment}`);
-              }
-              
-              return parts.length > 0 ? parts.join(' - ') : null;
-            }).filter(Boolean);
-            
-            return sites.length > 0 ? sites.join(' | ') : 'غير محدد';
-          } else if (typeof item.breedingSites === 'object' && item.breedingSites !== null) {
-            // If it's an object, try to extract meaningful text
-            const obj = item.breedingSites as any;
-            if (obj.description) return obj.description;
-            if (obj.name) return obj.name;
-            if (obj.text) return obj.text;
-            if (obj.type && obj.type !== 'Not Available') return obj.type;
-            if (obj.area && obj.area > 0) return `منطقة: ${obj.area} م²`;
-            if (obj.treatment && obj.treatment.trim()) return `معالجة: ${obj.treatment}`;
-            // Otherwise convert to JSON string
-            return JSON.stringify(item.breedingSites);
-          } else {
-            return 'غير محدد';
-          }
-        })(),
+        breedingSites: item.breedingSites || 'Not Available',
         parasiteControlVolume: item.parasiteControlVolume || 0,
         parasiteControlStatus: item.parasiteControlStatus || 'مكتمل',
         herdHealthStatus: item.herdHealthStatus || 'Healthy',
-        complyingToInstructions: item.complyingToInstructions !== undefined ? item.complyingToInstructions : true,
+        complyingToInstructions: item.complyingToInstructions !== undefined ? item.complyingToInstructions : "Comply" as "Comply" | "Not Comply" | "Partially Comply",
         request: {
           date: item.request?.date ? item.request.date.split('T')[0] : new Date().toISOString().split('T')[0],
           situation: item.request?.situation || 'Open',
@@ -311,6 +281,7 @@ export function ParasiteControlDialog({
           phone: '',
           village: '',
           detailedAddress: '',
+          birthDate: undefined,
         },
         herdLocation: '',
         coordinates: { latitude: 0, longitude: 0 },
@@ -332,11 +303,11 @@ export function ParasiteControlDialog({
           category: 'Pour-on',
         },
         animalBarnSizeSqM: 0,
-        breedingSites: 'غير محدد',
+        breedingSites: 'Not Available',
         parasiteControlVolume: 0,
         parasiteControlStatus: 'مكتمل',
         herdHealthStatus: 'Healthy',
-        complyingToInstructions: true,
+        complyingToInstructions: "Comply" as "Comply" | "Not Comply" | "Partially Comply",
         request: {
           date: new Date().toISOString().split('T')[0],
           situation: 'Open',
@@ -507,7 +478,7 @@ export function ParasiteControlDialog({
         parasiteControlVolume: Number(data.parasiteControlVolume) || 0,
         parasiteControlStatus: data.parasiteControlStatus,
         herdHealthStatus: data.herdHealthStatus,
-        complyingToInstructions: Boolean(data.complyingToInstructions),
+        complyingToInstructions: data.complyingToInstructions as "Comply" | "Not Comply" | "Partially Comply",
         request: {
           date: data.request.date || data.date,
           situation: data.request.situation || 'Open',
@@ -668,7 +639,7 @@ export function ParasiteControlDialog({
                     <label className="text-sm font-medium after:content-['*'] after:text-red-500 after:ml-1">
                       التاريخ
                     </label>
-                    <ModernDatePicker
+                    <SimpleDatePicker
                       label=""
                       placeholder="اختر التاريخ"
                       value={form.watch('date') ? new Date(form.watch('date')) : undefined}
@@ -753,6 +724,42 @@ export function ParasiteControlDialog({
               </TabsContent>
 
               <TabsContent value="client" className="tabs-content-modern">
+                {/* Client Selector */}
+                <div className="mb-6">
+                  <FormField
+                    control={form.control as any}
+                    name="client._id"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>اختيار المربي</FormLabel>
+                        <FormControl>
+                          <ClientSelector
+                            value={field.value || ""}
+                            onValueChange={(client) => {
+                              if (client) {
+                                form.setValue("client._id", client._id);
+                                form.setValue("client.name", client.name);
+                                form.setValue("client.nationalId", client.nationalId || client.national_id || "");
+                                form.setValue("client.phone", client.phone || "");
+                                form.setValue("client.village", client.village || "");
+                                form.setValue("client.detailedAddress", client.detailedAddress || client.detailed_address || "");
+                                form.setValue("client.birthDate", client.birthDate || client.birth_date || "");
+                                // Clear any existing errors for client fields
+                                clearFieldError('client.name');
+                                clearFieldError('client.nationalId');
+                                clearFieldError('client.phone');
+                              }
+                            }}
+                            placeholder="ابحث عن المربي"
+                            showDetails
+                          />
+                        </FormControl>
+                        <FormMessage className="text-red-500 text-sm font-medium" />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {/* Client Name */}
                   <ValidatedInput
@@ -819,7 +826,11 @@ export function ParasiteControlDialog({
                       <FormItem>
                         <FormLabel>القرية</FormLabel>
                         <FormControl>
-                          <Input placeholder="الرياض" {...field} />
+                          <VillageSelect
+                            value={field.value || ""}
+                            onValueChange={field.onChange}
+                            placeholder="اختر القرية"
+                          />
                         </FormControl>
                         <FormMessage className="text-red-500 text-sm font-medium" />
                       </FormItem>
@@ -835,6 +846,26 @@ export function ParasiteControlDialog({
                         <FormLabel>العنوان التفصيلي</FormLabel>
                         <FormControl>
                           <Textarea placeholder="مزرعة الأحمد، طريق الخرج" {...field} />
+                        </FormControl>
+                        <FormMessage className="text-red-500 text-sm font-medium" />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  {/* Birth Date */}
+                  <FormField
+                    control={form.control as any}
+                    name="client.birthDate"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>تاريخ الميلاد</FormLabel>
+                        <FormControl>
+                          <SimpleDatePicker
+                            value={field.value ? new Date(field.value) : undefined}
+                            onChange={(date) => field.onChange(date ? date.toISOString().split('T')[0] : "")}
+                            placeholder="اختر تاريخ الميلاد"
+                            maxDate={new Date()}
+                          />
                         </FormControl>
                         <FormMessage className="text-red-500 text-sm font-medium" />
                       </FormItem>
@@ -978,7 +1009,7 @@ export function ParasiteControlDialog({
                           <SelectContent>
                             <SelectItem value="Pour on">Pour on</SelectItem>
                             <SelectItem value="Spray">Spray</SelectItem>
-                            <SelectItem value="Injection">Injection</SelectItem>
+                            <SelectItem value="Oral Drenching">Oral Drenching</SelectItem>
                           </SelectContent>
                         </Select>
                         <FormMessage className="text-red-500 text-sm font-medium" />
@@ -1019,7 +1050,7 @@ export function ParasiteControlDialog({
                           <SelectContent>
                             <SelectItem value="Pour-on">Pour-on</SelectItem>
                             <SelectItem value="Spray">Spray</SelectItem>
-                            <SelectItem value="Injection">Injection</SelectItem>
+                            <SelectItem value="Oral Drenching">Oral Drenching</SelectItem>
                           </SelectContent>
                         </Select>
                         <FormMessage className="text-red-500 text-sm font-medium" />
@@ -1039,8 +1070,8 @@ export function ParasiteControlDialog({
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            <SelectItem value="Sprayed">تم الرش</SelectItem>
-                            <SelectItem value="Not Sprayed">لم يتم الرش</SelectItem>
+                            <SelectItem value="Sprayed">Sprayed</SelectItem>
+                            <SelectItem value="Not Sprayed">Not Sprayed</SelectItem>
                           </SelectContent>
                         </Select>
                         <FormMessage className="text-red-500 text-sm font-medium" />
@@ -1062,9 +1093,9 @@ export function ParasiteControlDialog({
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            <SelectItem value="Healthy">صحي</SelectItem>
-                            <SelectItem value="Sick">مريض</SelectItem>
-                            <SelectItem value="Under Treatment">تحت العلاج</SelectItem>
+                            <SelectItem value="Healthy">Healthy</SelectItem>
+                            <SelectItem value="Sick">Sick</SelectItem>
+                            <SelectItem value="Sporadic Cases">Sporadic Cases</SelectItem>
                           </SelectContent>
                         </Select>
                         <FormMessage className="text-red-500 text-sm font-medium" />
@@ -1078,8 +1109,8 @@ export function ParasiteControlDialog({
                       <FormItem>
                         <FormLabel>الامتثال للتعليمات</FormLabel>
                         <Select 
-                          onValueChange={(value) => field.onChange(value === "true")} 
-                          value={field.value ? "true" : "false"}
+                          onValueChange={(value) => field.onChange(value)} 
+                          value={field.value || ""}
                         >
                           <FormControl>
                             <SelectTrigger>
@@ -1087,8 +1118,9 @@ export function ParasiteControlDialog({
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            <SelectItem value="true">ممتثل</SelectItem>
-                            <SelectItem value="false">غير ممتثل</SelectItem>
+                            <SelectItem value="Comply">Comply</SelectItem>
+                            <SelectItem value="Not Comply">Not Comply</SelectItem>
+                            <SelectItem value="Partially Comply">Partially Comply</SelectItem>
                           </SelectContent>
                         </Select>
                         <FormMessage className="text-red-500 text-sm font-medium" />
@@ -1123,14 +1155,21 @@ export function ParasiteControlDialog({
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>مواقع التكاثر</FormLabel>
-                        <FormControl>
-                          <Input
-                            placeholder="مواقع تكاثر الطفيليات"
-                            {...field}
-                            value={typeof field.value === 'string' ? field.value : ''}
-                            onChange={(e) => field.onChange(e.target.value)}
-                          />
-                        </FormControl>
+                        <Select 
+                          onValueChange={(value) => field.onChange(value)} 
+                          value={field.value || ""}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="اختر حالة مواقع التكاثر" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="Sprayed">Sprayed</SelectItem>
+                            <SelectItem value="Not Available">Not Available</SelectItem>
+                            <SelectItem value="Not Applicable">Not Applicable</SelectItem>
+                          </SelectContent>
+                        </Select>
                         <FormMessage className="text-red-500 text-sm font-medium" />
                       </FormItem>
                     )}
@@ -1168,10 +1207,10 @@ export function ParasiteControlDialog({
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            <SelectItem value="مكتمل">مكتمل</SelectItem>
-                            <SelectItem value="جاري">جاري</SelectItem>
-                            <SelectItem value="معلق">معلق</SelectItem>
-                            <SelectItem value="ملغي">ملغي</SelectItem>
+                              <SelectItem value="Completed">Completed</SelectItem>
+                            <SelectItem value="In Progress">In Progress</SelectItem>
+                            <SelectItem value="Pending">Pending</SelectItem>
+                            <SelectItem value="Cancelled">Cancelled</SelectItem>
                           </SelectContent>
                         </Select>
                         <FormMessage className="text-red-500 text-sm font-medium" />
@@ -1206,7 +1245,7 @@ export function ParasiteControlDialog({
                     render={({ field }) => (
                       <FormItem>
                         <FormControl>
-                          <ModernDatePicker
+                          <SimpleDatePicker
                             label="تاريخ الطلب"
                             placeholder="اختر تاريخ الطلب"
                             value={field.value}
@@ -1236,9 +1275,9 @@ export function ParasiteControlDialog({
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            <SelectItem value="Open">مفتوح</SelectItem>
-                            <SelectItem value="Closed">مغلق</SelectItem>
-                            <SelectItem value="Pending">معلق</SelectItem>
+                            <SelectItem value="Open">Open</SelectItem>
+                            <SelectItem value="Closed">Closed</SelectItem>
+                            <SelectItem value="Pending">Pending</SelectItem>
                           </SelectContent>
                         </Select>
                         <FormMessage className="text-red-500 text-sm font-medium" />
@@ -1251,7 +1290,7 @@ export function ParasiteControlDialog({
                     render={({ field }) => (
                       <FormItem>
                         <FormControl>
-                          <ModernDatePicker
+                          <SimpleDatePicker
                             label="تاريخ الإنجاز"
                             placeholder="اختر تاريخ الإنجاز"
                             value={field.value}

@@ -132,6 +132,15 @@ const tableColumns = [
     render: (value: any, record: ParasiteControl) => record.owner?.name || "-",
   },
   {
+    key: "owner.birthDate",
+    title: "تاريخ ميلاد المربي",
+    render: (value: any, record: ParasiteControl) => {
+      const birthDate = record.owner?.birthDate;
+      return birthDate ? formatDate(birthDate) : "-";
+    },
+    width: "140px",
+  },
+  {
     key: "owner.phone",
     title: "رقم الهاتف",
     render: (value: any, record: ParasiteControl) => record.owner?.phone || "-",

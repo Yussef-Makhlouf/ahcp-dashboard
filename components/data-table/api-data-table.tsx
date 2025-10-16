@@ -117,7 +117,7 @@ export function ApiDataTable<T extends { id?: string | number; _id?: string }>({
     mutationFn: deleteItem!,
     onSuccess: () => {
       toast.success('تم الحذف بنجاح');
-      queryClient.invalidateQueries([queryKey]);
+      queryClient.invalidateQueries({ queryKey: [queryKey] });
       setSelectedItems(new Set());
     },
     onError: (error: any) => {
@@ -249,7 +249,7 @@ export function ApiDataTable<T extends { id?: string | number; _id?: string }>({
               <Button 
                 variant="destructive" 
                 onClick={handleDeleteSelected}
-                disabled={deleteMutation.isLoading}
+                disabled={deleteMutation.isPending}
               >
                 <Trash2 className="h-4 w-4 mr-2" />
                 حذف المحدد ({selectedItems.size})
@@ -319,7 +319,7 @@ export function ApiDataTable<T extends { id?: string | number; _id?: string }>({
                   <TableHead className="w-12">
                     <input
                       type="checkbox"
-                      checked={data?.data?.length > 0 && selectedItems.size === data.data.length}
+                      checked={!!(data?.data?.length && data.data.length > 0 && selectedItems.size === data.data.length)}
                       onChange={(e) => handleSelectAll(e.target.checked)}
                       className="rounded"
                     />
@@ -370,7 +370,7 @@ export function ApiDataTable<T extends { id?: string | number; _id?: string }>({
                               size="sm" 
                               variant="ghost" 
                               onClick={() => deleteMutation.mutate(itemId)}
-                              disabled={deleteMutation.isLoading}
+                              disabled={deleteMutation.isPending}
                             >
                               <Trash2 className="h-4 w-4" />
                             </Button>

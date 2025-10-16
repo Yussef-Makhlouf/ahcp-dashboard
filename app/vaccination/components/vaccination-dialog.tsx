@@ -40,8 +40,11 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { EnhancedMobileTabs } from "@/components/ui/mobile-tabs";
 import { Checkbox } from "@/components/ui/checkbox";
-import { ModernDatePicker } from "@/components/ui/modern-date-picker";
+import { SimpleDatePicker } from "@/components/ui/simple-date-picker";
 import { SupervisorSelect } from "@/components/ui/supervisor-select";
+import { VillageSelect } from "@/components/ui/village-select";
+import { ClientSelector } from "@/components/ui/client-selector";
+import { useClientData } from "@/lib/hooks/use-client-data";
 import { CalendarIcon, Loader2, User, Heart, Shield } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Vaccination } from "@/types";
@@ -59,6 +62,7 @@ const formSchema = z.object({
   serialNo: z.string().min(1, { message: "يجب إدخال رقم السجل" }),
   date: z.string().min(1, { message: "يجب إدخال التاريخ" }),
   client: z.object({
+    _id: z.string().optional(),
     name: z.string().min(2, { message: "يجب إدخال اسم العميل (أكثر من حرفين)" }),
     nationalId: z.string().min(10, { message: "يجب إدخال رقم الهوية الوطنية (10 أرقام على الأقل)" }).refine(
       (nationalId) => validateNationalId(nationalId),
@@ -334,7 +338,15 @@ export function VaccinationDialog({
       const transformedData = {
         serialNo: data.serialNo,
         date: new Date(data.date).toISOString(),
-        client: clientId, // Backend expects ObjectId string
+        client: clientId || {
+          _id: data.client._id || '',
+          name: data.client.name,
+          nationalId: data.client.nationalId,
+          phone: data.client.phone,
+          village: data.client.village || '',
+          detailedAddress: data.client.detailedAddress || '',
+          birthDate: data.client.birthDate || '',
+        },
         farmLocation: data.farmLocation,
         coordinates: data.coordinates && (data.coordinates.latitude || data.coordinates.longitude) ? {
           latitude: data.coordinates.latitude || 0,
@@ -430,7 +442,7 @@ export function VaccinationDialog({
           <label className="block text-sm font-semibold text-gray-800 mb-2">
             {label}
           </label>
-          <ModernDatePicker
+          <SimpleDatePicker
             placeholder="اختر التاريخ"
             value={form.watch(name) ? new Date(form.watch(name)) : undefined}
             onChange={(date) => {
@@ -602,7 +614,7 @@ export function VaccinationDialog({
                     <label className="block text-sm font-semibold text-gray-800 mb-2">
                       تاريخ التحصين *
                     </label>
-                    <ModernDatePicker
+                    <SimpleDatePicker
                       placeholder="اختر التاريخ"
                       value={form.watch("date") ? new Date(form.watch("date")) : undefined}
                       onChange={(date) => {
@@ -618,6 +630,33 @@ export function VaccinationDialog({
                     {getFieldError("date") && (
                       <p className="text-red-500 text-sm font-medium mt-1">{getFieldError("date")}</p>
                     )}
+                  </div>
+
+                  {/* Client Selector */}
+                  <div className="space-y-2">
+                    <label className="block text-sm font-semibold text-gray-800 mb-2">
+                      اختيار المربي
+                    </label>
+                    <ClientSelector
+                      value={form.watch("client._id") || ""}
+                      onValueChange={(client) => {
+                        if (client) {
+                          form.setValue("client._id", client._id);
+                          form.setValue("client.name", client.name);
+                          form.setValue("client.nationalId", client.nationalId || client.national_id || "");
+                          form.setValue("client.phone", client.phone || "");
+                          form.setValue("client.village", client.village || "");
+                          form.setValue("client.detailedAddress", client.detailedAddress || client.detailed_address || "");
+                          form.setValue("client.birthDate", client.birthDate || client.birth_date || "");
+                          // Clear any existing errors for client fields
+                          clearFieldError("client.name");
+                          clearFieldError("client.nationalId");
+                          clearFieldError("client.phone");
+                        }
+                      }}
+                      placeholder="ابحث عن المربي"
+                      showDetails
+                    />
                   </div>
 
                   {/* Client Name */}
@@ -687,10 +726,10 @@ export function VaccinationDialog({
                     <label className="block text-sm font-semibold text-gray-800 mb-2">
                       القرية
                     </label>
-                    <Input
+                    <VillageSelect
                       value={form.watch("client.village") || ""}
-                      onChange={(e) => form.setValue("client.village", e.target.value)}
-                      placeholder="القرية"
+                      onValueChange={(value) => form.setValue("client.village", value)}
+                      placeholder="اختر القرية"
                     />
                   </div>
 
@@ -711,7 +750,7 @@ export function VaccinationDialog({
                     <label className="block text-sm font-semibold text-gray-800 mb-2">
                       تاريخ الميلاد
                     </label>
-                    <ModernDatePicker
+                    <SimpleDatePicker
                       placeholder="اختر تاريخ الميلاد"
                       value={form.watch("client.birthDate") ? new Date(form.watch("client.birthDate")) : undefined}
                       onChange={(date) => {
@@ -845,12 +884,13 @@ export function VaccinationDialog({
                         <SelectValue placeholder="اختر نوع المصل" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="HS">لقاح الحمى القلاعية (HS)</SelectItem>
-                        <SelectItem value="SG-Pox">لقاح طاعون المجترات الصغيرة (SG-Pox)</SelectItem>
-                        <SelectItem value="ET">لقاح الإسهال الوبائي (ET)</SelectItem>
-                        <SelectItem value="Brucella">لقاح البروسيلا</SelectItem>
-                        <SelectItem value="Rabies">لقاح السعار</SelectItem>
-                        <SelectItem value="Anthrax">لقاح الجمرة الخبيثة</SelectItem>
+                        <SelectItem value="FMD">FMD</SelectItem>
+                        <SelectItem value="PPR">PPR</SelectItem>
+                        <SelectItem value="HS">HS</SelectItem>
+                        <SelectItem value="CCPP">CCPP</SelectItem>
+                        <SelectItem value="ET">ET</SelectItem>
+                        <SelectItem value="No Vaccination">No Vaccination</SelectItem>
+                        <SelectItem value="SG POX">SG POX</SelectItem>
                       </SelectContent>
                     </Select>
                     {getFieldError("vaccineType") && (
@@ -1012,7 +1052,7 @@ export function VaccinationDialog({
                         <label className="block text-sm font-semibold text-gray-800 mb-2">
                           تاريخ الطلب *
                         </label>
-                        <ModernDatePicker
+                        <SimpleDatePicker
                           placeholder="اختر تاريخ الطلب"
                           value={form.watch("request.date") ? new Date(form.watch("request.date")) : undefined}
                           onChange={(date) => {
@@ -1060,7 +1100,7 @@ export function VaccinationDialog({
                           <label className="block text-sm font-semibold text-gray-800 mb-2">
                             تاريخ الإنجاز
                           </label>
-                          <ModernDatePicker
+                          <SimpleDatePicker
                             placeholder="اختر تاريخ الإنجاز"
                             value={form.watch("request.fulfillingDate") ? new Date(form.watch("request.fulfillingDate")) : undefined}
                             onChange={(date) => {

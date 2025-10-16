@@ -183,47 +183,33 @@ export default function ClientsPage() {
       accessorKey: "birthDate",
       header: "تاريخ الميلاد",
       cell: ({ row }) => {
-        const birthDate = row.getValue<string>("birthDate") || row.original.birth_date;
-        return birthDate ? formatDate(birthDate) : "-";
-      },
-    },
-    {
-      accessorKey: "totalAnimals",
-      header: "عدد الحيوانات",
-      cell: ({ row }) => {
         const client = row.original;
-        // Use backend virtual field first, then calculate from animals array
-        let totalCount = client.totalAnimals || 0;
-        
-        if (!totalCount && client.animals) {
-          totalCount = client.animals.reduce((sum, animal) => {
-            return sum + (animal.animalCount || animal.animal_count || 0);
-          }, 0);
-        }
-        
-        const healthyCount = client.healthyAnimalsCount || 0;
+        // Priority: birthDateFromForms (from other forms) > birthDate (from client form)
+        const birthDate = client.birthDateFromForms || client.birthDate || client.birth_date;
+        const source = client.birthDateFromForms ? "من النماذج" : "من المربي";
         
         return (
-          <div className="text-sm space-y-1">
-            <div className="flex items-center gap-2">
-              <span className="font-medium text-blue-600">{totalCount}</span>
-              <span className="text-muted-foreground">رأس</span>
-            </div>
-            {healthyCount > 0 && (
-              <div className="flex items-center gap-1 text-xs">
-                <span className="text-green-600">سليم: {healthyCount}</span>
+          <div className="text-sm">
+            {birthDate ? (
+              <div>
+                <div className="font-medium">{formatDate(birthDate)}</div>
+                <div className="text-xs text-muted-foreground">{source}</div>
               </div>
+            ) : (
+              <span className="text-muted-foreground">-</span>
             )}
           </div>
         );
       },
     },
+
     {
-      accessorKey: "availableServices",
-      header: "الخدمات المتاحة",
+      accessorKey: "servicesReceived",
+      header: "الخدمات المستلمة",
       cell: ({ row }) => {
         const client = row.original;
-        const services = client.availableServices || client.available_services || [];
+        // Priority: servicesReceived (from aggregation) > availableServices (from client form)
+        const services = client.servicesReceived || client.availableServices || client.available_services || [];
         
         // Map service codes to Arabic names
         const serviceNames: Record<string, string> = {
@@ -240,20 +226,51 @@ export default function ClientsPage() {
           'Equine Health': 'صحة الخيول'
         };
         
+        // Get unique services
+        const uniqueServices = [...new Set(services)];
+        
         return (
-          <div className="flex flex-wrap gap-1">
-            {services?.slice(0, 2).map((service, index) => (
-              <Badge key={index} variant="outline" className="text-xs">
-                {serviceNames[service] || service}
-              </Badge>
-            ))}
-            {services && services.length > 2 && (
-              <Badge variant="outline" className="text-xs">
-                +{services.length - 2}
-              </Badge>
+          <div className="space-y-1">
+            <div className="flex flex-wrap gap-1">
+              {uniqueServices?.slice(0, 2).map((service, index) => (
+                <Badge key={index} variant="outline" className="text-xs">
+                  {serviceNames[service] || service}
+                </Badge>
+              ))}
+              {uniqueServices && uniqueServices.length > 2 && (
+                <Badge variant="outline" className="text-xs">
+                  +{uniqueServices.length - 2}
+                </Badge>
+              )}
+              {(!uniqueServices || uniqueServices.length === 0) && (
+                <span className="text-xs text-muted-foreground">لا توجد خدمات</span>
+              )}
+            </div>
+            {client.totalVisits && client.totalVisits > 0 && (
+              <div className="text-xs text-muted-foreground">
+                {client.totalVisits} زيارة
+              </div>
             )}
-            {(!services || services.length === 0) && (
-              <span className="text-xs text-muted-foreground">لا توجد خدمات</span>
+          </div>
+        );
+      },
+    },
+    {
+      accessorKey: "lastServiceDate",
+      header: "آخر خدمة",
+      cell: ({ row }) => {
+        const client = row.original;
+        const lastServiceDate = client.lastServiceDate;
+        
+        return (
+          <div className="text-sm">
+            {lastServiceDate ? (
+              <div>
+                <div className="font-medium">{formatDate(lastServiceDate)}</div>
+                <div className="text-xs text-muted-foreground">آخر زيارة</div>
+              </div>
+            ) : (
+              <span className="text-muted-foreground">-</span>
             )}
           </div>
         );

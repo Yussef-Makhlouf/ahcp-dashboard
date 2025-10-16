@@ -22,8 +22,6 @@ import {
   Edit,
   Trash2,
   Users,
-  ToggleLeft,
-  ToggleRight,
 } from "lucide-react";
 import { toast } from "sonner";
 import { ColumnDef } from "@tanstack/react-table";
@@ -119,20 +117,6 @@ export function SectionManagement({ onRefresh }: SectionManagementProps) {
     setDialogOpen(true);
   };
 
-  const handleToggleStatus = async (sectionId: string) => {
-    try {
-      const response = await api.put(`/sections/${sectionId}/toggle-status`);
-
-      if ((response as any)?.success) {
-        toast.success("تم تحديث حالة القسم بنجاح");
-        loadSections();
-      } else {
-        toast.error("حدث خطأ أثناء تحديث حالة القسم");
-      }
-    } catch (error) {
-      toast.error("حدث خطأ أثناء تحديث حالة القسم");
-    }
-  };
 
   const handleDeleteSection = async (sectionId: string) => {
     if (!confirm("هل أنت متأكد من حذف هذا القسم؟")) {
@@ -243,18 +227,6 @@ export function SectionManagement({ onRefresh }: SectionManagementProps) {
       },
     },
     {
-      accessorKey: "isActive",
-      header: "الحالة",
-      cell: ({ row }) => {
-        const isActive = row.getValue("isActive") as boolean;
-        return (
-          <Badge variant={isActive ? "secondary" : "secondary"} className="text-right">
-            {isActive ? "نشط" : "غير نشط"}
-          </Badge>
-        );
-      },
-    },
-    {
       id: "actions",
       header: "الإجراءات",
       cell: ({ row }) => {
@@ -267,14 +239,6 @@ export function SectionManagement({ onRefresh }: SectionManagementProps) {
               onClick={() => handleEditSection(section)}
             >
               <Edit className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              disabled
-              title="جميع الأقسام نشطة افتراضياً"
-            >
-              <ToggleRight className="h-4 w-4 text-green-600" />
             </Button>
             <Button
               variant="ghost"
@@ -294,10 +258,6 @@ export function SectionManagement({ onRefresh }: SectionManagementProps) {
     <div className="space-y-6 ">
       {/* Header with Create Button */}
       <div className="flex justify-between items-center">
-        <div className="text-right">
-          <h2 className="text-2xl font-bold">إدارة الأقسام</h2>
-          <p className="text-muted-foreground">إنشاء وإدارة أقسام النظام</p>
-        </div>
         <div className="flex gap-2">
           {sections.length === 0 && (
             <Button 
@@ -322,6 +282,10 @@ export function SectionManagement({ onRefresh }: SectionManagementProps) {
             <Plus className="mr-2 h-4 w-4" />
             إضافة قسم جديد
           </Button>
+        </div>
+        <div className="text-right">
+          <h2 className="text-2xl font-bold">إدارة الأقسام</h2>
+          <p className="text-muted-foreground">إنشاء وإدارة أقسام النظام</p>
         </div>
       </div>
 

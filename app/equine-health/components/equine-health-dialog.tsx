@@ -38,11 +38,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { EnhancedMobileTabs } from "@/components/ui/mobile-tabs";
 import { equineHealthApi } from "@/lib/api/equine-health";
 import type { EquineHealth } from "@/types";
-import { validateEgyptianPhone, validateSaudiPhone, validatePhoneNumber, validateNationalId } from "@/lib/utils";
+import { validatePhoneNumber, validateNationalId } from "@/lib/utils";
 import { User, Heart, Shield, Activity } from "lucide-react";
 import { useState } from "react";
-import { ModernDatePicker } from "@/components/ui/modern-date-picker";
+import { SimpleDatePicker } from "@/components/ui/simple-date-picker";
 import { SupervisorSelect } from "@/components/ui/supervisor-select";
+import { VillageSelect } from "@/components/ui/village-select";
+import { ClientSelector } from "@/components/ui/client-selector";
+import { useClientData } from "@/lib/hooks/use-client-data";
 import { entityToasts } from "@/lib/utils/toast-utils";
 import { useFormValidation } from "@/lib/hooks/use-form-validation";
 import { ValidatedInput } from "@/components/ui/validated-input";
@@ -53,6 +56,7 @@ const formSchema = z.object({
   serialNo: z.string().min(1, "رقم السجل مطلوب"),
   date: z.string().min(1, "التاريخ مطلوب"),
   client: z.object({
+    _id: z.string().optional(),
     name: z.string().min(2, "الاسم يجب أن يكون أكثر من حرفين"),
     nationalId: z.string().min(3, "رقم الهوية يجب أن يكون أكثر من 3 أحرف").refine(
       (nationalId) => validateNationalId(nationalId),
@@ -61,6 +65,7 @@ const formSchema = z.object({
     phone: z.string().refine(validatePhoneNumber, "رقم الهاتف غير صحيح. يجب أن يكون بين 10-15 رقم"),
     village: z.string().optional(),
     detailedAddress: z.string().optional(),
+    birthDate: z.string().optional(),
   }),
   farmLocation: z.string().min(1, "موقع المزرعة مطلوب"),
   coordinates: z.object({
@@ -72,17 +77,16 @@ const formSchema = z.object({
   horseCount: z.number().min(1, "عدد الخيول يجب أن يكون أكبر من صفر"),
   diagnosis: z.string().min(3, "التشخيص يجب أن يكون أكثر من 3 أحرف"),
   interventionCategory: z.enum([
-    "Emergency",
-    "Routine", 
-    "Preventive",
-    "Follow-up",
-    "Breeding",
-    "Performance"
+    "Clinical Examination",
+    "Ultrasonography", 
+    "Lab Analysis",
+    "Surgical Operation",
+    "Farriery",
   ]),
   treatment: z.string().min(3, "العلاج يجب أن يكون أكثر من 3 أحرف"),
   request: z.object({
     date: z.string().min(1, "تاريخ الطلب مطلوب"),
-    situation: z.enum(["Open", "Closed", "Pending"]),
+    situation: z.enum(["ongoing", "Closed", "Pending"]),
     fulfillingDate: z.string().optional(),
   }),
   remarks: z.string().optional(),
@@ -140,6 +144,7 @@ export function EquineHealthDialog({
         phone: "",
         village: "",
         detailedAddress: "",
+        birthDate: undefined,
       },
       farmLocation: "",
       coordinates: {
@@ -150,11 +155,11 @@ export function EquineHealthDialog({
       vehicleNo: "",
       horseCount: 1,
       diagnosis: "",
-      interventionCategory: "Routine",
+      interventionCategory: "Clinical Examination",
       treatment: "",
       request: {
         date: new Date().toISOString().split("T")[0],
-        situation: "Open",
+        situation: "ongoing",
         fulfillingDate: "",
       },
       remarks: "",
@@ -173,6 +178,7 @@ export function EquineHealthDialog({
           phone: item.client?.phone || "",
           village: item.client?.village || "",
           detailedAddress: item.client?.detailedAddress || "",
+          birthDate: item.client?.birthDate || undefined,
         },
         farmLocation: item.farmLocation || "",
         coordinates: {
@@ -183,11 +189,11 @@ export function EquineHealthDialog({
         vehicleNo: item.vehicleNo || "",
         horseCount: item.horseCount || 1,
         diagnosis: item.diagnosis || "",
-        interventionCategory: item.interventionCategory || "Routine",
+        interventionCategory: item.interventionCategory || "Clinical Examination",
         treatment: item.treatment || "",
         request: {
           date: item.request?.date || new Date().toISOString().split("T")[0],
-          situation: item.request?.situation || "Open",
+          situation: item.request?.situation || "ongoing",
           fulfillingDate: item.request?.fulfillingDate || "",
         },
         remarks: item.remarks || "",
@@ -302,7 +308,7 @@ export function EquineHealthDialog({
                     render={({ field }) => (
                       <FormItem className="space-y-3">
                         <FormControl>
-                          <ModernDatePicker
+                          <SimpleDatePicker
                             label="التاريخ"
                             placeholder="اختر التاريخ"
                             value={field.value}
@@ -385,6 +391,39 @@ export function EquineHealthDialog({
               </TabsContent>
 
               <TabsContent value="owner" className="tabs-content-modern">
+                {/* Client Selector */}
+                <div className="mb-6">
+                  <FormField
+                    control={form.control as any}
+                    name="client._id"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>اختيار المربي</FormLabel>
+                        <FormControl>
+                          <ClientSelector
+                            value={field.value || ""}
+                            onValueChange={(client) => {
+                              if (client) {
+                                form.setValue("client._id", client._id);
+                                form.setValue("client.name", client.name);
+                                form.setValue("client.nationalId", client.nationalId || client.national_id || "");
+                                form.setValue("client.phone", client.phone || "");
+                                form.setValue("client.village", client.village || "");
+                                form.setValue("client.detailedAddress", client.detailedAddress || client.detailed_address || "");
+                                form.setValue("client.birthDate", client.birthDate || client.birth_date || "");
+                              }
+                            }}
+                            placeholder="ابحث عن المربي"
+                            showDetails
+                            allowCreate
+                          />
+                        </FormControl>
+                        <FormMessage className="text-red-500 text-sm font-medium" />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <FormField
                     control={form.control as any}
@@ -419,7 +458,12 @@ export function EquineHealthDialog({
                       <FormItem>
                         <FormLabel>القرية/المدينة</FormLabel>
                         <FormControl>
-                          <Input placeholder="القرية أو المدينة" {...field} />
+                          <VillageSelect
+                            value={field.value || ""}
+                            onValueChange={field.onChange}
+                            placeholder="اختر القرية"
+                            showRegion
+                          />
                         </FormControl>
                         <FormMessage className="text-red-500 text-sm font-medium" />
                       </FormItem>
@@ -457,6 +501,28 @@ export function EquineHealthDialog({
                     )}
                   />
                 </div>
+                
+                <div className="grid grid-cols-1 gap-4">
+                  <FormField
+                    control={form.control as any}
+                    name="client.birthDate"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>تاريخ الميلاد</FormLabel>
+                        <FormControl>
+                          <SimpleDatePicker
+                            value={field.value ? new Date(field.value) : undefined}
+                            onChange={(date) => field.onChange(date ? date.toISOString().split('T')[0] : "")}
+                            placeholder="اختر تاريخ الميلاد"
+                            maxDate={new Date()}
+                          />
+                        </FormControl>
+                        <FormMessage className="text-red-500 text-sm font-medium" />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <FormField
                     control={form.control as any}
@@ -533,12 +599,11 @@ export function EquineHealthDialog({
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            <SelectItem value="Emergency">طوارئ</SelectItem>
-                            <SelectItem value="Routine">روتيني</SelectItem>
-                            <SelectItem value="Preventive">وقائي</SelectItem>
-                            <SelectItem value="Follow-up">متابعة</SelectItem>
-                            <SelectItem value="Breeding">تربية</SelectItem>
-                            <SelectItem value="Performance">أداء</SelectItem>
+                            <SelectItem value="Clinical Examination">Clinical Examination</SelectItem>
+                            <SelectItem value="Ultrasonography">Ultrasonography</SelectItem>
+                            <SelectItem value="Lab Analysis">Lab Analysis</SelectItem>
+                            <SelectItem value="Surgical Operation">Surgical Operation</SelectItem>
+                            <SelectItem value="Farriery">Farriery</SelectItem>
                           </SelectContent>
                         </Select>
                         <FormMessage className="text-red-500 text-sm font-medium" />
@@ -590,7 +655,7 @@ export function EquineHealthDialog({
                     render={({ field }) => (
                       <FormItem className="space-y-3">
                         <FormControl>
-                          <ModernDatePicker
+                          <SimpleDatePicker
                             label="تاريخ الطلب"
                             placeholder="اختر تاريخ الطلب"
                             value={field.value ? new Date(field.value) : undefined}
@@ -620,9 +685,9 @@ export function EquineHealthDialog({
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            <SelectItem value="Open">مفتوح</SelectItem>
-                            <SelectItem value="Closed">مغلق</SelectItem>
-                            <SelectItem value="Pending">معلق</SelectItem>
+                            <SelectItem value="ongoing">ongoing</SelectItem>
+                            <SelectItem value="Closed">Closed</SelectItem>
+                            <SelectItem value="Pending">Pending</SelectItem>
                           </SelectContent>
                         </Select>
                         <FormMessage className="text-red-500 text-sm font-medium" />
@@ -637,7 +702,7 @@ export function EquineHealthDialog({
                     render={({ field }) => (
                       <FormItem className="space-y-3">
                         <FormControl>
-                          <ModernDatePicker
+                          <SimpleDatePicker
                             label="تاريخ إنجاز الطلب"
                             placeholder="اختر تاريخ إنجاز الطلب"
                             value={field.value ? new Date(field.value) : undefined}

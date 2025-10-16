@@ -193,7 +193,7 @@ export function ApiForm<T extends { id?: string | number; _id?: string }>({
     },
     onSuccess: (data) => {
       toast.success(isEditing ? 'تم التحديث بنجاح' : 'تم الإنشاء بنجاح');
-      queryClient.invalidateQueries([queryKey]);
+      queryClient.invalidateQueries({ queryKey: [queryKey] });
       onSuccess?.(data);
       onClose();
       reset();

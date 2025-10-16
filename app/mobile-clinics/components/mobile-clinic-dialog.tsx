@@ -21,7 +21,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { ModernDatePicker } from "@/components/ui/modern-date-picker";
+import { SimpleDatePicker } from "@/components/ui/simple-date-picker";
 import { SupervisorSelect } from "@/components/ui/supervisor-select";
 import { CalendarIcon, MapPin, Stethoscope, Plus, Trash2, Activity, User, Heart, Shield, FileText } from "lucide-react";
 import { format } from "date-fns";
@@ -32,6 +32,9 @@ import { EnhancedMobileTabs } from "@/components/ui/mobile-tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { VillageSelect } from "@/components/ui/village-select";
+import { ClientSelector } from "@/components/ui/client-selector";
+import { useClientData } from "@/lib/hooks/use-client-data";
 import React, { useCallback } from "react";
 import { Separator } from "@/components/ui/separator";
 import type { MobileClinic } from "@/types";
@@ -71,10 +74,10 @@ const diagnoses = [
 ];
 
 const interventionCategories = [
-  { value: "Emergency", label: "طوارئ" },
-  { value: "Routine", label: "روتيني" },
-  { value: "Preventive", label: "وقائي" },
-  { value: "Follow-up", label: "متابعة" },
+  { value: "Clinical Examination", label: "Clinical Examination" },
+  { value: "Surgical Operation", label: "Surgical Operation" },
+  { value: "Ultrasonography", label: "Ultrasonography" },
+  { value: "Lab Analysis", label: "Lab Analysis" },
 ];
 
 interface Treatment {
@@ -122,6 +125,7 @@ export function MobileClinicDialog({ open, onOpenChange, clinic, onSave }: Mobil
       phone: "",
       village: "",
       detailedAddress: "",
+      birthDate: "",
     },
     coordinates: { 
       latitude: null as number | null, 
@@ -195,6 +199,7 @@ export function MobileClinicDialog({ open, onOpenChange, clinic, onSave }: Mobil
           phone: clinic.client?.phone || "",
           village: clinic.client?.village || "",
           detailedAddress: clinic.client?.detailedAddress || "",
+          birthDate: clinic.client?.birthDate || "",
         },
         coordinates: {
           latitude: clinic.coordinates?.latitude || null,
@@ -255,6 +260,7 @@ export function MobileClinicDialog({ open, onOpenChange, clinic, onSave }: Mobil
           phone: "",
           village: "",
           detailedAddress: "",
+          birthDate: "",
         },
         coordinates: { 
           latitude: null, 
@@ -365,6 +371,7 @@ export function MobileClinicDialog({ open, onOpenChange, clinic, onSave }: Mobil
           phone: formData.client.phone.trim(),
           village: formData.client.village || '',
           detailedAddress: formData.client.detailedAddress || '',
+          birthDate: formData.client.birthDate || '',
         },
         farmLocation: formData.farmLocation,
         coordinates: {
@@ -553,7 +560,7 @@ export function MobileClinicDialog({ open, onOpenChange, clinic, onSave }: Mobil
                 </div>
 
                 <div className="space-y-2">
-                  <ModernDatePicker
+                  <SimpleDatePicker
                     label="التاريخ"
                     placeholder="اختر التاريخ"
                     value={formData.date}
@@ -570,6 +577,42 @@ export function MobileClinicDialog({ open, onOpenChange, clinic, onSave }: Mobil
                   {errors.date && (
                     <p className="text-red-500 text-sm font-medium mt-1">{errors.date}</p>
                   )}
+                </div>
+
+                {/* Client Selector */}
+                <div className="space-y-2">
+                  <Label>اختيار المربي</Label>
+                  <ClientSelector
+                    value={formData.client?._id || ""}
+                    onValueChange={(client) => {
+                      if (client) {
+                        setFormData({
+                          ...formData,
+                          client: {
+                            _id: client._id || "",
+                            name: client.name,
+                            nationalId: client.nationalId || client.national_id || "",
+                            phone: client.phone || "",
+                            village: client.village || "",
+                            detailedAddress: client.detailedAddress || client.detailed_address || "",
+                            birthDate: client.birthDate || client.birth_date || "",
+                          },
+                          owner: {
+                            name: client.name,
+                            id: client.nationalId || client.national_id || "",
+                            phone: client.phone || "",
+                            birthDate: client.birthDate || client.birth_date || "",
+                          }
+                        });
+                        // Clear any existing errors for client fields
+                        clearFieldError('client.name');
+                        clearFieldError('client.nationalId');
+                        clearFieldError('client.phone');
+                      }
+                    }}
+                    placeholder="ابحث عن المربي"
+                    showDetails
+                  />
                 </div>
 
                 <ValidatedInput
@@ -641,13 +684,27 @@ export function MobileClinicDialog({ open, onOpenChange, clinic, onSave }: Mobil
 
                 <div className="space-y-2">
                   <Label>القرية</Label>
-                  <Input
+                  <VillageSelect
                     value={formData.client?.village || ""}
-                    onChange={(e) => setFormData({
+                    onValueChange={(value) => setFormData({
                       ...formData,
-                      client: { ...formData.client, village: e.target.value }
+                      client: { ...formData.client, village: value }
                     })}
-                    placeholder="اسم القرية"
+                    placeholder="اختر القرية"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label>تاريخ الميلاد</Label>
+                  <SimpleDatePicker
+                    value={formData.client?.birthDate ? new Date(formData.client.birthDate) : undefined}
+                    onChange={(date) => setFormData({
+                      ...formData,
+                      client: { ...formData.client, birthDate: date ? date.toISOString().split('T')[0] : "" },
+                      owner: { ...formData.owner, birthDate: date ? date.toISOString().split('T')[0] : "" }
+                    })}
+                    placeholder="اختر تاريخ الميلاد"
+                    maxDate={new Date()}
                   />
                 </div>
 
