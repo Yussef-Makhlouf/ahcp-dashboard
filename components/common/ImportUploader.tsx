@@ -356,7 +356,7 @@ export const ImportUploader: React.FC<ImportUploaderProps> = ({
       
       const settings: any = {
         importIdentifier: `${tableType}_import`,
-        developmentMode: process.env.NODE_ENV === 'development',
+        developmentMode:'development',
         mode: 'public', // تفعيل Public Mode
         webhookUrl: getWebhookUrl(tableType),
         webhookHeaders: {
@@ -370,7 +370,7 @@ export const ImportUploader: React.FC<ImportUploaderProps> = ({
       const user: BasicDromoUser = {
         id: 'user_1',
         name: 'System User',
-        email: 'admin@system.com'
+        email: 'admin@ahcp.gov.sa'
       };
       
       // إنشاء instance جديد من Dromo مع تحسين الذاكرة
