@@ -328,7 +328,7 @@ export const ImportUploader: React.FC<ImportUploaderProps> = ({
       const getWebhookUrl = (type: string): string => {
         // استخدام ngrok URL في development mode
         const ngrokUrl = process.env.NEXT_PUBLIC_NGROK_URL;
-        const baseUrl = ngrokUrl || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+        const baseUrl = ngrokUrl || process.env.NEXT_PUBLIC_API_URL || 'https://ahcp-backend-production.up.railway.app';
         
         // تحذير إذا كان localhost بدون ngrok
         if (baseUrl.includes('localhost') && !ngrokUrl) {
