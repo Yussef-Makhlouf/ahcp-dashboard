@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { ImportPreviewDialog } from './ImportPreviewDialog';
 import { 
   Upload, 
   FileSpreadsheet, 
@@ -97,6 +98,8 @@ export const ImportUploader: React.FC<ImportUploaderProps> = ({
   const [importResponse, setImportResponse] = useState<ImportResponse | null>(null);
   const [errorMessage, setErrorMessage] = useState<string>('');
   const [isInitializing, setIsInitializing] = useState(false);
+  const [isPreviewDialogOpen, setIsPreviewDialogOpen] = useState(false);
+  const [isConfirming, setIsConfirming] = useState(false);
   const uploaderRef = useRef<any>(null);
   const initTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -354,16 +357,12 @@ export const ImportUploader: React.FC<ImportUploaderProps> = ({
         }
       };
       
+      // إعدادات Dromo Starter Plan - بدون webhook
       const settings: any = {
         importIdentifier: `${tableType}_import`,
         developmentMode: true,
-        mode: 'public', 
-        webhookUrl: getWebhookUrl(tableType),
-        webhookHeaders: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token') || ''}`,
-          'X-Table-Type': tableType
-        }
+        // لا نحتاج webhook في Starter Plan
+        // سنستخدم onResults callback بدلاً من ذلك
       };
       
       // بيانات المستخدم
@@ -385,22 +384,37 @@ export const ImportUploader: React.FC<ImportUploaderProps> = ({
         uploaderRef.current.onError(handleDromoError);
       }
       
-      // معالج نجاح الاستيراد في Public Mode
-      if (uploaderRef.current.onComplete) {
-        uploaderRef.current.onComplete(async (event: any) => {
-          console.log('Dromo onComplete event:', event);
-          if (event?.webhookResponse?.success) {
-            const response = event.webhookResponse;
-            setImportResponse({
-              success: true,
-              insertedCount: response.insertedCount || 0,
-              batchId: response.batchId,
-              message: response.message
-            });
-            setUiState('done');
-            onSuccess(response);
-            toast.success(`تم استيراد ${response.insertedCount} سجل بنجاح`);
+      // معالجة البيانات من Dromo Starter Plan
+      if (uploaderRef.current.onResults) {
+        uploaderRef.current.onResults((results: any) => {
+          console.log('📊 Dromo Starter Plan - Received results:', results);
+          
+          if (results && results.validData && Array.isArray(results.validData)) {
+            const data = results.validData;
+            console.log(`✅ Received ${data.length} valid rows`);
+            
+            // عرض البيانات في Dialog للمراجعة
+            setPreviewRows(data);
+            setIsPreviewDialogOpen(true);
+            onPreview(data);
+            
+            toast.success(`تم تحليل ${data.length} صف - راجع البيانات وأكد الاستيراد`);
+          } else if (results && results.errors && results.errors.length > 0) {
+            console.error('❌ Import errors:', results.errors);
+            setErrorMessage(`تم العثور على ${results.errors.length} خطأ في البيانات`);
+            setUiState('error');
+          } else {
+            setErrorMessage('لم يتم العثور على بيانات صالحة للاستيراد');
+            setUiState('error');
           }
+        });
+      }
+      
+      // معالج الأخطاء
+      if (uploaderRef.current.onError) {
+        uploaderRef.current.onError((error: any) => {
+          console.error('❌ Dromo error:', error);
+          handleDromoError(error);
         });
       }
       
@@ -541,29 +555,40 @@ export const ImportUploader: React.FC<ImportUploaderProps> = ({
   };
 
 
-  // تأكيد الاستيراد
+  // تأكيد الاستيراد - إرسال البيانات إلى Backend
   const confirmImport = async () => {
     if (previewRows.length === 0) {
       toast.error('لا توجد بيانات للاستيراد');
       return;
     }
 
-    setUiState('sending');
+    setIsConfirming(true);
+    console.log(`🚀 Confirming import of ${previewRows.length} rows for ${tableType}`);
 
     try {
-      const response = await fetch('/api/import', {
+      // إرسال البيانات مباشرة إلى Backend webhook
+      const webhookUrl = getWebhookUrl(tableType);
+      console.log('📤 Sending to webhook:', webhookUrl);
+      
+      const response = await fetch(webhookUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token') || ''}`,
+          'X-Table-Type': tableType,
+          'X-Source': 'dromo-starter-plan'
         },
         body: JSON.stringify({
-          tableType,
-          rows: previewRows,
-          dromoBackendKey: process.env.NEXT_PUBLIC_DROMO_BACKEND_KEY
-        }),
+          data: previewRows,
+          validData: previewRows,
+          source: 'dromo-starter-plan-manual',
+          tableType: tableType,
+          totalRows: previewRows.length
+        })
       });
 
       const result: ImportResponse = await response.json();
+      console.log('📥 Backend response:', result);
 
       if (!response.ok) {
         throw new Error(result.message || 'فشل في الاستيراد');
@@ -572,20 +597,24 @@ export const ImportUploader: React.FC<ImportUploaderProps> = ({
       setImportResponse(result);
       
       if (result.success) {
+        // إغلاق الـ dialog وعرض النجاح
+        setIsPreviewDialogOpen(false);
         setUiState('done');
         onSuccess(result);
-        toast.success(`تم استيراد ${result.insertedCount} سجل بنجاح`);
+        toast.success(`تم استيراد ${result.insertedCount || result.successRows || previewRows.length} سجل بنجاح`);
       } else {
         setUiState('error');
         setErrorMessage(result.message || 'فشل في الاستيراد');
         onError(result);
       }
     } catch (error: any) {
-      console.error('Import failed:', error);
+      console.error('❌ Import failed:', error);
       setUiState('error');
       setErrorMessage(error.message || 'حدث خطأ أثناء الاستيراد');
       onError(error);
       toast.error('فشل في الاستيراد');
+    } finally {
+      setIsConfirming(false);
     }
   };
 
@@ -787,6 +816,16 @@ export const ImportUploader: React.FC<ImportUploaderProps> = ({
           <p>• الحد الأقصى لعدد الصفوف: 50,000 صف</p>
         </div>
       </CardContent>
+
+      {/* Dialog معاينة البيانات */}
+      <ImportPreviewDialog
+        isOpen={isPreviewDialogOpen}
+        onClose={() => setIsPreviewDialogOpen(false)}
+        data={previewRows}
+        tableType={tableType}
+        onConfirm={confirmImport}
+        isLoading={isConfirming}
+      />
     </Card>
   );
 };

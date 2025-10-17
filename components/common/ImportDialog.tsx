@@ -97,7 +97,7 @@ export const ImportDialog: React.FC<ImportDialogProps> = ({
               <ImportPreview
                 data={previewData}
                 tableType={tableType}
-                maxRows={5}
+                maxRows={800}
               />
             </div>
           )}

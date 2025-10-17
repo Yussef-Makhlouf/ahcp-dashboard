@@ -180,7 +180,7 @@ const getFieldLabel = (key: string): string => {
 export const ImportPreview: React.FC<ImportPreviewProps> = ({
   data,
   tableType,
-  maxRows = 10
+  maxRows = 800
 }) => {
   if (!data || data.length === 0) {
     return (
