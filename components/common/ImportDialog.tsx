@@ -36,31 +36,15 @@ export const ImportDialog: React.FC<ImportDialogProps> = ({
   templateKey,
   onImportSuccess
 }) => {
-  const [previewData, setPreviewData] = useState<any[]>([]);
-  const [showPreview, setShowPreview] = useState(false);
-
-  const handlePreview = (rows: any[]) => {
-    setPreviewData(rows);
-    setShowPreview(true);
-  };
-
   const handleSuccess = (response: any) => {
     console.log('Import successful:', response);
-    setShowPreview(false);
-    setPreviewData([]);
     onImportSuccess();
-    onOpenChange(false);
+    onOpenChange(false); // إغلاق Dialog بعد النجاح
   };
 
   const handleError = (error: any) => {
     console.error('Import error:', error);
     // الأخطاء يتم التعامل معها في ImportUploader
-  };
-
-  const handleClose = () => {
-    setShowPreview(false);
-    setPreviewData([]);
-    onOpenChange(false);
   };
 
   return (
@@ -73,7 +57,7 @@ export const ImportDialog: React.FC<ImportDialogProps> = ({
             <Button
               variant="ghost"
               size="sm"
-              onClick={handleClose}
+              onClick={() => onOpenChange(false)}
               className="mr-auto"
             >
               <X className="h-4 w-4" />
@@ -86,21 +70,9 @@ export const ImportDialog: React.FC<ImportDialogProps> = ({
           <ImportUploader
             templateKey={templateKey}
             tableType={tableType}
-            onPreview={handlePreview}
             onSuccess={handleSuccess}
             onError={handleError}
           />
-
-          {/* معاينة البيانات */}
-          {showPreview && previewData.length > 0 && (
-            <div className="border-t pt-6">
-              <ImportPreview
-                data={previewData}
-                tableType={tableType}
-                maxRows={800}
-              />
-            </div>
-          )}
         </div>
       </DialogContent>
     </Dialog>

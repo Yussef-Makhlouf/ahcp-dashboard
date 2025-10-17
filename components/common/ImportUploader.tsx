@@ -5,7 +5,6 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { ImportPreview } from './ImportPreview';
 import { 
   Upload, 
   FileSpreadsheet, 
@@ -59,7 +58,6 @@ const tableLabels: Record<string, string> = {
 interface ImportUploaderProps {
   templateKey: string;
   tableType: string;
-  onPreview: (data: any[]) => void;
   onSuccess: (response: ImportResponse) => void;
   onError: (error: any) => void;
 }
@@ -67,17 +65,14 @@ interface ImportUploaderProps {
 export const ImportUploader: React.FC<ImportUploaderProps> = ({
   templateKey,
   tableType,
-  onPreview,
   onSuccess,
   onError
 }) => {
   const [uiState, setUiState] = useState<UIState>('idle');
-  const [previewRows, setPreviewRows] = useState<any[]>([]);
   const [importResponse, setImportResponse] = useState<ImportResponse | null>(null);
-  const [errorMessage, setErrorMessage] = useState<string>('');
   const [isInitializing, setIsInitializing] = useState(false);
-  const [isPreviewDialogOpen, setIsPreviewDialogOpen] = useState(false);
-  const [isConfirming, setIsConfirming] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
   const uploaderRef = useRef<DromoUploaderInstance | null>(null);
   const initTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -257,10 +252,13 @@ export const ImportUploader: React.FC<ImportUploaderProps> = ({
       
       const fields = getFieldsForTableType(tableType);
       
-      // دالة الحصول على webhook URL
+      // دالة الحصول على webhook URL - بدون /api (حسب server.js)
       const getWebhookUrl = (type: string): string => {
         const ngrokUrl = process.env.NEXT_PUBLIC_NGROK_URL;
-        const baseUrl = ngrokUrl || process.env.NEXT_PUBLIC_API_URL || 'https://ahcp-backend-production.up.railway.app';
+        let baseUrl = ngrokUrl || process.env.NEXT_PUBLIC_API_URL || 'https://ahcp-backend-production.up.railway.app';
+        
+        // إزالة /api إذا كانت موجودة (webhook routes بدون /api)
+        baseUrl = baseUrl.replace(/\/api$/, '').replace(/\/$/, '');
         
         if (baseUrl.includes('localhost') && !ngrokUrl) {
           console.warn('⚠️ Dromo webhook يحاول الوصول إلى localhost');
@@ -286,18 +284,24 @@ export const ImportUploader: React.FC<ImportUploaderProps> = ({
       };
       
       // إعدادات Dromo Starter Plan الصحيحة
-      const settings = {
-        importIdentifier: `${tableType}_import`,
-        developmentMode: true,
-        // لا نستخدم mode أو webhookUrl في Starter Plan
-        // Starter Plan يعمل فقط مع callbacks
-      };
+ const settings: any = {
+  importIdentifier: `${tableType}_import`,
+  developmentMode: true,
+  mode: 'public',
+  webhookUrl: getWebhookUrl(tableType),
+  webhookHeaders: {
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${localStorage.getItem('token') || ''}`,
+    'X-Table-Type': tableType
+  }
+};
       
-      // بيانات المستخدم
+      // بيانات المستخدم من auth store أو default
+      const authUser = JSON.parse(localStorage.getItem('user') || '{}');
       const user = {
-        id: 'user_1',
-        name: 'System User',
-        email: 'admin@ahcp.gov.sa'
+        id: authUser.id || 'anonymous_user',
+        name: authUser.name || 'مستخدم النظام',
+        email: authUser.email || 'user@ahcp.gov.sa'
       };
       
       // إنشاء instance جديد من Dromo
@@ -319,26 +323,116 @@ export const ImportUploader: React.FC<ImportUploaderProps> = ({
         throw error;
       }
       
-      // معالجة البيانات من Dromo Starter Plan
+      // معالجة البيانات من Dromo Starter Plan - إرسال مباشر
       if (uploaderRef.current.onResults) {
-        uploaderRef.current.onResults((results: any) => {
+        uploaderRef.current.onResults(async (results: any) => {
           console.log('📊 Dromo Starter Plan - Received results:', results);
           
-          if (results && results.validData && Array.isArray(results.validData)) {
-            const data = results.validData;
-            console.log(`✅ Received ${data.length} valid rows`);
+          // البيانات يمكن أن تأتي في عدة أشكال من Dromo
+          let data = null;
+          
+          if (Array.isArray(results)) {
+            // البيانات تأتي مباشرة كـ array
+            data = results;
+            console.log('✅ Data format: Direct array');
+          } else if (results && results.validData && Array.isArray(results.validData)) {
+            // البيانات في results.validData
+            data = results.validData;
+            console.log('✅ Data format: results.validData');
+          } else if (results && results.data && Array.isArray(results.data)) {
+            // البيانات في results.data
+            data = results.data;
+            console.log('✅ Data format: results.data');
+          } else if (results && typeof results === 'object' && !Array.isArray(results)) {
+            // البيانات كـ object واحد - تحويل إلى array
+            data = [results];
+            console.log('✅ Data format: Single object converted to array');
+          }
+          
+          if (data && Array.isArray(data) && data.length > 0) {
+            console.log(`✅ Received ${data.length} valid rows - إرسال مباشر إلى قاعدة البيانات`);
+            console.log('📊 Sample data:', data[0]);
             
-            // عرض البيانات في Dialog للمراجعة
-            setPreviewRows(data);
-            setIsPreviewDialogOpen(true);
-            onPreview(data);
+            // إرسال مباشر إلى قاعدة البيانات بدون تأكيد
+            setIsProcessing(true);
+            setUiState('sending');
             
-            toast.success(`تم تحليل ${data.length} صف - راجع البيانات وأكد الاستيراد`);
+            try {
+              // إرسال البيانات مباشرة إلى Backend
+              const ngrokUrl = process.env.NEXT_PUBLIC_NGROK_URL;
+              let baseUrl = ngrokUrl || process.env.NEXT_PUBLIC_API_URL || 'https://ahcp-backend-production.up.railway.app';
+              baseUrl = baseUrl.replace(/\/api$/, '').replace(/\/$/, '');
+              
+              const getWebhookUrl = (type: string): string => {
+                switch (type) {
+                  case 'laboratory':
+                    return `${baseUrl}/import-export/laboratories/import-dromo`;
+                  case 'vaccination':
+                    return `${baseUrl}/import-export/vaccination/import-dromo`;
+                  case 'parasite_control':
+                    return `${baseUrl}/import-export/parasite-control/import-dromo`;
+                  case 'mobile':
+                    return `${baseUrl}/import-export/mobile-clinics/import-dromo`;
+                  case 'equine_health':
+                    return `${baseUrl}/import-export/equine-health/import-dromo`;
+                  default:
+                    return `${baseUrl}/import-export/dromo-import-public`;
+                }
+              };
+
+              const webhookUrl = getWebhookUrl(tableType);
+              console.log('📤 إرسال مباشر إلى:', webhookUrl);
+              console.log('📤 البيانات المرسلة:', { data, tableType, totalRows: data.length });
+              
+              const response = await fetch(webhookUrl, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${localStorage.getItem('token') || ''}`,
+                  'X-Table-Type': tableType,
+                  'X-Source': 'dromo-auto-import'
+                },
+                body: JSON.stringify({
+                  data: data,
+                  validData: data,
+                  source: 'dromo-starter-auto',
+                  tableType: tableType,
+                  totalRows: data.length
+                })
+              });
+
+              const result = await response.json();
+              console.log('📥 نتيجة الحفظ:', result);
+
+              if (!response.ok) {
+                throw new Error(result.message || 'فشل في الحفظ');
+              }
+
+              if (result.success) {
+                setUiState('done');
+                setImportResponse(result);
+                onSuccess(result);
+                toast.success(`✅ تم حفظ ${result.insertedCount || data.length} سجل بنجاح في قاعدة البيانات!`);
+              } else {
+                throw new Error(result.message || 'فشل في الحفظ');
+              }
+              
+            } catch (error: any) {
+              console.error('❌ فشل الحفظ المباشر:', error);
+              setUiState('error');
+              setErrorMessage(error.message || 'حدث خطأ أثناء الحفظ');
+              onError(error);
+              toast.error('فشل في حفظ البيانات');
+            } finally {
+              setIsProcessing(false);
+            }
+            
           } else if (results && results.errors && results.errors.length > 0) {
             console.error('❌ Import errors:', results.errors);
             setErrorMessage(`تم العثور على ${results.errors.length} خطأ في البيانات`);
             setUiState('error');
           } else {
+            console.error('❌ No valid data found in results:', results);
             setErrorMessage('لم يتم العثور على بيانات صالحة للاستيراد');
             setUiState('error');
           }
@@ -363,7 +457,7 @@ export const ImportUploader: React.FC<ImportUploaderProps> = ({
     } finally {
       setIsInitializing(false);
     }
-  }, [tableType, templateKey, onPreview, onError]);
+  }, [tableType, templateKey, onError]);
 
   // إطلاق أداة الرفع
   const handleLaunchUploader = async () => {
@@ -419,96 +513,11 @@ export const ImportUploader: React.FC<ImportUploaderProps> = ({
     toast.error(message);
   };
 
-  // تأكيد الاستيراد - إرسال البيانات إلى Backend
-  const confirmImport = async () => {
-    if (previewRows.length === 0) {
-      toast.error('لا توجد بيانات للاستيراد');
-      return;
-    }
-
-    setIsConfirming(true);
-    console.log(`🚀 Confirming import of ${previewRows.length} rows for ${tableType}`);
-
-    try {
-      // إرسال البيانات مباشرة إلى Backend webhook
-      const getWebhookUrl = (type: string): string => {
-        const ngrokUrl = process.env.NEXT_PUBLIC_NGROK_URL;
-        const baseUrl = ngrokUrl || process.env.NEXT_PUBLIC_API_URL || 'https://ahcp-backend-production.up.railway.app';
-        
-        switch (type) {
-          case 'laboratory':
-            return `${baseUrl}/import-export/laboratories/import-dromo`;
-          case 'vaccination':
-            return `${baseUrl}/import-export/vaccination/import-dromo`;
-          case 'parasite_control':
-            return `${baseUrl}/import-export/parasite-control/import-dromo`;
-          case 'mobile':
-            return `${baseUrl}/import-export/mobile-clinics/import-dromo`;
-          case 'equine_health':
-            return `${baseUrl}/import-export/equine-health/import-dromo`;
-          default:
-            return `${baseUrl}/import-export/dromo-import-public`;
-        }
-      };
-
-      const webhookUrl = getWebhookUrl(tableType);
-      console.log('📤 Sending to webhook:', webhookUrl);
-      
-      const response = await fetch(webhookUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token') || ''}`,
-          'X-Table-Type': tableType,
-          'X-Source': 'dromo-starter-plan'
-        },
-        body: JSON.stringify({
-          data: previewRows,
-          validData: previewRows,
-          source: 'dromo-starter-plan-manual',
-          tableType: tableType,
-          totalRows: previewRows.length
-        })
-      });
-
-      const result: ImportResponse = await response.json();
-      console.log('📥 Backend response:', result);
-
-      if (!response.ok) {
-        throw new Error(result.message || 'فشل في الاستيراد');
-      }
-
-      setImportResponse(result);
-      
-      if (result.success) {
-        // إغلاق الـ dialog وعرض النجاح
-        setIsPreviewDialogOpen(false);
-        setUiState('done');
-        onSuccess(result);
-        toast.success(`تم استيراد ${result.insertedCount || previewRows.length} سجل بنجاح`);
-      } else {
-        setUiState('error');
-        setErrorMessage(result.message || 'فشل في الاستيراد');
-        onError(result);
-      }
-    } catch (error: any) {
-      console.error('❌ Import failed:', error);
-      setUiState('error');
-      setErrorMessage(error.message || 'حدث خطأ أثناء الاستيراد');
-      onError(error);
-      toast.error('فشل في الاستيراد');
-    } finally {
-      setIsConfirming(false);
-    }
-  };
-
   // إعادة تعيين الحالة
   const resetState = () => {
     setUiState('idle');
-    setPreviewRows([]);
     setImportResponse(null);
     setErrorMessage('');
-    setIsPreviewDialogOpen(false);
   };
 
   return (
@@ -535,6 +544,23 @@ export const ImportUploader: React.FC<ImportUploaderProps> = ({
                 <Upload className="h-4 w-4 mr-2" />
                 اختيار الملف
               </Button>
+            </div>
+          </div>
+        )}
+
+        {/* حالة الإرسال المباشر */}
+        {uiState === 'sending' && (
+          <div className="text-center space-y-4">
+            <div className="border-2 border-blue-200 bg-blue-50 rounded-lg p-8">
+              <div className="flex items-center justify-center mb-4">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+              </div>
+              <h3 className="text-lg font-semibold mb-2 text-blue-800">
+                جاري حفظ البيانات...
+              </h3>
+              <p className="text-blue-600">
+                يتم إرسال البيانات مباشرة إلى قاعدة البيانات
+              </p>
             </div>
           </div>
         )}
@@ -601,15 +627,6 @@ export const ImportUploader: React.FC<ImportUploaderProps> = ({
         </div>
       </CardContent>
 
-      {/* Dialog معاينة البيانات */}
-      <ImportPreviewDialog
-        isOpen={isPreviewDialogOpen}
-        onClose={() => setIsPreviewDialogOpen(false)}
-        data={previewRows}
-        tableType={tableType}
-        onConfirm={confirmImport}
-        isLoading={isConfirming}
-      />
     </Card>
   );
 };

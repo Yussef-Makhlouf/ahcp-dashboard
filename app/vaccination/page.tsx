@@ -16,15 +16,12 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { usePermissions } from "@/lib/hooks/usePermissions";
 import { toast } from "sonner";
-import { ImportExportManager } from "@/components/import-export";
-import { apiConfig } from "@/lib/api-config";
-import { ImportDialog } from "@/components/common/ImportDialog";
+import { ImportUploader } from "@/components/common/ImportUploader";
 
 
 export default function VaccinationPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState<Vaccination | null>(null);
-  const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize] = useState(30);
   const queryClient = useQueryClient();
@@ -132,33 +129,13 @@ export default function VaccinationPage() {
             </p>
           </div>
           <div className="flex gap-2">
-            <Button 
-              onClick={() => setIsImportDialogOpen(true)}
-              size="sm" 
-              variant="outline" 
-              className="h-9 px-3"
-            >
-              <FileSpreadsheet className="h-4 w-4 mr-2" />
-              استيراد عبر Dromo
-            </Button>
-            <ImportExportManager
-              exportEndpoint={apiConfig.endpoints.vaccination.export}
-              importEndpoint={apiConfig.endpoints.vaccination.import}
-              templateEndpoint={apiConfig.endpoints.vaccination.template}
-              title="التحصينات"
-              queryKey="vaccination"
-              acceptedFormats={[".csv", ".xlsx"]}
-              maxFileSize={10}
-              onImportSuccess={() => {
-                queryClient.invalidateQueries({ queryKey: ['vaccination'] });
-                queryClient.invalidateQueries({ queryKey: ['vaccination-stats'] });
-              }}
-              onExportSuccess={() => {
-                toast.success('تم تصدير البيانات بنجاح');
-              }}
-              onRefresh={() => {
-                queryClient.invalidateQueries({ queryKey: ['vaccination'] });
-                queryClient.invalidateQueries({ queryKey: ['vaccination-stats'] });
+            <ImportUploader
+              templateKey={process.env.NEXT_PUBLIC_DROMO_TEMPLATE_VACCINATION || ''}
+              tableType="vaccination"
+              onSuccess={handleImportSuccess}
+              onError={(error) => {
+                console.error('Import error:', error);
+                toast.error('فشل في الاستيراد');
               }}
             />
             {checkPermission({ module: 'vaccination', action: 'create' }) && (
@@ -258,14 +235,6 @@ export default function VaccinationPage() {
           }}
         />
 
-        {/* Import Dialog */}
-        <ImportDialog
-          open={isImportDialogOpen}
-          onOpenChange={setIsImportDialogOpen}
-          tableType="vaccination"
-          templateKey={process.env.NEXT_PUBLIC_DROMO_TEMPLATE_VACCINATION || ''}
-          onImportSuccess={handleImportSuccess}
-        />
       </div>
     </MainLayout>
   );

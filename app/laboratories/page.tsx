@@ -16,9 +16,7 @@ import { laboratoriesApi } from "@/lib/api/laboratories";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { usePermissions } from "@/lib/hooks/usePermissions";
 import { toast } from "sonner";
-import { apiConfig } from "@/lib/api-config";
-import { ImportExportManager } from "@/components/import-export";
-import { ImportDialog } from "@/components/common/ImportDialog";
+import { ImportUploader } from "@/components/common/ImportUploader";
 
 // تعريف حقول النموذج
 const formFields = [
@@ -213,7 +211,6 @@ const tableFilters = [
 export default function LaboratoriesPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState<Laboratory | null>(null);
-  const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize] = useState(30);
   const queryClient = useQueryClient();
@@ -349,31 +346,13 @@ export default function LaboratoriesPage() {
             </p>
           </div>
           <div className="flex gap-2">
-            <Button 
-              onClick={() => setIsImportDialogOpen(true)}
-              size="sm" 
-              variant="outline" 
-              className="h-9 px-3"
-            >
-              <FileSpreadsheet className="h-4 w-4 mr-2" />
-              استيراد عبر Dromo
-            </Button>
-            <ImportExportManager
-              exportEndpoint={apiConfig.endpoints.laboratories.export}
-              importEndpoint={apiConfig.endpoints.laboratories.import}
-              templateEndpoint={apiConfig.endpoints.laboratories.template}
-              title="المختبرات"
-              queryKey="laboratories"
-              acceptedFormats={[".csv", ".xlsx"]}
-              maxFileSize={10}
-              onImportSuccess={() => {
-                queryClient.invalidateQueries({ queryKey: ['laboratories'] });
-              }}
-              onExportSuccess={() => {
-                toast.success('تم تصدير البيانات بنجاح');
-              }}
-              onRefresh={() => {
-                queryClient.invalidateQueries({ queryKey: ['laboratories'] });
+            <ImportUploader
+              templateKey={process.env.NEXT_PUBLIC_DROMO_TEMPLATE_LAB || ''}
+              tableType="laboratory"
+              onSuccess={handleImportSuccess}
+              onError={(error) => {
+                console.error('Import error:', error);
+                toast.error('فشل في الاستيراد');
               }}
             />
             {checkPermission({ module: 'laboratories', action: 'create' }) && (
@@ -560,14 +539,6 @@ export default function LaboratoriesPage() {
           onSave={handleSave}
         />
 
-        {/* Import Dialog */}
-        <ImportDialog
-          open={isImportDialogOpen}
-          onOpenChange={setIsImportDialogOpen}
-          tableType="laboratory"
-          templateKey={process.env.NEXT_PUBLIC_DROMO_TEMPLATE_LAB || ''}
-          onImportSuccess={handleImportSuccess}
-        />
       </div>
     </MainLayout>
   );
