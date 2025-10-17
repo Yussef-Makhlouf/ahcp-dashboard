@@ -6,7 +6,7 @@ import { DataTable } from "@/components/data-table/data-table";
 
 import { getColumns } from "./components/columns";
 import { Button } from "@/components/ui/button";
-import { Plus, Bug, TrendingUp, TrendingDown, Activity } from "lucide-react";
+import { Plus, Bug, Shield, TrendingUp, TrendingDown, Activity, Clock, AlertTriangle, FileSpreadsheet } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import type { ParasiteControl } from "@/types";
@@ -19,6 +19,7 @@ import { ParasiteControlDialog } from "./components/parasite-control-dialog";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { ImportExportManager } from "@/components/import-export";
+import { ImportDialog } from "@/components/common/ImportDialog";
 import { apiConfig } from "@/lib/api-config";
 
 // تعريف حقول النموذج
@@ -211,6 +212,7 @@ const tableFilters = [
 export default function ParasiteControlPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState<ParasiteControl | null>(null);
+  const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize] = useState(30);
   const { checkPermission } = usePermissions();
@@ -317,6 +319,21 @@ export default function ParasiteControlPage() {
     setIsDialogOpen(true);
   };
 
+  const handleImportSuccess = () => {
+    // إلغاء جميع queries المتعلقة بمكافحة الطفيليات
+    queryClient.invalidateQueries({ 
+      predicate: (query) => {
+        const queryKey = query.queryKey as string[];
+        return queryKey[0] === 'parasite-control' || queryKey[0] === 'parasite-control-stats';
+      }
+    });
+    
+    // إعادة تحميل البيانات فوراً
+    refetch();
+    
+    toast.success('تم استيراد البيانات بنجاح - جاري تحديث الجدول');
+  };
+
   return (
     <MainLayout>
       <div className="space-y-6">
@@ -329,6 +346,15 @@ export default function ParasiteControlPage() {
             </p>
           </div>
           <div className="flex gap-2">
+            <Button 
+              onClick={() => setIsImportDialogOpen(true)}
+              size="sm" 
+              variant="outline" 
+              className="h-9 px-3"
+            >
+              <FileSpreadsheet className="h-4 w-4 mr-2" />
+              استيراد عبر Dromo
+            </Button>
             <ImportExportManager
               exportEndpoint={apiConfig.endpoints.parasiteControl.export}
               importEndpoint={apiConfig.endpoints.parasiteControl.import}
@@ -452,6 +478,15 @@ export default function ParasiteControlPage() {
             setIsDialogOpen(false);
             setSelectedItem(null);
           }}
+        />
+
+        {/* Import Dialog */}
+        <ImportDialog
+          open={isImportDialogOpen}
+          onOpenChange={setIsImportDialogOpen}
+          tableType="parasite_control"
+          templateKey={process.env.NEXT_PUBLIC_DROMO_TEMPLATE_PARASITE || ''}
+          onImportSuccess={handleImportSuccess}
         />
       </div>
     </MainLayout>

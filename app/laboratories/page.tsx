@@ -7,7 +7,7 @@ import { DataTable } from "@/components/data-table/data-table";
 import { getColumns } from "./components/columns";
 import { LaboratoryDialog } from "./components/laboratory-dialog";
 import { Button } from "@/components/ui/button";
-import { Plus, FlaskConical, TestTube, TrendingUp, Activity, Clock } from "lucide-react";
+import { Plus, FlaskConical, TestTube, TrendingUp, Activity, Clock, FileSpreadsheet } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import type { Laboratory } from "@/types";
@@ -18,6 +18,7 @@ import { usePermissions } from "@/lib/hooks/usePermissions";
 import { toast } from "sonner";
 import { apiConfig } from "@/lib/api-config";
 import { ImportExportManager } from "@/components/import-export";
+import { ImportDialog } from "@/components/common/ImportDialog";
 
 // تعريف حقول النموذج
 const formFields = [
@@ -212,6 +213,7 @@ const tableFilters = [
 export default function LaboratoriesPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState<Laboratory | null>(null);
+  const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize] = useState(30);
   const queryClient = useQueryClient();
@@ -320,6 +322,21 @@ export default function LaboratoriesPage() {
     setIsDialogOpen(true);
   };
 
+  const handleImportSuccess = () => {
+    // إلغاء جميع queries المتعلقة بالمختبرات
+    queryClient.invalidateQueries({ 
+      predicate: (query) => {
+        const queryKey = query.queryKey as string[];
+        return queryKey[0] === 'laboratories' || queryKey[0] === 'laboratories-stats';
+      }
+    });
+    
+    // إعادة تحميل البيانات فوراً
+    if (refetch) refetch();
+    
+    toast.success('تم استيراد البيانات بنجاح - جاري تحديث الجدول');
+  };
+
   return (
     <MainLayout>
       <div className="space-y-6">
@@ -332,6 +349,15 @@ export default function LaboratoriesPage() {
             </p>
           </div>
           <div className="flex gap-2">
+            <Button 
+              onClick={() => setIsImportDialogOpen(true)}
+              size="sm" 
+              variant="outline" 
+              className="h-9 px-3"
+            >
+              <FileSpreadsheet className="h-4 w-4 mr-2" />
+              استيراد عبر Dromo
+            </Button>
             <ImportExportManager
               exportEndpoint={apiConfig.endpoints.laboratories.export}
               importEndpoint={apiConfig.endpoints.laboratories.import}
@@ -532,6 +558,15 @@ export default function LaboratoriesPage() {
           onOpenChange={setIsDialogOpen}
           laboratory={selectedItem || undefined}
           onSave={handleSave}
+        />
+
+        {/* Import Dialog */}
+        <ImportDialog
+          open={isImportDialogOpen}
+          onOpenChange={setIsImportDialogOpen}
+          tableType="laboratory"
+          templateKey={process.env.NEXT_PUBLIC_DROMO_TEMPLATE_LAB || ''}
+          onImportSuccess={handleImportSuccess}
         />
       </div>
     </MainLayout>

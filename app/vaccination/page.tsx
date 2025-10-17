@@ -4,7 +4,7 @@ import { useState } from "react";
 import { MainLayout } from "@/components/layout/main-layout";
 import { DataTable } from "@/components/data-table/data-table";
 import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
+import { Plus, FileSpreadsheet } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import type { Vaccination } from "@/types";
@@ -18,18 +18,20 @@ import { usePermissions } from "@/lib/hooks/usePermissions";
 import { toast } from "sonner";
 import { ImportExportManager } from "@/components/import-export";
 import { apiConfig } from "@/lib/api-config";
+import { ImportDialog } from "@/components/common/ImportDialog";
 
 
 export default function VaccinationPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState<Vaccination | null>(null);
+  const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize] = useState(30);
   const queryClient = useQueryClient();
   const { checkPermission } = usePermissions();
 
   // Fetch vaccination data using React Query with pagination
-  const { data: vaccinationData, isLoading } = useQuery({
+  const { data: vaccinationData, isLoading, refetch } = useQuery({
     queryKey: ['vaccination', currentPage, pageSize],
     queryFn: () => vaccinationApi.getList({
       page: currentPage,
@@ -103,6 +105,21 @@ export default function VaccinationPage() {
     setIsDialogOpen(true);
   };
 
+  const handleImportSuccess = () => {
+    // إلغاء جميع queries المتعلقة بالتطعيمات
+    queryClient.invalidateQueries({ 
+      predicate: (query) => {
+        const queryKey = query.queryKey as string[];
+        return queryKey[0] === 'vaccination' || queryKey[0] === 'vaccination-stats';
+      }
+    });
+    
+    // إعادة تحميل البيانات فوراً
+    if (refetch) refetch();
+    
+    toast.success('تم استيراد البيانات بنجاح - جاري تحديث الجدول');
+  };
+
   return (
     <MainLayout>
       <div className="space-y-6">
@@ -115,6 +132,15 @@ export default function VaccinationPage() {
             </p>
           </div>
           <div className="flex gap-2">
+            <Button 
+              onClick={() => setIsImportDialogOpen(true)}
+              size="sm" 
+              variant="outline" 
+              className="h-9 px-3"
+            >
+              <FileSpreadsheet className="h-4 w-4 mr-2" />
+              استيراد عبر Dromo
+            </Button>
             <ImportExportManager
               exportEndpoint={apiConfig.endpoints.vaccination.export}
               importEndpoint={apiConfig.endpoints.vaccination.import}
@@ -230,6 +256,15 @@ export default function VaccinationPage() {
             queryClient.invalidateQueries({ queryKey: ['vaccination'] });
             queryClient.invalidateQueries({ queryKey: ['vaccination-stats'] });
           }}
+        />
+
+        {/* Import Dialog */}
+        <ImportDialog
+          open={isImportDialogOpen}
+          onOpenChange={setIsImportDialogOpen}
+          tableType="vaccination"
+          templateKey={process.env.NEXT_PUBLIC_DROMO_TEMPLATE_VACCINATION || ''}
+          onImportSuccess={handleImportSuccess}
         />
       </div>
     </MainLayout>

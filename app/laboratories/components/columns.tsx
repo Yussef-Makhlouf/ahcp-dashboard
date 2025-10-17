@@ -86,22 +86,6 @@ export function getColumns({
         if (!birthDate) return <span className="text-muted-foreground">غير محدد</span>;
         const date = new Date(birthDate);
         return (
-          <div className="text-sm">
-            {date.toLocaleDateString("ar-EG")}
-          </div>
-        );
-      },
-      size: 100,
-    },
-    // Birth Date
-    {
-      accessorKey: "clientBirthDate",
-      header: "Birth Date",
-      cell: ({ row }) => {
-        const birthDate = row.getValue("clientBirthDate") as string;
-        if (!birthDate) return <span className="text-muted-foreground">غير محدد</span>;
-        const date = new Date(birthDate);
-        return (
           <div className="text-sm flex items-center gap-1">
             <Calendar className="h-3 w-3" />
             {date.toLocaleDateString("ar-EG")}

@@ -7,7 +7,7 @@ import { DataTable } from "@/components/data-table/data-table";
 import { getColumns } from "./components/columns";
 import { MobileClinicDialog } from "./components/mobile-clinic-dialog";
 import { Button } from "@/components/ui/button";
-import { Plus, Truck, Heart, TrendingUp, Activity } from "lucide-react";
+import { Plus, Truck, MapPin, TrendingUp, Activity, Clock, Users, FileSpreadsheet, Heart } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import type { MobileClinic } from "@/types";
@@ -19,6 +19,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { apiConfig } from "@/lib/api-config";
 import { ImportExportManager } from "@/components/import-export";
+import { ImportDialog } from "@/components/common/ImportDialog";
 
 // تعريف حقول النموذج
 const formFields = [
@@ -242,6 +243,7 @@ const tableFilters = [
 export default function MobileClinicsPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState<MobileClinic | null>(null);
+  const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize] = useState(30);
   const { checkPermission } = usePermissions();
