@@ -356,8 +356,8 @@ export const ImportUploader: React.FC<ImportUploaderProps> = ({
       
       const settings: any = {
         importIdentifier: `${tableType}_import`,
-        developmentMode:'development',
-        mode: 'public', // تفعيل Public Mode
+        developmentMode: true,
+        mode: 'public', 
         webhookUrl: getWebhookUrl(tableType),
         webhookHeaders: {
           'Content-Type': 'application/json',
