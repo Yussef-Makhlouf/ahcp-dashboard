@@ -360,7 +360,10 @@ export const ImportUploader: React.FC<ImportUploaderProps> = ({
             try {
               // إرسال البيانات مباشرة إلى Backend
               const ngrokUrl = process.env.NEXT_PUBLIC_NGROK_URL;
-              let baseUrl = ngrokUrl || process.env.NEXT_PUBLIC_API_URL || 'https://ahcp-backend-production.up.railway.app';
+              let baseUrl = ngrokUrl || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+              if (!baseUrl) {
+                baseUrl = 'http://localhost:3001';
+              }
               baseUrl = baseUrl.replace(/\/api$/, '').replace(/\/$/, '');
               
               const getWebhookUrl = (type: string): string => {
@@ -370,13 +373,14 @@ export const ImportUploader: React.FC<ImportUploaderProps> = ({
                   case 'vaccination':
                     return `${baseUrl}/import-export/vaccination/import-dromo`;
                   case 'parasite_control':
-                    return `${baseUrl}/import-export/parasite-control/import-dromo`;
+                    return `${baseUrl}/import-export/parasite-control/import-dromo`; // Placeholder route
                   case 'mobile':
-                    return `${baseUrl}/import-export/mobile-clinics/import-dromo`;
+                    return `${baseUrl}/import-export/mobile-clinics/import-dromo`; // Placeholder route
                   case 'equine_health':
-                    return `${baseUrl}/import-export/equine-health/import-dromo`;
+                    return `${baseUrl}/import-export/equine-health/import-dromo`; // Placeholder route
                   default:
-                    return `${baseUrl}/import-export/dromo-import-public`;
+                    console.warn(`⚠️ Unknown table type: ${type}, using default route`);
+                    return `${baseUrl}/import-export/vaccination/import-dromo`; // Fallback to working route
                 }
               };
 
