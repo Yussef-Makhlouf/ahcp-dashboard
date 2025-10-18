@@ -462,10 +462,13 @@ export interface Laboratory {
   serialNo: number; // Serial number from table
   date: string; // Date column
   sampleCode: string; // Sample Code column
-  clientName: string; // Name column (client name)
-  clientId: string; // ID column (client ID - 10 digits)
-  clientBirthDate: string; // Birth Date column
-  clientPhone: string; // phone column (9 digits)
+  client: {
+    _id?: string;
+    name: string; // Name column (client name)
+    nationalId: string; // ID column (client ID - 10 digits)
+    birthDate?: string; // Birth Date column
+    phone: string; // phone column (9 digits)
+  };
   farmLocation: string; // Location column
   coordinates: {
     latitude: number; // N column (North coordinate)

@@ -7,7 +7,7 @@ import { DataTable } from "@/components/data-table/data-table";
 import { getColumns } from "./components/columns";
 import { LaboratoryDialog } from "./components/laboratory-dialog";
 import { Button } from "@/components/ui/button";
-import { Plus, FlaskConical, TestTube, TrendingUp, Activity, Clock, FileSpreadsheet } from "lucide-react";
+import { Plus, FlaskConical, TestTube, TrendingUp, Activity, Clock, AlertTriangle, FileSpreadsheet } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import type { Laboratory } from "@/types";
@@ -16,7 +16,9 @@ import { laboratoriesApi } from "@/lib/api/laboratories";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { usePermissions } from "@/lib/hooks/usePermissions";
 import { toast } from "sonner";
-import { ImportUploader } from "@/components/common/ImportUploader";
+import { ImportExportManager } from "@/components/import-export";
+import { ImportDialog } from "@/components/common/ImportDialog";
+import { apiConfig } from "@/lib/api-config";
 
 // تعريف حقول النموذج
 const formFields = [
@@ -133,10 +135,10 @@ const tableColumns = [
     width: "140px",
   },
   {
-    key: "clientBirthDate",
+    key: "client.birthDate",
     title: "تاريخ ميلاد المربي",
     render: (value: any, record: Laboratory) => {
-      const birthDate = record.clientBirthDate;
+      const birthDate = (record as any).client?.birthDate;
       return birthDate ? formatDate(birthDate) : "-";
     },
     width: "140px",
@@ -211,6 +213,7 @@ const tableFilters = [
 export default function LaboratoriesPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState<Laboratory | null>(null);
+  const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize] = useState(30);
   const queryClient = useQueryClient();
@@ -338,25 +341,43 @@ export default function LaboratoriesPage() {
     <MainLayout>
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="page-header flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h1 className="text-3xl font-bold">المختبرات</h1>
             <p className="text-muted-foreground mt-2">
-              إدارة سجلات الفحوصات المخبرية والعينات
+              إدارة سجلات الفحوصات المخبرية والعينات للحيوانات
             </p>
           </div>
           <div className="flex gap-2">
-            <ImportUploader
-              templateKey={process.env.NEXT_PUBLIC_DROMO_TEMPLATE_LAB || ''}
-              tableType="laboratory"
-              onSuccess={handleImportSuccess}
-              onError={(error) => {
-                console.error('Import error:', error);
-                toast.error('فشل في الاستيراد');
+            <Button 
+              onClick={() => setIsImportDialogOpen(true)}
+              size="sm" 
+              variant="outline" 
+              className="h-9 px-3"
+            >
+              <FileSpreadsheet className="h-4 w-4 mr-2" />
+              استيراد عبر Dromo
+            </Button>
+            <ImportExportManager
+              exportEndpoint={apiConfig.endpoints.laboratories.export}
+              importEndpoint={apiConfig.endpoints.laboratories.import}
+              templateEndpoint={apiConfig.endpoints.laboratories.template}
+              title="المختبرات"
+              queryKey="laboratories"
+              acceptedFormats={[".csv", ".xlsx"]}
+              maxFileSize={10}
+              onImportSuccess={() => {
+                queryClient.invalidateQueries({ queryKey: ['laboratories'] });
+              }}
+              onExportSuccess={() => {
+                toast.success('تم تصدير البيانات بنجاح');
+              }}
+              onRefresh={() => {
+                queryClient.invalidateQueries({ queryKey: ['laboratories'] });
               }}
             />
             {checkPermission({ module: 'laboratories', action: 'create' }) && (
-              <Button onClick={handleAdd} size="sm" className="h-9 px-3">
+              <Button onClick={handleAdd} className="h-9 px-3">
                 <Plus className="h-4 w-4 mr-2" />
                 إضافة عينة جديدة
               </Button>
@@ -365,8 +386,8 @@ export default function LaboratoriesPage() {
         </div>
 
         {/* Stats Cards */}
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
-          <Card className="hover:shadow-md transition-shadow">
+        <div className="stats-grid grid gap-4 md:grid-cols-4">
+          <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
                 إجمالي السجلات
@@ -374,18 +395,14 @@ export default function LaboratoriesPage() {
               <FlaskConical className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              {statsLoading ? (
-                <div className="text-2xl font-bold animate-pulse bg-gray-200 h-8 w-16 rounded"></div>
-              ) : (
-                <div className="text-2xl font-bold">{data.length || 0}</div>
-              )}
+              <div className="text-2xl font-bold">{data.length || 0}</div>
               <p className="text-xs text-muted-foreground">
-                جميع سجلات المختبر
+                +15.2% من الشهر الماضي
               </p>
             </CardContent>
           </Card>
           
-          <Card className="hover:shadow-md transition-shadow">
+          <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
                 إجمالي العينات
@@ -393,121 +410,65 @@ export default function LaboratoriesPage() {
               <TestTube className="h-4 w-4 text-blue-600" />
             </CardHeader>
             <CardContent>
-              {statsLoading ? (
-                <div className="text-2xl font-bold animate-pulse bg-blue-200 h-8 w-16 rounded"></div>
-              ) : (
-                <div className="text-2xl font-bold text-blue-600">
-                  {data.reduce((total, record) => {
-                    const counts = record.speciesCounts || {};
-                    return total + (counts.sheep || 0) + (counts.goats || 0) + (counts.camel || 0) + (counts.cattle || 0) + (counts.horse || 0);
-                  }, 0)}
-                </div>
-              )}
+              <div className="text-2xl font-bold text-blue-600">
+                {data.reduce((total, record) => {
+                  const counts = record.speciesCounts || {};
+                  return total + (counts.sheep || 0) + (counts.goats || 0) + (counts.camel || 0) + (counts.cattle || 0) + (counts.horse || 0);
+                }, 0)}
+              </div>
               <p className="text-xs text-muted-foreground">
                 من جميع الأنواع
               </p>
             </CardContent>
           </Card>
           
-          <Card className="hover:shadow-md transition-shadow">
+          <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
                 الحالات الإيجابية
               </CardTitle>
-              <TrendingUp className="h-4 w-4 text-red-600" />
+              <AlertTriangle className="h-4 w-4 text-red-600" />
             </CardHeader>
             <CardContent>
-              {statsLoading ? (
-                <div className="text-2xl font-bold animate-pulse bg-red-200 h-8 w-16 rounded"></div>
-              ) : (
-                <div className="text-2xl font-bold text-red-600">
-                  {data.reduce((total, record) => total + (record.positiveCases || 0), 0)}
-                </div>
-              )}
+              <div className="text-2xl font-bold text-red-600">
+                {data.reduce((total, record) => total + (record.positiveCases || 0), 0)}
+              </div>
               <p className="text-xs text-muted-foreground">
-                حالة إيجابية
+                {(() => {
+                  const totalPositive = data.reduce((total, record) => total + (record.positiveCases || 0), 0);
+                  const totalNegative = data.reduce((total, record) => total + (record.negativeCases || 0), 0);
+                  const totalCases = totalPositive + totalNegative;
+                  return totalCases > 0 ? Math.round((totalPositive / totalCases) * 100) : 0;
+                })()}% من الإجمالي
               </p>
             </CardContent>
           </Card>
           
-          <Card className="hover:shadow-md transition-shadow">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                الحالات السلبية
-              </CardTitle>
-              <Activity className="h-4 w-4 text-green-600" />
-            </CardHeader>
-            <CardContent>
-              {statsLoading ? (
-                <div className="text-2xl font-bold animate-pulse bg-green-200 h-8 w-16 rounded"></div>
-              ) : (
-                <div className="text-2xl font-bold text-green-600">
-                  {data.reduce((total, record) => total + (record.negativeCases || 0), 0)}
-                </div>
-              )}
-              <p className="text-xs text-muted-foreground">
-                حالة سلبية
-              </p>
-            </CardContent>
-          </Card>
-          
-          <Card className="hover:shadow-md transition-shadow">
+          <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
                 معدل الإيجابية
               </CardTitle>
-              <Clock className="h-4 w-4 text-orange-600" />
+              <Activity className="h-4 w-4 text-orange-600" />
             </CardHeader>
             <CardContent>
-              {statsLoading ? (
-                <div className="text-2xl font-bold animate-pulse bg-orange-200 h-8 w-16 rounded"></div>
-              ) : (
-                (() => {
-                  const totalPositive = data.reduce((total, record) => total + (record.positiveCases || 0), 0);
-                  const totalNegative = data.reduce((total, record) => total + (record.negativeCases || 0), 0);
-                  const totalCases = totalPositive + totalNegative;
-                  const rate = totalCases > 0 ? Math.round((totalPositive / totalCases) * 100) : 0;
-                  
-                  return (
-                    <div className={`text-2xl font-bold ${
-                      rate > 20 ? 'text-red-600' : 
-                      rate > 10 ? 'text-orange-600' : 'text-green-600'
-                    }`}>
-                      {rate}%
-                    </div>
-                  );
-                })()
-              )}
+              {(() => {
+                const totalPositive = data.reduce((total, record) => total + (record.positiveCases || 0), 0);
+                const totalNegative = data.reduce((total, record) => total + (record.negativeCases || 0), 0);
+                const totalCases = totalPositive + totalNegative;
+                const rate = totalCases > 0 ? Math.round((totalPositive / totalCases) * 100) : 0;
+                
+                return (
+                  <div className={`text-2xl font-bold ${
+                    rate > 20 ? 'text-red-600' : 
+                    rate > 10 ? 'text-orange-600' : 'text-green-600'
+                  }`}>
+                    {rate}%
+                  </div>
+                );
+              })()}
               <p className="text-xs text-muted-foreground">
-                نسبة الإيجابية
-              </p>
-            </CardContent>
-          </Card>
-          
-          <Card className="hover:shadow-md transition-shadow">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                العينات هذا الشهر
-              </CardTitle>
-              <Clock className="h-4 w-4 text-purple-600" />
-            </CardHeader>
-            <CardContent>
-              {statsLoading ? (
-                <div className="text-2xl font-bold animate-pulse bg-purple-200 h-8 w-16 rounded"></div>
-              ) : (
-                <div className="text-2xl font-bold text-purple-600">
-                  {(() => {
-                    const currentMonth = new Date().getMonth();
-                    const currentYear = new Date().getFullYear();
-                    return data.filter(record => {
-                      const recordDate = new Date(record.date);
-                      return recordDate.getMonth() === currentMonth && recordDate.getFullYear() === currentYear;
-                    }).length;
-                  })()}
-                </div>
-              )}
-              <p className="text-xs text-muted-foreground">
-                سجل هذا الشهر
+                نسبة الإيجابية العامة
               </p>
             </CardContent>
           </Card>
@@ -539,6 +500,14 @@ export default function LaboratoriesPage() {
           onSave={handleSave}
         />
 
+        {/* Import Dialog */}
+        <ImportDialog
+          open={isImportDialogOpen}
+          onOpenChange={setIsImportDialogOpen}
+          tableType="laboratory"
+          templateKey={process.env.NEXT_PUBLIC_DROMO_TEMPLATE_LAB || ''}
+          onImportSuccess={handleImportSuccess}
+        />
       </div>
     </MainLayout>
   );

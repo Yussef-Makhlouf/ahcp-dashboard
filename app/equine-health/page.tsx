@@ -5,7 +5,7 @@ import { MainLayout } from "@/components/layout/main-layout";
 import { DataTable } from "@/components/data-table/data-table";
 
 import { Button } from "@/components/ui/button";
-import { Plus, Heart } from "lucide-react";
+import { Plus, Heart, FileSpreadsheet } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { equineHealthApi } from "@/lib/api/equine-health";
 import { EquineHealthDialog } from "./components/equine-health-dialog";
@@ -15,11 +15,13 @@ import type { EquineHealth } from "@/types";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { ImportExportManager } from "@/components/import-export";
+import { ImportDialog } from "@/components/common/ImportDialog";
 import { apiConfig } from "@/lib/api-config";
 
 export default function EquineHealthPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState<EquineHealth | null>(null);
+  const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
   const { checkPermission } = usePermissions();
@@ -52,7 +54,22 @@ export default function EquineHealthPage() {
 
   const handleView = (item: EquineHealth) => {
     // This will be handled by the DataTable's built-in view modal
-    console.log("Viewing item:", item);
+    console.log("Viewing equine health item:", item);
+  };
+
+  const handleImportSuccess = () => {
+    // إلغاء جميع queries المتعلقة بصحة الخيول
+    queryClient.invalidateQueries({ 
+      predicate: (query) => {
+        const queryKey = query.queryKey as string[];
+        return queryKey[0] === 'equineHealth';
+      }
+    });
+    
+    // إعادة تحميل البيانات فوراً
+    refetch();
+    
+    toast.success('تم استيراد البيانات بنجاح - جاري تحديث الجدول');
   };
 
   // Handle bulk delete selected records
@@ -94,6 +111,15 @@ export default function EquineHealthPage() {
             </p>
           </div>
           <div className="flex gap-2">
+            <Button 
+              onClick={() => setIsImportDialogOpen(true)}
+              size="sm" 
+              variant="outline" 
+              className="h-9 px-3"
+            >
+              <FileSpreadsheet className="h-4 w-4 mr-2" />
+              استيراد عبر Dromo
+            </Button>
             <ImportExportManager
               exportEndpoint={apiConfig.endpoints.equineHealth.export}
               importEndpoint={apiConfig.endpoints.equineHealth.import}
@@ -118,7 +144,8 @@ export default function EquineHealthPage() {
                   setSelectedItem(null);
                   setIsDialogOpen(true);
                 }}
-className="h-9 px-3"              >
+                className="h-9 px-3"
+              >
                 <Plus className="ml-2 h-4 w-4" />
                 إضافة سجل جديد
               </Button>
@@ -237,6 +264,15 @@ className="h-9 px-3"              >
             setIsDialogOpen(false);
             refetch();
           }}
+        />
+
+        {/* Import Dialog */}
+        <ImportDialog
+          open={isImportDialogOpen}
+          onOpenChange={setIsImportDialogOpen}
+          tableType="equine_health"
+          templateKey={process.env.NEXT_PUBLIC_DROMO_TEMPLATE_EQUINE || ''}
+          onImportSuccess={handleImportSuccess}
         />
       </div>
     </MainLayout>

@@ -68,11 +68,14 @@ export const ImportUploader: React.FC<ImportUploaderProps> = ({
   onSuccess,
   onError
 }) => {
+  // States
   const [uiState, setUiState] = useState<UIState>('idle');
-  const [importResponse, setImportResponse] = useState<ImportResponse | null>(null);
   const [isInitializing, setIsInitializing] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [errorMessage, setErrorMessage] = useState('');
+  const [errorMessage, setErrorMessage] = useState<string>('');
+  const [importResponse, setImportResponse] = useState<ImportResponse | null>(null);
+  
+  // Refs
   const uploaderRef = useRef<DromoUploaderInstance | null>(null);
   const initTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -94,159 +97,191 @@ export const ImportUploader: React.FC<ImportUploaderProps> = ({
       // تحديد الحقول حسب نوع الجدول
       const getFieldsForTableType = (type: string) => {
         switch (type) {
-          case 'laboratory':
-            return [
-              { label: 'Serial No', key: 'serialNo' },
-              { label: 'Sample Code', key: 'sampleCode' },
-              { label: 'Date', key: 'date' },
-              { label: 'Client Name', key: 'clientName' },
-              { label: 'Client ID', key: 'clientId' },
-              { label: 'Client Birth Date', key: 'clientBirthDate' },
-              { label: 'Client Phone', key: 'clientPhone' },
-              { label: 'Farm Location', key: 'farmLocation' },
-              { label: 'Latitude', key: 'latitude' },
-              { label: 'Longitude', key: 'longitude' },
-              { label: 'Sample Type', key: 'sampleType' },
-              { label: 'Sample Number', key: 'sampleNumber' },
-              { label: 'Collector', key: 'collector' },
-              { label: 'Positive Cases', key: 'positiveCases' },
-              { label: 'Negative Cases', key: 'negativeCases' },
-              { label: 'Sheep Count', key: 'sheepCount' },
-              { label: 'Goats Count', key: 'goatsCount' },
-              { label: 'Cattle Count', key: 'cattleCount' },
-              { label: 'Camel Count', key: 'camelCount' },
-              { label: 'Horse Count', key: 'horseCount' },
-              { label: 'Other Species', key: 'otherSpecies' },
-              { label: 'Remarks', key: 'remarks' }
-            ];
-          case 'vaccination':
-            return [
-              { label: 'Serial No', key: 'serialNo' },
-              { label: 'Date', key: 'date' },
-              { label: 'Client', key: 'client' },
-              { label: 'Farm Location', key: 'farmLocation' },
-              { label: 'Latitude', key: 'latitude' },
-              { label: 'Longitude', key: 'longitude' },
-              { label: 'Supervisor', key: 'supervisor' },
-              { label: 'Team', key: 'team' },
-              { label: 'Vehicle No', key: 'vehicleNo' },
-              { label: 'Vaccine Type', key: 'vaccineType' },
-              { label: 'Vaccine Category', key: 'vaccineCategory' },
-              { label: 'Sheep Total', key: 'sheepTotal' },
-              { label: 'Sheep Young', key: 'sheepYoung' },
-              { label: 'Sheep Female', key: 'sheepFemale' },
-              { label: 'Sheep Vaccinated', key: 'sheepVaccinated' },
-              { label: 'Goats Total', key: 'goatsTotal' },
-              { label: 'Goats Young', key: 'goatsYoung' },
-              { label: 'Goats Female', key: 'goatsFemale' },
-              { label: 'Goats Vaccinated', key: 'goatsVaccinated' },
-              { label: 'Cattle Total', key: 'cattleTotal' },
-              { label: 'Cattle Young', key: 'cattleYoung' },
-              { label: 'Cattle Female', key: 'cattleFemale' },
-              { label: 'Cattle Vaccinated', key: 'cattleVaccinated' },
-              { label: 'Camel Total', key: 'camelTotal' },
-              { label: 'Camel Young', key: 'camelYoung' },
-              { label: 'Camel Female', key: 'camelFemale' },
-              { label: 'Camel Vaccinated', key: 'camelVaccinated' },
-              { label: 'Horse Total', key: 'horseTotal' },
-              { label: 'Horse Young', key: 'horseYoung' },
-              { label: 'Horse Female', key: 'horseFemale' },
-              { label: 'Horse Vaccinated', key: 'horseVaccinated' },
-              { label: 'Herd Health', key: 'herdHealth' },
-              { label: 'Animals Handling', key: 'animalsHandling' },
-              { label: 'Labours', key: 'labours' },
-              { label: 'Reachable Location', key: 'reachableLocation' },
-              { label: 'Request Date', key: 'requestDate' },
-              { label: 'Request Situation', key: 'requestSituation' },
-              { label: 'Request Fulfilling Date', key: 'requestFulfillingDate' },
-              { label: 'Remarks', key: 'remarks' }
-            ];
-          case 'parasite_control':
-            return [
-              { label: 'Serial No', key: 'serialNo' },
-              { label: 'Date', key: 'date' },
-              { label: 'Owner', key: 'owner' },
-              { label: 'Herd Location', key: 'herdLocation' },
-              { label: 'Latitude', key: 'latitude' },
-              { label: 'Longitude', key: 'longitude' },
-              { label: 'Supervisor', key: 'supervisor' },
-              { label: 'Vehicle No', key: 'vehicleNo' },
-              { label: 'Insecticide Type', key: 'insecticideType' },
-              { label: 'Insecticide Volume', key: 'insecticideVolume' },
-              { label: 'Sheep Total', key: 'sheepTotal' },
-              { label: 'Sheep Treated', key: 'sheepTreated' },
-              { label: 'Goats Total', key: 'goatsTotal' },
-              { label: 'Goats Treated', key: 'goatsTreated' },
-              { label: 'Cattle Total', key: 'cattleTotal' },
-              { label: 'Cattle Treated', key: 'cattleTreated' },
-              { label: 'Camel Total', key: 'camelTotal' },
-              { label: 'Camel Treated', key: 'camelTreated' },
-              { label: 'Horse Total', key: 'horseTotal' },
-              { label: 'Horse Treated', key: 'horseTreated' },
-              { label: 'Herd Health Status', key: 'herdHealthStatus' },
-              { label: 'Animal Barn Size SqM', key: 'animalBarnSizeSqM' },
-              { label: 'Breeding Sites Type', key: 'breedingSitesType' },
-              { label: 'Breeding Sites Area', key: 'breedingSitesArea' },
-              { label: 'Breeding Sites Treatment', key: 'breedingSitesTreatment' },
-              { label: 'Parasite Control Volume', key: 'parasiteControlVolume' },
-              { label: 'Parasite Control Status', key: 'parasiteControlStatus' },
-              { label: 'Complying', key: 'complying' },
-              { label: 'Complying To Instructions', key: 'complyingToInstructions' },
-              { label: 'Remarks', key: 'remarks' }
-            ];
-          case 'mobile':
-            return [
-              { label: 'Serial No', key: 'serialNo' },
-              { label: 'Date', key: 'date' },
-              { label: 'Client', key: 'client' },
-              { label: 'Location', key: 'location' },
-              { label: 'Latitude', key: 'latitude' },
-              { label: 'Longitude', key: 'longitude' },
-              { label: 'Supervisor', key: 'supervisor' },
-              { label: 'Team', key: 'team' },
-              { label: 'Vehicle No', key: 'vehicleNo' },
-              { label: 'Intervention Category', key: 'interventionCategory' },
-              { label: 'Sheep Count', key: 'sheepCount' },
-              { label: 'Goats Count', key: 'goatsCount' },
-              { label: 'Cattle Count', key: 'cattleCount' },
-              { label: 'Camel Count', key: 'camelCount' },
-              { label: 'Horse Count', key: 'horseCount' },
-              { label: 'Total Animals', key: 'totalAnimals' },
-              { label: 'Medications Used', key: 'medicationsUsed' },
-              { label: 'Follow Up Required', key: 'followUpRequired' },
-              { label: 'Remarks', key: 'remarks' }
-            ];
-          case 'equine_health':
-            return [
-              { label: 'Serial No', key: 'serialNo' },
-              { label: 'Date', key: 'date' },
-              { label: 'Client Name', key: 'clientName' },
-              { label: 'Client ID', key: 'clientId' },
-              { label: 'Client Birth Date', key: 'clientBirthDate' },
-              { label: 'Client Phone', key: 'clientPhone' },
-              { label: 'Farm Location', key: 'farmLocation' },
-              { label: 'Latitude', key: 'latitude' },
-              { label: 'Longitude', key: 'longitude' },
-              { label: 'Horse Count', key: 'horseCount' },
-              { label: 'Horse Total', key: 'horseTotal' },
-              { label: 'Horse Young', key: 'horseYoung' },
-              { label: 'Horse Female', key: 'horseFemale' },
-              { label: 'Horse Treated', key: 'horseTreated' },
-              { label: 'Diagnosis', key: 'diagnosis' },
-              { label: 'Treatment', key: 'treatment' },
-              { label: 'Veterinarian', key: 'veterinarian' },
-              { label: 'Remarks', key: 'remarks' }
-            ];
-          default:
-            return [
-              { label: 'Serial No', key: 'serialNo' },
-              { label: 'Date', key: 'date' },
-              { label: 'Name', key: 'name' },
-              { label: 'ID', key: 'id' },
-              { label: 'Phone', key: 'phone' },
-              { label: 'Location', key: 'location' },
-              { label: 'Remarks', key: 'remarks' }
-            ];
+          case 'laboratory':
+            return [
+              { label: 'Serial No', key: 'serialNo' },
+              { label: 'Sample Code', key: 'sampleCode' },
+              { label: 'Date', key: 'date' },
+              { label: 'Name', key: 'name' },
+              { label: 'ID', key: 'id' },
+              { label: 'Birth Date', key: 'birthDate' },
+              { label: 'Phone', key: 'phone' },
+              { label: 'Holding Code', key: 'holdingCode' },
+              { label: 'Farm Location', key: 'farmLocation' },
+              { label: 'Latitude', key: 'latitude' },
+              { label: 'Longitude', key: 'longitude' },
+              { label: 'Sample Type', key: 'sampleType' },
+              { label: 'Sample Number', key: 'sampleNumber' },
+              { label: 'Collector', key: 'collector' },
+              { label: 'Positive Cases', key: 'positiveCases' },
+              { label: 'Negative Cases', key: 'negativeCases' },
+              { label: 'Sheep Count', key: 'sheepCount' },
+              { label: 'Goats Count', key: 'goatsCount' },
+              { label: 'Cattle Count', key: 'cattleCount' },
+              { label: 'Camel Count', key: 'camelCount' },
+              { label: 'Horse Count', key: 'horseCount' },
+              { label: 'Other Species', key: 'otherSpecies' },
+              { label: 'Remarks', key: 'remarks' }
+            ];
+          case 'vaccination':
+            return [
+              { label: 'Serial No', key: 'serialNo' },
+              { label: 'Date', key: 'date' },
+              { label: 'Name', key: 'name' },
+              { label: 'ID', key: 'id' },
+              { label: 'Birth Date', key: 'birthDate' },
+              { label: 'Phone', key: 'phone' },
+              { label: 'Holding Code', key: 'holdingCode' },
+              { label: 'Location', key: 'location' },
+              { label: 'E', key: 'e' },
+              { label: 'N', key: 'n' },
+              
+              { label: 'Supervisor', key: 'supervisor' },
+              { label: 'Vehicle No.', key: 'vehicleNo' },
+              { label: 'Sheep', key: 'sheep' },
+
+           
+              { label: 'F. Sheep', key: 'fSheep' },
+              { label: 'Vaccinated Sheep', key: 'vaccinatedSheep' },
+              { label: 'Goats', key: 'goats' },
+              { label: 'F.Goats', key: 'fGoats' },
+              { label: 'Vaccinated Goats', key: 'vaccinatedGoats' },
+              { label: 'Camel', key: 'camel' },
+              { label: 'F. Camel', key: 'fCamel' },
+              { label: 'Vaccinated Camels', key: 'vaccinatedCamels' },
+              { label: 'Cattel', key: 'cattel' },
+              { label: 'F. Cattle', key: 'fCattle' },
+              { label: 'Vaccinated Cattle', key: 'vaccinatedCattle' },
+              { label: 'Herd Number', key: 'herdNumber' },
+              { label: 'Herd Females', key: 'herdFemales' },
+              { label: 'Total Vaccinated', key: 'totalVaccinated' },
+              { label: 'Herd Health', key: 'herdHealth' },
+              { label: 'Animals Handling', key: 'animalsHandling' },
+              { label: 'Labours', key: 'labours' },
+              { label: 'Reachable Location', key: 'reachableLocation' },
+              { label: 'Request Date', key: 'requestDate' },
+              { label: 'Situation', key: 'situation' },
+              { label: 'Request Fulfilling Date', key: 'requestFulfillingDate' },
+              { label: 'Vaccine', key: 'vaccine' },
+              { label: 'Category', key: 'category' },
+              { label: 'Remarks', key: 'remarks' }
+            ];
+          case 'parasite_control':
+            return [
+              { label: 'Serial No', key: 'serialNo' },
+              { label: 'Date', key: 'date' },
+              { label: 'Name', key: 'name' },
+              { label: 'ID', key: 'id' },
+              { label: 'Birth Date', key: 'birthDate' },
+              { label: 'Phone', key: 'phone' },
+              { label: 'Holding Code', key: 'holdingCode' },
+              { label: 'Herd Location', key: 'herdLocation' },
+              { label: 'Latitude', key: 'latitude' },
+              { label: 'Longitude', key: 'longitude' },
+              { label: 'Supervisor', key: 'supervisor' },
+              { label: 'Vehicle No', key: 'vehicleNo' },
+              { label: 'Insecticide Type', key: 'insecticideType' },
+              { label: 'Insecticide Volume', key: 'insecticideVolume' },
+              { label: 'Sheep Total', key: 'sheepTotal' },
+              { label: 'Sheep Treated', key: 'sheepTreated' },
+              { label: 'Sheep Young', key: 'sheepYoung' },
+              { label: 'Sheep Female', key: 'sheepFemale' },
+              { label: 'Goats Total', key: 'goatsTotal' },
+              { label: 'Goats Treated', key: 'goatsTreated' },
+              { label: 'Goats Young', key: 'goatsYoung' },
+              { label: 'Goats Female', key: 'goatsFemale' },
+              { label: 'Cattle Total', key: 'cattleTotal' },
+              { label: 'Cattle Treated', key: 'cattleTreated' },
+              { label: 'Cattle Young', key: 'cattleYoung' },
+              { label: 'Cattle Female', key: 'cattleFemale' },
+              { label: 'Camel Total', key: 'camelTotal' },
+              { label: 'Camel Treated', key: 'camelTreated' },
+              { label: 'Camel Young', key: 'camelYoung' },
+              { label: 'Camel Female', key: 'camelFemale' },
+              { label: 'Horse Total', key: 'horseTotal' },
+              { label: 'Horse Treated', key: 'horseTreated' },
+              { label: 'Horse Young', key: 'horseYoung' },
+              { label: 'Horse Female', key: 'horseFemale' },
+              { label: 'Herd Health Status', key: 'herdHealthStatus' },
+              { label: 'Animal Barn Size SqM', key: 'animalBarnSizeSqM' },
+              { label: 'Breeding Sites Type', key: 'breedingSitesType' },
+              { label: 'Breeding Sites Area', key: 'breedingSitesArea' },
+              { label: 'Breeding Sites Treatment', key: 'breedingSitesTreatment' },
+              { label: 'Parasite Control Volume', key: 'parasiteControlVolume' },
+              { label: 'Parasite Control Status', key: 'parasiteControlStatus' },
+              { label: 'Complying', key: 'complying' },
+              { label: 'Total Herd', key: 'totalHerd' },
+              { label: 'Total Young', key: 'totalYoung' },
+              { label: 'Total Female', key: 'totalFemale' },
+              { label: 'Total Treated', key: 'totalTreated' },
+              { label: 'Type', key: 'type' },
+              { label: 'Volume (ml)', key: 'volume' },
+              { label: 'Category', key: 'category' },
+              { label: 'Status', key: 'status' },
+              { label: 'Request Date', key: 'requestDate' },
+              { label: 'Request Situation', key: 'requestSituation' },
+              { label: 'Request Fulfilling Date', key: 'requestFulfillingDate' },
+              { label: 'Complying To Instructions', key: 'complyingToInstructions' },
+              { label: 'Remarks', key: 'remarks' }
+            ];
+          case 'mobile':
+            return [
+              { label: 'Serial No', key: 'serialNo' },
+              { label: 'Date', key: 'date' },
+              { label: 'Name', key: 'name' },
+              { label: 'ID', key: 'id' },
+              { label: 'Birth Date', key: 'birthDate' },
+              { label: 'Phone', key: 'phone' },
+              { label: 'Holding Code', key: 'holdingCode' },
+              { label: 'Location', key: 'location' },
+              { label: 'Latitude', key: 'latitude' },
+              { label: 'Longitude', key: 'longitude' },
+              { label: 'Supervisor', key: 'supervisor' },
+              { label: 'Team', key: 'team' },
+              { label: 'Vehicle No', key: 'vehicleNo' },
+              { label: 'Intervention Category', key: 'interventionCategory' },
+              { label: 'Sheep Count', key: 'sheepCount' },
+              { label: 'Goats Count', key: 'goatsCount' },
+              { label: 'Cattle Count', key: 'cattleCount' },
+              { label: 'Camel Count', key: 'camelCount' },
+              { label: 'Horse Count', key: 'horseCount' },
+              { label: 'Total Animals', key: 'totalAnimals' },
+              { label: 'Medications Used', key: 'medicationsUsed' },
+              { label: 'Follow Up Required', key: 'followUpRequired' },
+              { label: 'Remarks', key: 'remarks' }
+            ];
+          case 'equine_health':
+            return [
+              { label: 'Serial No', key: 'serialNo' },
+              { label: 'Date', key: 'date' },
+              { label: 'Name', key: 'name' },
+              { label: 'ID', key: 'id' },
+              { label: 'Birth Date', key: 'birthDate' },
+              { label: 'Phone', key: 'phone' },
+              { label: 'Holding Code', key: 'holdingCode' },
+              { label: 'Farm Location', key: 'farmLocation' },
+              { label: 'Latitude', key: 'latitude' },
+              { label: 'Longitude', key: 'longitude' },
+              { label: 'Horse Count', key: 'horseCount' },
+              { label: 'Horse Total', key: 'horseTotal' },
+              { label: 'Horse Young', key: 'horseYoung' },
+              { label: 'Horse Female', key: 'horseFemale' },
+              { label: 'Horse Treated', key: 'horseTreated' },
+              { label: 'Diagnosis', key: 'diagnosis' },
+              { label: 'Treatment', key: 'treatment' },
+              { label: 'Veterinarian', key: 'veterinarian' },
+              { label: 'Remarks', key: 'remarks' }
+            ];
+          default:
+            return [
+              { label: 'Serial No', key: 'serialNo' },
+              { label: 'Date', key: 'date' },
+              { label: 'Name', key: 'name' },
+              { label: 'ID', key: 'id' },
+              { label: 'Phone', key: 'phone' },
+              { label: 'Location', key: 'location' },
+              { label: 'Remarks', key: 'remarks' }
+            ];
         }
       };
       

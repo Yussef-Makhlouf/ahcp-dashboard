@@ -9,8 +9,9 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Edit, MoreHorizontal, Trash2, Eye, MapPin, Phone, Calendar, User } from "lucide-react";
+import { Edit, MoreHorizontal, Trash2, Eye, MapPin, Phone, Calendar, User, Stethoscope, Pill } from "lucide-react";
 import { usePermissions } from "@/lib/hooks/usePermissions";
+import { SimpleDateCell, BirthDateCell } from "@/components/ui/date-cell";
 import type { MobileClinic } from "@/types";
 
 interface GetColumnsProps {
@@ -39,8 +40,7 @@ export function getColumns({
       accessorKey: "date",
       header: "Date",
       cell: ({ row }) => {
-        const date = new Date(row.getValue("date"));
-        return date.toLocaleDateString("en-US");
+        return <SimpleDateCell date={row.getValue("date")} />;
       },
     },
     // Client Info (Name, ID, Birth Date, Phone)
@@ -52,7 +52,7 @@ export function getColumns({
         const name = client?.name || '-';
         const nationalId = client?.nationalId || '';
         const phone = client?.phone || '';
-        const birthDate = (client as any)?.birthDate ? new Date((client as any).birthDate).toLocaleDateString("en-US") : '';
+        const birthDate = (client as any)?.birthDate;
         
         return (
           <div className="space-y-1 min-w-[200px]">
@@ -66,7 +66,7 @@ export function getColumns({
             {birthDate && (
               <div className="text-xs text-gray-500 flex items-center gap-1">
                 <Calendar className="h-3 w-3" />
-                DOB: {birthDate}
+                DOB: <SimpleDateCell date={birthDate} className="text-xs" />
               </div>
             )}
             {phone && (
@@ -86,14 +86,7 @@ export function getColumns({
       cell: ({ row }) => {
         const client = row.original.client;
         const birthDate = client?.birthDate;
-        if (!birthDate) return <span className="text-muted-foreground">غير محدد</span>;
-        const date = new Date(birthDate);
-        return (
-          <div className="text-sm flex items-center gap-1">
-            <Calendar className="h-3 w-3" />
-            {date.toLocaleDateString("ar-EG")}
-          </div>
-        );
+        return <BirthDateCell date={birthDate} className="text-sm" />;
       },
       size: 120,
     },
@@ -207,8 +200,8 @@ export function getColumns({
         const request = row.original.request;
         if (!request) return <span className="text-gray-400">-</span>;
         
-        const requestDate = request.date ? new Date(request.date).toLocaleDateString("en-US") : '';
-        const fulfillingDate = request.fulfillingDate ? new Date(request.fulfillingDate).toLocaleDateString("en-US") : '';
+        const requestDate = request.date;
+        const fulfillingDate = request.fulfillingDate;
         
         const statusColors = {
           "Open": "bg-blue-500 text-white",
@@ -218,12 +211,12 @@ export function getColumns({
         
         return (
           <div className="text-xs space-y-1">
-            <div>Date: {requestDate}</div>
+            <div>Date: <SimpleDateCell date={requestDate} className="inline" /></div>
             <Badge className={statusColors[request.situation as keyof typeof statusColors] || "bg-gray-500 text-white"}>
               {request.situation}
             </Badge>
             {fulfillingDate && (
-              <div>Fulfilled: {fulfillingDate}</div>
+              <div>Fulfilled: <SimpleDateCell date={fulfillingDate} className="inline" /></div>
             )}
           </div>
         );

@@ -349,8 +349,23 @@ export default function MobileClinicsPage() {
   };
 
   const handleView = (item: MobileClinic) => {
-    setSelectedItem(item);
-    setIsDialogOpen(true);
+    // This will be handled by the DataTable's built-in view modal
+    console.log("Viewing mobile clinic item:", item);
+  };
+
+  const handleImportSuccess = () => {
+    // إلغاء جميع queries المتعلقة بالعيادات المتنقلة
+    queryClient.invalidateQueries({ 
+      predicate: (query) => {
+        const queryKey = query.queryKey as string[];
+        return queryKey[0] === 'mobile-clinics' || queryKey[0] === 'mobile-clinics-stats';
+      }
+    });
+    
+    // إعادة تحميل البيانات فوراً
+    refetch();
+    
+    toast.success('تم استيراد البيانات بنجاح - جاري تحديث الجدول');
   };
 
   return (
@@ -365,6 +380,15 @@ export default function MobileClinicsPage() {
             </p>
           </div>
           <div className="flex gap-2">
+            <Button 
+              onClick={() => setIsImportDialogOpen(true)}
+              size="sm" 
+              variant="outline" 
+              className="h-9 px-3"
+            >
+              <FileSpreadsheet className="h-4 w-4 mr-2" />
+              استيراد عبر Dromo
+            </Button>
             <ImportExportManager
               exportEndpoint={apiConfig.endpoints.mobileClinics.export}
               importEndpoint={apiConfig.endpoints.mobileClinics.import}
@@ -484,6 +508,15 @@ export default function MobileClinicsPage() {
           onOpenChange={setIsDialogOpen}
           clinic={selectedItem || undefined}
           onSave={handleSave}
+        />
+
+        {/* Import Dialog */}
+        <ImportDialog
+          open={isImportDialogOpen}
+          onOpenChange={setIsImportDialogOpen}
+          tableType="mobile"
+          templateKey={process.env.NEXT_PUBLIC_DROMO_TEMPLATE_MOBILE || ''}
+          onImportSuccess={handleImportSuccess}
         />
       </div>
     </MainLayout>

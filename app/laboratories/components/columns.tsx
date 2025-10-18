@@ -9,8 +9,9 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Edit, MoreHorizontal, Trash2, Calendar, Eye } from "lucide-react";
+import { Edit, MoreHorizontal, Trash2, Eye, MapPin, User, Phone, Calendar } from "lucide-react";
 import { usePermissions } from "@/lib/hooks/usePermissions";
+import { SimpleDateCell, BirthDateCell } from "@/components/ui/date-cell";
 import type { Laboratory } from "@/types";
 
 interface GetColumnsProps {
@@ -41,12 +42,7 @@ export function getColumns({
       accessorKey: "date",
       header: "Date",
       cell: ({ row }) => {
-        const date = new Date(row.getValue("date"));
-        return (
-          <div className="text-sm">
-            {date.toLocaleDateString("ar-EG")}
-          </div>
-        );
+        return <SimpleDateCell date={row.getValue("date")} className="text-sm" />;
       },
       size: 100,
     },
@@ -59,38 +55,50 @@ export function getColumns({
       ),
       size: 120,
     },
-    // Name
+    // Client Info (Name, ID, Birth Date, Phone)
     {
-      accessorKey: "clientName",
-      header: "Name",
-      cell: ({ row }) => (
-        <div className="font-medium">{row.getValue("clientName")}</div>
-      ),
-      size: 150,
-    },
-    // ID
-    {
-      accessorKey: "clientId",
-      header: "ID",
-      cell: ({ row }) => (
-        <div className="font-mono text-sm">{row.getValue("clientId")}</div>
-      ),
-      size: 120,
+      id: "clientInfo",
+      header: "Client Info",
+      cell: ({ row }) => {
+        const client = row.original.client;
+        const name = client?.name || '-';
+        const nationalId = client?.nationalId || '';
+        const phone = client?.phone || '';
+        const birthDate = client?.birthDate ? new Date(client.birthDate).toLocaleDateString("en-US") : '';
+        
+        return (
+          <div className="space-y-1 min-w-[200px]">
+            <div className="font-medium flex items-center gap-1">
+              <User className="h-3 w-3" />
+              {name}
+            </div>
+            {nationalId && (
+              <div className="text-xs text-gray-500">ID: {nationalId}</div>
+            )}
+            {birthDate && (
+              <div className="text-xs text-gray-500 flex items-center gap-1">
+                <Calendar className="h-3 w-3" />
+                DOB: <SimpleDateCell date={birthDate} className="text-xs" />
+              </div>
+            )}
+            {phone && (
+              <div className="text-xs text-gray-500 flex items-center gap-1">
+                <Phone className="h-3 w-3" />
+                {phone}
+              </div>
+            )}
+          </div>
+        );
+      },
     },
     // Birth Date
     {
-      accessorKey: "clientBirthDate",
+      accessorKey: "client.birthDate",
       header: "Birth Date",
       cell: ({ row }) => {
-        const birthDate = row.getValue("clientBirthDate") as string;
-        if (!birthDate) return <span className="text-muted-foreground">غير محدد</span>;
-        const date = new Date(birthDate);
-        return (
-          <div className="text-sm flex items-center gap-1">
-            <Calendar className="h-3 w-3" />
-            {date.toLocaleDateString("ar-EG")}
-          </div>
-        );
+        const client = row.original.client;
+        const birthDate = client?.birthDate;
+        return <BirthDateCell date={birthDate} className="text-sm" />;
       },
       size: 120,
     },

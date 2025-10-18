@@ -9,8 +9,9 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Edit, MoreHorizontal, Trash2, Eye, Calendar } from "lucide-react";
+import { Edit, MoreHorizontal, Trash2, Eye } from "lucide-react";
 import { usePermissions } from "@/lib/hooks/usePermissions";
+import { SimpleDateCell, BirthDateCell } from "@/components/ui/date-cell";
 import type { EquineHealth } from "@/types";
 
 interface GetColumnsProps {
@@ -37,8 +38,7 @@ export function getColumns({
       accessorKey: "date",
       header: "Date",
       cell: ({ row }) => {
-        const date = new Date(row.getValue("date"));
-        return date.toLocaleDateString("ar-EG");
+        return <SimpleDateCell date={row.getValue("date")} />;
       },
     },
     {
@@ -69,14 +69,7 @@ export function getColumns({
       cell: ({ row }) => {
         const client = row.original.client as any;
         const birthDate = client?.birthDate;
-        if (!birthDate) return <span className="text-muted-foreground">غير محدد</span>;
-        const date = new Date(birthDate);
-        return (
-          <div className="text-sm flex items-center gap-1">
-            <Calendar className="h-3 w-3" />
-            {date.toLocaleDateString("ar-EG")}
-          </div>
-        );
+        return <BirthDateCell date={birthDate} className="text-sm" />;
       },
       size: 120,
     },
@@ -156,9 +149,7 @@ export function getColumns({
       header: "Request Date",
       cell: ({ row }) => {
         const requestDate = row.original.request?.date;
-        if (!requestDate) return 'غير محدد';
-        const date = new Date(requestDate);
-        return date.toLocaleDateString("ar-EG");
+        return <SimpleDateCell date={requestDate} />;
       },
     },
     {
@@ -190,9 +181,7 @@ export function getColumns({
       header: "Request Fulfilling Date",
       cell: ({ row }) => {
         const fulfillingDate = row.original.request?.fulfillingDate;
-        if (!fulfillingDate) return 'غير محدد';
-        const date = new Date(fulfillingDate);
-        return date.toLocaleDateString("ar-EG");
+        return <SimpleDateCell date={fulfillingDate} />;
       },
     },
     {

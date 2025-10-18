@@ -294,6 +294,24 @@
     .table {
       @apply min-w-[600px];
     }
+
+    /* Stats cards responsive */
+    .stats-grid {
+      @apply grid-cols-1 gap-3;
+    }
+
+    /* Header responsive */
+    .page-header {
+      @apply flex-col gap-3;
+    }
+
+    .page-header .flex {
+      @apply flex-wrap gap-2;
+    }
+
+    .page-header .flex button {
+      @apply text-xs px-2 py-1 h-8;
+    }
   }
 
   /* Very small screens - further optimizations */
@@ -305,6 +323,54 @@
 
     .table {
       @apply min-w-[500px];
+    }
+
+    /* Ultra compact stats */
+    .stats-grid {
+      @apply grid-cols-2 gap-2;
+    }
+
+    .card-header {
+      @apply p-3 pb-1;
+    }
+
+    .card-content {
+      @apply p-3 pt-0;
+    }
+
+    .card-title {
+      @apply text-sm;
+    }
+
+    .text-2xl {
+      @apply text-lg;
+    }
+
+    .text-xs {
+      @apply text-[10px];
+    }
+  }
+
+  /* Tablet optimizations */
+  @media (min-width: 769px) and (max-width: 1024px) {
+    .stats-grid {
+      @apply grid-cols-2 gap-4;
+    }
+
+    .table th,
+    .table td {
+      @apply px-3 py-2 text-sm;
+    }
+  }
+
+  /* Large screens optimizations */
+  @media (min-width: 1025px) {
+    .stats-grid {
+      @apply grid-cols-4 gap-4;
+    }
+
+    .table-container {
+      @apply rounded-lg;
     }
   }
 

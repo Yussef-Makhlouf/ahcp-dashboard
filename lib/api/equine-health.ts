@@ -1,6 +1,7 @@
 import { api } from "./base-api";
 import type { EquineHealth, PaginatedResponse } from "@/types";
 import { handleAPIResponse, handleStatisticsResponse } from './api-response-handler';
+import { createBulkDeleteMethod } from './bulk-delete-handler';
 
 // Transform API response to frontend format
 const transformAPIResponse = (apiData: any): EquineHealth => {
@@ -220,18 +221,5 @@ export const equineHealthApi = {
   },
 
   // Bulk delete records
-  bulkDelete: async (ids: (string | number)[]): Promise<{ deletedCount: number }> => {
-    try {
-      console.log('🗑️ Calling bulk delete with IDs:', ids.length, 'items');
-      const response = await api.delete('/equine-health/bulk-delete', {
-        data: { ids },
-        timeout: 30000,
-      });
-      console.log('✅ Bulk delete response:', response.data);
-      return response.data;
-    } catch (error: any) {
-      console.error('❌ Bulk delete failed:', error);
-      throw new Error(`Failed to delete records: ${error.message || 'Unknown error'}`);
-    }
-  },
+  bulkDelete: createBulkDeleteMethod('/equine-health'),
 };
