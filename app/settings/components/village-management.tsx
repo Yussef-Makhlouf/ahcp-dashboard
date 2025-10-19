@@ -25,6 +25,7 @@ import {
 import { toast } from "sonner";
 import { ColumnDef } from "@tanstack/react-table";
 import { villagesApi } from "@/lib/api/villages";
+import { holdingCodesApi } from "@/lib/api/holding-codes";
 
 // Types
 interface Village {
@@ -33,6 +34,12 @@ interface Village {
   sector: string;
   nameArabic: string;
   nameEnglish: string;
+  holdingCode?: string | {
+    _id: string;
+    code: string;
+    village: string;
+    description?: string;
+  };
   clientCount?: number;
   createdAt: string;
 }
@@ -57,7 +64,8 @@ export function VillageManagement({ onRefresh }: VillageManagementProps) {
     serialNumber: "",
     sector: "",
     nameArabic: "",
-    nameEnglish: ""
+    nameEnglish: "",
+    holdingCode: ""
   });
 
   // Load data
@@ -107,6 +115,45 @@ export function VillageManagement({ onRefresh }: VillageManagementProps) {
       }
 
       if (response.success) {
+        // إذا تم إدخال رمز حيازة، قم بإنشائه أو تحديثه تلقائياً
+        if (villageForm.holdingCode && villageForm.holdingCode.trim()) {
+          try {
+            const holdingCodeData = {
+              code: villageForm.holdingCode.trim(),
+              village: villageForm.nameArabic,
+              description: `رمز حيازة قرية ${villageForm.nameArabic}`
+            };
+            
+            if (editingVillage) {
+              // في حالة التعديل، حاول تحديث رمز الحيازة الموجود أو إنشاء جديد
+              try {
+                // ابحث عن رمز حيازة موجود لهذه القرية
+                const existingCodes = await holdingCodesApi.getByVillage(villageForm.nameArabic);
+                if (existingCodes.data && existingCodes.data.length > 0) {
+                  // حدث الرمز الموجود
+                  await holdingCodesApi.update(existingCodes.data[0]._id!, holdingCodeData);
+                  console.log('✅ تم تحديث رمز الحيازة:', holdingCodeData);
+                } else {
+                  // أنشئ رمز جديد
+                  await holdingCodesApi.create(holdingCodeData);
+                  console.log('✅ تم إنشاء رمز حيازة جديد:', holdingCodeData);
+                }
+              } catch (updateError) {
+                // إذا فشل التحديث، حاول إنشاء جديد
+                await holdingCodesApi.create(holdingCodeData);
+                console.log('✅ تم إنشاء رمز حيازة جديد بعد فشل التحديث:', holdingCodeData);
+              }
+            } else {
+              // في حالة الإنشاء الجديد
+              await holdingCodesApi.create(holdingCodeData);
+              console.log('✅ تم إنشاء رمز الحيازة تلقائياً:', holdingCodeData);
+            }
+          } catch (holdingCodeError) {
+            console.warn('⚠️ خطأ في معالجة رمز الحيازة:', holdingCodeError);
+            // لا نوقف عملية حفظ القرية بسبب هذا الخطأ
+          }
+        }
+        
         toast.success(editingVillage ? "تم تحديث القرية بنجاح" : "تم إنشاء القرية بنجاح");
         setDialogOpen(false);
         resetForm();
@@ -128,7 +175,8 @@ export function VillageManagement({ onRefresh }: VillageManagementProps) {
       serialNumber: village.serialNumber,
       sector: village.sector,
       nameArabic: village.nameArabic,
-      nameEnglish: village.nameEnglish
+      nameEnglish: village.nameEnglish,
+      holdingCode: typeof village.holdingCode === 'string' ? village.holdingCode : ""
     });
     setDialogOpen(true);
   };
@@ -213,7 +261,8 @@ export function VillageManagement({ onRefresh }: VillageManagementProps) {
       serialNumber: "",
       sector: "",
       nameArabic: "",
-      nameEnglish: ""
+      nameEnglish: "",
+      holdingCode: ""
     });
     setEditingVillage(null);
   };
@@ -407,6 +456,22 @@ export function VillageManagement({ onRefresh }: VillageManagementProps) {
                   className="text-left"
                 />
               </div>
+            </div>
+
+            {/* Holding Code */}
+            <div className="space-y-2">
+              <Label htmlFor="holdingCode" className="text-right">رمز الحيازة</Label>
+              <Input
+                id="holdingCode"
+                value={villageForm.holdingCode}
+                onChange={(e) => setVillageForm({ ...villageForm, holdingCode: e.target.value.toUpperCase() })}
+                placeholder="أدخل رمز الحيازة"
+                className="text-left font-mono"
+                maxLength={20}
+              />
+              <p className="text-xs text-muted-foreground text-right">
+                رمز فريد للحيازة في هذه القرية (مثال: HC001)
+              </p>
             </div>
           </div>
 

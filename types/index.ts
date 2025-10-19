@@ -25,6 +25,12 @@ export interface Client {
   email?: string;
   village?: string;
   detailedAddress?: string;
+  holdingCode?: string | {
+    _id: string;
+    code: string;
+    village: string;
+    description?: string;
+  }; // Holding code - can be string ID or populated object
   status: "نشط" | "غير نشط";
   animals: Animal[];
   availableServices: string[]; // Backend primary field
@@ -109,8 +115,29 @@ export interface Herd {
 // Request Types
 export interface Request {
   date: string;
-  situation: "Open" | "Closed" | "Pending";
+  situation: "Ongoing" | "Closed";
   fulfillingDate?: string;
+}
+
+// HoldingCode Types - مرتبط بالقرية فقط
+export interface HoldingCode {
+  _id: string;
+  code: string;
+  village: string; // كل قرية لها holding code واحد فقط
+  description?: string;
+  isActive: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+  createdBy?: {
+    _id: string;
+    name: string;
+    email: string;
+  };
+  updatedBy?: {
+    _id: string;
+    name: string;
+    email: string;
+  };
 }
 
 // Parasite Control Types
@@ -191,6 +218,12 @@ export interface ParasiteControl {
   _id?: string; // MongoDB ID from API
   serialNo: string; // Backend uses string, not number
   date: string;
+  holdingCode?: string | {
+    _id: string;
+    code: string;
+    village: string;
+    description?: string;
+  }; // Holding code reference - مرتبط بالقرية
   // Support both old and new structures
   owner?: Owner; // Legacy support
   client: string | {  // Backend expects string ID, but can also be populated object
@@ -231,8 +264,6 @@ export interface ParasiteControl {
   herdLocation: string;
   animalBarnSizeSqM: number;
   breedingSites: string; // Backend expects string
-  parasiteControlVolume: number;
-  parasiteControlStatus: string;
   herdHealthStatus: "Healthy" | "Sick" | "Under Treatment";
   complying?: "Comply" | "Not Comply"; // Legacy support
   complyingToInstructions: "Comply" | "Not Comply" | "Partially Comply"; // Updated to match backend enum
@@ -264,6 +295,12 @@ export interface Vaccination {
   id?: string; // Alternative ID field for compatibility
   serialNo: string; // Backend uses string, not number
   date: string;
+  holdingCode?: string | {
+    _id: string;
+    code: string;
+    village: string;
+    description?: string;
+  }; // Holding code reference - مرتبط بالقرية
   client: {
     _id: string;
     name: string;
@@ -339,6 +376,12 @@ export interface MobileClinic {
   _id?: string;
   serialNo: string;
   date: string;
+  holdingCode?: string | {
+    _id: string;
+    code: string;
+    village: string;
+    description?: string;
+  }; // Holding code reference - مرتبط بالقرية
   client: {
     _id: string;
     name: string;
@@ -431,6 +474,12 @@ export interface EquineHealth {
   diagnosis: string;
   interventionCategory: "Emergency" | "Routine" | "Preventive" | "Follow-up" | "Breeding" | "Performance";
   treatment: string;
+  holdingCode?: string | {
+    _id: string;
+    code: string;
+    village: string;
+    description?: string;
+  }; // Holding code - can be string ID or populated object
   followUpRequired: boolean;
   followUpDate?: string;
   request: Request;
@@ -460,6 +509,12 @@ export interface Laboratory {
   serialNo: number; // Serial number from table
   date: string; // Date column
   sampleCode: string; // Sample Code column
+  holdingCode?: string | {
+    _id: string;
+    code: string;
+    village: string;
+    description?: string;
+  }; // Holding code reference - مرتبط بالقرية
   
   // Support both flat client fields (current backend) and nested client object (future compatibility)
   clientName?: string; // Flat client name field (backend primary)

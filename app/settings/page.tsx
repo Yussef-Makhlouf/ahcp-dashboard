@@ -26,6 +26,7 @@ import { toast } from "sonner";
 import { UserManagement } from "./components/user-management";
 import { SectionManagement } from "./components/section-management";
 import { VillageManagement } from "./components/village-management";
+import { HoldingCodeManagement } from "./components/holding-code-management";
 
 export default function SettingsPage() {
   const { theme, setTheme } = useTheme();
@@ -57,10 +58,11 @@ export default function SettingsPage() {
 
         {/* Settings Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-3 ">
+          <TabsList className="grid w-full grid-cols-4 ">
             <TabsTrigger value="users">المستخدمين</TabsTrigger>
             <TabsTrigger value="sections">الأقسام</TabsTrigger>
             <TabsTrigger value="villages">القرى</TabsTrigger>
+            <TabsTrigger value="holding-codes">رموز الحيازة</TabsTrigger>
           </TabsList>
 
           {/* Users Management */}
@@ -76,6 +78,11 @@ export default function SettingsPage() {
           {/* Villages Management */}
           <TabsContent value="villages" className="space-y-6">
             <VillageManagement onRefresh={handleRefresh} />
+          </TabsContent>
+
+          {/* Holding Codes Management */}
+          <TabsContent value="holding-codes" className="space-y-6">
+            <HoldingCodeManagement onRefresh={handleRefresh} />
           </TabsContent>
 
         </Tabs>

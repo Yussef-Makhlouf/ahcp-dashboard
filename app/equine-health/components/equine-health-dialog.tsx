@@ -45,6 +45,7 @@ import { SimpleDatePicker } from "@/components/ui/simple-date-picker";
 import { SupervisorSelect } from "@/components/ui/supervisor-select";
 import { VillageSelect } from "@/components/ui/village-select";
 import { ClientSelector } from "@/components/ui/client-selector";
+import { HoldingCodeSelector } from "@/components/common/HoldingCodeSelector";
 import { useClientData } from "@/lib/hooks/use-client-data";
 import { entityToasts } from "@/lib/utils/toast-utils";
 import { useFormValidation } from "@/lib/hooks/use-form-validation";
@@ -86,9 +87,10 @@ const formSchema = z.object({
     "Other",
   ]),
   treatment: z.string().min(3, "العلاج يجب أن يكون أكثر من 3 أحرف"),
+  holdingCode: z.string().optional(),
   request: z.object({
     date: z.string().min(1, "تاريخ الطلب مطلوب"),
-    situation: z.enum(["ongoing", "Closed", "Pending"]),
+    situation: z.enum(["Ongoing", "Closed"]),
     fulfillingDate: z.string().optional(),
   }),
   remarks: z.string().optional(),
@@ -159,9 +161,10 @@ export function EquineHealthDialog({
       diagnosis: "",
       interventionCategory: "Clinical Examination",
       treatment: "",
+      holdingCode: "",
       request: {
         date: new Date().toISOString().split("T")[0],
-        situation: "ongoing",
+        situation: "Ongoing",
         fulfillingDate: "",
       },
       remarks: "",
@@ -193,9 +196,10 @@ export function EquineHealthDialog({
         diagnosis: item.diagnosis || "",
         interventionCategory: item.interventionCategory || "Clinical Examination",
         treatment: item.treatment || "",
+        holdingCode: typeof item.holdingCode === 'string' ? item.holdingCode : (item.holdingCode?._id || ""),
         request: {
           date: item.request?.date || new Date().toISOString().split("T")[0],
-          situation: item.request?.situation || "ongoing",
+          situation: item.request?.situation === "ongoing" || item.request?.situation === "pending" ? "Ongoing" : (item.request?.situation || "Ongoing"),
           fulfillingDate: item.request?.fulfillingDate || "",
         },
         remarks: item.remarks || "",
@@ -225,6 +229,7 @@ export function EquineHealthDialog({
         diagnosis: data.diagnosis,
         interventionCategory: data.interventionCategory,
         treatment: data.treatment,
+        holdingCode: data.holdingCode || undefined,
         request: {
           date: data.request.date,
           situation: data.request.situation,
@@ -513,6 +518,24 @@ export function EquineHealthDialog({
                   />
                   <FormField
                     control={form.control as any}
+                    name="holdingCode"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>رمز الحيازة</FormLabel>
+                        <FormControl>
+                          <HoldingCodeSelector
+                            value={field.value || ""}
+                            onValueChange={field.onChange}
+                            village={form.watch('client.village')}
+                            placeholder="اختر رمز الحيازة"
+                          />
+                        </FormControl>
+                        <FormMessage className="text-red-500 text-sm font-medium" />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control as any}
                     name="client.phone"
                     render={({ field }) => (
                       <FormItem>
@@ -727,9 +750,8 @@ export function EquineHealthDialog({
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            <SelectItem value="ongoing">ongoing</SelectItem>
+                            <SelectItem value="Ongoing">Ongoing</SelectItem>
                             <SelectItem value="Closed">Closed</SelectItem>
-                            <SelectItem value="Pending">Pending</SelectItem>
                           </SelectContent>
                         </Select>
                         <FormMessage className="text-red-500 text-sm font-medium" />

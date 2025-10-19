@@ -46,6 +46,8 @@ import { SupervisorSelect } from "@/components/ui/supervisor-select";
 import { VillageSelect } from "@/components/ui/village-select";
 import { ClientSelector } from "@/components/ui/client-selector";
 import { useClientData } from "@/lib/hooks/use-client-data";
+import { HoldingCodeSelector } from "@/components/common/HoldingCodeSelector";
+
 import { CalendarIcon, Loader2, User, Heart, Shield } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Vaccination } from "@/types";
@@ -118,6 +120,7 @@ const formSchema = z.object({
     }),
   }),
   herdHealth: z.string().min(1, { message: "يجب اختيار حالة القطيع" }),
+  holdingCode: z.string().optional(),
   animalsHandling: z.enum(["Easy", "Difficult"], { message: "يجب اختيار معاملة الحيوانات" }),
   labours: z.string().min(1, { message: "يجب اختيار حالة العمال" }),
   reachableLocation: z.string().min(1, { message: "يجب اختيار سهولة الوصول للموقع" }),
@@ -209,6 +212,7 @@ export function VaccinationDialog({
         horse: { total: 0, young: 0, female: 0, vaccinated: 0 },
       },
       herdHealth: "Healthy",
+      holdingCode: "",
       animalsHandling: "Easy",
       labours: "Available",
       reachableLocation: "Easy",
@@ -715,6 +719,19 @@ export function VaccinationDialog({
                     />
                   </div>
 
+                  {/* Holding Code Selector */}
+                  <div className="space-y-2">
+                    <label className="block text-sm font-semibold text-gray-800 mb-2">
+                      رمز الحيازة
+                    </label>
+                    <HoldingCodeSelector
+                      value={form.watch("holdingCode") || ""}
+                      onValueChange={(value) => form.setValue("holdingCode", value)}
+                      village={form.watch("client.village")}
+                      placeholder="اختر رمز الحيازة"
+                    />
+                  </div>
+
                   {/* Client Detailed Address */}
                   <div className="space-y-2">
                     <label className="block text-sm font-semibold text-gray-800 mb-2">
@@ -1028,7 +1045,6 @@ export function VaccinationDialog({
                           <SelectContent>
                             <SelectItem value="Ongoing">Ongoing</SelectItem>
                             <SelectItem value="Closed">Closed</SelectItem>
-                            <SelectItem value="Pending">Pending</SelectItem>
                           </SelectContent>
                         </Select>
                         {getFieldError("request.situation") && (

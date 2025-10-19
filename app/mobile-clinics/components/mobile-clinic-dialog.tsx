@@ -35,6 +35,8 @@ import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { VillageSelect } from "@/components/ui/village-select";
 import { ClientSelector } from "@/components/ui/client-selector";
+import { HoldingCodeSelector } from "@/components/common/HoldingCodeSelector";
+
 import { useClientData } from "@/lib/hooks/use-client-data";
 import React, { useCallback } from "react";
 import { Separator } from "@/components/ui/separator";
@@ -136,11 +138,12 @@ export function MobileClinicDialog({ open, onOpenChange, clinic, onSave }: Mobil
     }[],
     request: {
       date: "",
-      situation: "Open" as "Open" | "Closed" | "Pending",
+      situation: "Ongoing" as "Ongoing" | "Closed",
       fulfillingDate: "",
     },
     followUpRequired: false,
     followUpDate: undefined as Date | undefined,
+    holdingCode: "",
     remarks: "",
     
     // Legacy fields for backward compatibility
@@ -205,11 +208,12 @@ export function MobileClinicDialog({ open, onOpenChange, clinic, onSave }: Mobil
         medicationsUsed: clinic.medicationsUsed || [],
         request: {
           date: clinic.request?.date ? format(new Date(clinic.request.date), "yyyy-MM-dd") : format(new Date(), "yyyy-MM-dd"),
-          situation: clinic.request?.situation || "Open",
+          situation: clinic.request?.situation === "Open" || clinic.request?.situation === "Pending" ? "Ongoing" : (clinic.request?.situation || "Ongoing"),
           fulfillingDate: clinic.request?.fulfillingDate ? format(new Date(clinic.request.fulfillingDate), "yyyy-MM-dd") : "",
         },
         followUpRequired: clinic.followUpRequired || false,
         followUpDate: clinic.followUpDate ? new Date(clinic.followUpDate) : undefined,
+        holdingCode: typeof clinic.holdingCode === 'string' ? clinic.holdingCode : (clinic.holdingCode?._id || ""),
         remarks: clinic.remarks || "",
         
         // Legacy fields for backward compatibility
@@ -266,7 +270,7 @@ export function MobileClinicDialog({ open, onOpenChange, clinic, onSave }: Mobil
         medicationsUsed: [],
         request: {
           date: format(new Date(), "yyyy-MM-dd"),
-          situation: "Open",
+          situation: "Ongoing",
           fulfillingDate: "",
         },
         followUpRequired: false,
@@ -280,6 +284,7 @@ export function MobileClinicDialog({ open, onOpenChange, clinic, onSave }: Mobil
           birthDate: "",
           phone: "",
         },
+        holdingCode: "",
         location: { e: null, n: null },
         sheep: 0,
         goats: 0,
@@ -681,6 +686,19 @@ export function MobileClinicDialog({ open, onOpenChange, clinic, onSave }: Mobil
                       client: { ...formData.client, village: value }
                     })}
                     placeholder="اختر القرية"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label>رمز الحيازة</Label>
+                  <HoldingCodeSelector
+                    value={formData.holdingCode || ""}
+                    onValueChange={(value) => setFormData({
+                      ...formData,
+                      holdingCode: value || ""
+                    })}
+                    village={formData.client?.village}
+                    placeholder="اختر رمز الحيازة"
                   />
                 </div>
 
@@ -1174,7 +1192,7 @@ export function MobileClinicDialog({ open, onOpenChange, clinic, onSave }: Mobil
                       <Label>حالة الطلب</Label>
                       <Select
                         value={formData.request.situation}
-                        onValueChange={(value: "Open" | "Closed" | "Pending") => 
+                        onValueChange={(value: "Ongoing" | "Closed") => 
                           setFormData({
                             ...formData,
                             request: { ...formData.request, situation: value }
@@ -1185,9 +1203,8 @@ export function MobileClinicDialog({ open, onOpenChange, clinic, onSave }: Mobil
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="Open">مفتوح</SelectItem>
+                          <SelectItem value="Ongoing">جاري</SelectItem>
                           <SelectItem value="Closed">مغلق</SelectItem>
-                          <SelectItem value="Pending">معلق</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
@@ -1212,11 +1229,11 @@ export function MobileClinicDialog({ open, onOpenChange, clinic, onSave }: Mobil
                       <div className="flex items-center gap-2">
                         <span className="font-medium text-gray-700">حالة الطلب:</span>
                         <span className={
-                          formData.request.situation === "Open" ? "text-green-700 font-medium" :
+                          formData.request.situation === "Ongoing" ? "text-green-700 font-medium" :
                           formData.request.situation === "Closed" ? "text-gray-700 font-medium" :
                           "text-yellow-700 font-medium"
                         }>
-                          {formData.request.situation === "Open" ? "مفتوح" :
+                          {formData.request.situation === "Ongoing" ? "جاري" :
                            formData.request.situation === "Closed" ? "مغلق" : "معلق"}
                         </span>
                       </div>

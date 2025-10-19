@@ -45,6 +45,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { EnhancedMobileTabs } from "@/components/ui/mobile-tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { VillageSelect } from "@/components/ui/village-select";
+import { HoldingCodeSelector } from "@/components/common/HoldingCodeSelector";
 import type { Client, Animal } from "@/types";
 import { entityToasts } from "@/lib/utils/toast-utils";
 import { clientsApi } from "@/lib/api/clients";
@@ -99,13 +100,26 @@ export function ClientDialog({ open, onOpenChange, client, onSave }: ClientDialo
     getFieldError,
   } = useFormValidation(validationRules);
 
-  const [formData, setFormData] = useState<Client>({
+  const [formData, setFormData] = useState<{
+    name: string;
+    nationalId: string;
+    birthDate?: string;
+    phone: string;
+    email?: string;
+    village?: string;
+    holdingCode?: string;
+    detailedAddress?: string;
+    status: "نشط" | "غير نشط";
+    animals: Animal[];
+    availableServices: string[];
+  }>({
     name: "",
     nationalId: "",
     birthDate: "",
     phone: "",
     email: "",
     village: "",
+    holdingCode: "",
     detailedAddress: "",
     status: "نشط",
     animals: [],
@@ -133,6 +147,7 @@ export function ClientDialog({ open, onOpenChange, client, onSave }: ClientDialo
         nationalId: client.nationalId || client.national_id || "",
         birthDate: client.birthDate || client.birth_date || "",
         detailedAddress: client.detailedAddress || client.detailed_address || "",
+        holdingCode: typeof client.holdingCode === 'string' ? client.holdingCode : (client.holdingCode?._id || ""),
         availableServices: client.availableServices || client.available_services || [],
       });
     } else {
@@ -143,6 +158,7 @@ export function ClientDialog({ open, onOpenChange, client, onSave }: ClientDialo
         phone: "",
         email: "",
         village: "",
+        holdingCode: "",
         detailedAddress: "",
         status: "نشط",
         animals: [],
@@ -407,6 +423,18 @@ export function ClientDialog({ open, onOpenChange, client, onSave }: ClientDialo
                       placeholder="اختر القرية"
                       error={errors.village}
                       required
+                    />
+                  </FormField>
+
+                  <FormField>
+                    <FormLabel>رمز الحيازة</FormLabel>
+                    <HoldingCodeSelector
+                      value={formData.holdingCode || ""}
+                      onValueChange={(value) => {
+                        setFormData({ ...formData, holdingCode: value || "" });
+                      }}
+                      village={formData.village}
+                      placeholder="اختر أو أضف رمز حيازة"
                     />
                   </FormField>
 

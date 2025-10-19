@@ -9,7 +9,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Edit, MoreHorizontal, Trash2, Eye, MapPin, Phone, Calendar, User } from "lucide-react";
+import { ArrowUpDown, Edit, Eye, Trash2, User, Calendar, Phone, MapPin, Hash, MoreHorizontal } from "lucide-react";
 import type { ParasiteControl } from "@/types";
 import { usePermissions } from "@/lib/hooks/usePermissions";
 
@@ -264,20 +264,47 @@ export function getColumns({
         );
       },
     },
+    // Holding Code
+    {
+      id: "holdingCode",
+      header: "Holding Code",
+      cell: ({ row }) => {
+        const holdingCode = row.original.holdingCode;
+        
+        if (!holdingCode) {
+          return <span className="text-gray-400 text-xs">-</span>;
+        }
+        
+        // Handle both string and object types
+        const code = typeof holdingCode === 'object' ? holdingCode.code : holdingCode;
+        const village = typeof holdingCode === 'object' ? holdingCode.village : '';
+        
+        return (
+          <div className="text-xs space-y-1">
+            <div className="flex items-center gap-1 font-medium">
+              <Hash className="h-3 w-3 text-blue-500" />
+              <span>{code}</span>
+            </div>
+            {village && (
+              <div className="flex items-center gap-1 text-gray-500">
+                <MapPin className="h-3 w-3" />
+                <span>{village}</span>
+              </div>
+            )}
+          </div>
+        );
+      },
+    },
     // Size, Volume, Status
     {
       id: "facility",
       header: "Facility",
       cell: ({ row }) => {
         const barnSize = row.original.animalBarnSizeSqM;
-        const controlVolume = row.original.parasiteControlVolume;
-        const controlStatus = row.original.parasiteControlStatus;
         
         return (
           <div className="text-xs space-y-1">
             <div>Size: {barnSize || 0} sqM</div>
-            <div>Volume: {controlVolume || 0}</div>
-            <div>Status: {controlStatus || '-'}</div>
           </div>
         );
       },
@@ -328,9 +355,8 @@ export function getColumns({
         const fulfillingDate = request.fulfillingDate ? new Date(request.fulfillingDate).toLocaleDateString("en-US") : '';
         
         const statusColors = {
-          "Open": "bg-blue-500 text-white",
+          "Ongoing": "bg-blue-500 text-white",
           "Closed": "bg-green-500 text-white",
-          "Pending": "bg-yellow-500 text-white",
         };
         
         return (

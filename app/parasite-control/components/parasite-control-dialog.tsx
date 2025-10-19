@@ -46,6 +46,7 @@ import { SimpleDatePicker } from "@/components/ui/simple-date-picker";
 import { SupervisorSelect } from "@/components/ui/supervisor-select";
 import { VillageSelect } from "@/components/ui/village-select";
 import { ClientSelector } from "@/components/ui/client-selector";
+import { HoldingCodeSelector } from "@/components/common/HoldingCodeSelector";
 import { useClientData } from "@/lib/hooks/use-client-data";
 import { entityToasts } from "@/lib/utils/toast-utils";
 import { useFormValidation } from "@/lib/hooks/use-form-validation";
@@ -113,17 +114,16 @@ const formSchema = z.object({
   }),
   animalBarnSizeSqM: z.number().min(0, "يجب أن يكون الحجم أكبر من أو يساوي 0").default(0),
   breedingSites: z.enum(["Sprayed", "Not Available", "Not Applicable"]).default("Not Available"),
-  parasiteControlVolume: z.number().min(0, "يجب أن تكون الكمية أكبر من أو تساوي 0").default(0),
-  parasiteControlStatus: z.string().min(1, "حالة مكافحة الطفيليات مطلوبة").default("مكتمل"),
+  holdingCode: z.string().optional(),
   herdHealthStatus: z.enum(["Healthy", "Sick", "Under Treatment"]).default("Healthy"),
   complyingToInstructions: z.enum(["Comply", "Not Comply", "Partially Comply"]).default("Comply"),
   request: z.object({
     date: z.string().min(1, "تاريخ الطلب مطلوب").default(() => new Date().toISOString().split('T')[0]),
-    situation: z.enum(["Open", "Closed", "Pending"]).default("Open"),
+    situation: z.enum(["Ongoing", "Closed"]).default("Ongoing"),
     fulfillingDate: z.string().optional(),
   }).default(() => ({
     date: new Date().toISOString().split('T')[0],
-    situation: "Open" as const,
+    situation: "Ongoing" as const,
     fulfillingDate: undefined,
   })),
   remarks: z.string().optional(),
@@ -199,7 +199,6 @@ export function ParasiteControlDialog({
         nationalId: "",
         phone: "",
         village: "",
-        detailedAddress: "",
         birthDate: "",
       },
       herdLocation: "",
@@ -222,13 +221,12 @@ export function ParasiteControlDialog({
       },
       animalBarnSizeSqM: 0,
       breedingSites: "Not Available",
-      parasiteControlVolume: 0,
-      parasiteControlStatus: "مكتمل",
+      holdingCode: "",
       herdHealthStatus: "Healthy",
       complyingToInstructions: "Comply",
       request: {
-        date: new Date().toISOString().split("T")[0],
-        situation: "Open",
+        date: new Date().toISOString().split('T')[0],
+        situation: 'Ongoing',
         fulfillingDate: undefined,
       },
       remarks: "",
@@ -257,7 +255,6 @@ export function ParasiteControlDialog({
           nationalId: typeof item.client === 'object' ? item.client?.nationalId || '' : '',
           phone: typeof item.client === 'object' ? item.client?.phone || '' : '',
           village: typeof item.client === 'object' ? item.client?.village || '' : '',
-          detailedAddress: typeof item.client === 'object' ? item.client?.detailedAddress || '' : '',
           birthDate: typeof item.client === 'object' && item.client?.birthDate ? formatDateFromBackend(item.client.birthDate) : '',
         },        
         herdLocation: item.herdLocation || '',
@@ -283,8 +280,6 @@ export function ParasiteControlDialog({
         },
         animalBarnSizeSqM: item.animalBarnSizeSqM || 0,
         breedingSites: (item.breedingSites as 'Sprayed' | 'Not Available' | 'Not Applicable') || 'Not Available',
-        parasiteControlVolume: item.parasiteControlVolume || 0,
-        parasiteControlStatus: item.parasiteControlStatus || 'مكتمل',
         herdHealthStatus: item.herdHealthStatus || 'Healthy',
         complyingToInstructions: (() => {
           // Handle both boolean and string types for backward compatibility
@@ -322,7 +317,6 @@ export function ParasiteControlDialog({
           nationalId: '',
           phone: '',
           village: '',
-          detailedAddress: '',
           birthDate: undefined,
         },
         herdLocation: '',
@@ -345,13 +339,11 @@ export function ParasiteControlDialog({
         },
         animalBarnSizeSqM: 0,
         breedingSites: 'Not Available' as 'Sprayed' | 'Not Available' | 'Not Applicable',
-        parasiteControlVolume: 0,
-        parasiteControlStatus: 'مكتمل',
         herdHealthStatus: 'Healthy' as 'Healthy' | 'Sick' | 'Under Treatment',
         complyingToInstructions: 'Comply' as 'Comply' | 'Not Comply' | 'Partially Comply',
         request: {
           date: new Date().toISOString().split('T')[0],
-          situation: 'Open' as 'Open' | 'Closed' | 'Pending',
+          situation: 'Ongoing' as 'Ongoing' | 'Closed',
           fulfillingDate: undefined,
         },
         remarks: '',
@@ -474,7 +466,6 @@ export function ParasiteControlDialog({
           nationalId: data.client.nationalId.trim(),
           phone: data.client.phone.trim(),
           village: data.client.village || '',
-          detailedAddress: data.client.detailedAddress || '',
           birthDate: data.client.birthDate ? formatDateForBackend(data.client.birthDate) : undefined,
         },
         herdLocation: data.herdLocation,
@@ -525,15 +516,14 @@ export function ParasiteControlDialog({
         },
         animalBarnSizeSqM: Number(data.animalBarnSizeSqM) || 0,
         breedingSites: data.breedingSites,
-        parasiteControlVolume: Number(data.parasiteControlVolume) || 0,
-        parasiteControlStatus: data.parasiteControlStatus,
         herdHealthStatus: data.herdHealthStatus,
         complyingToInstructions: data.complyingToInstructions as "Comply" | "Not Comply" | "Partially Comply",
         request: {
           date: formatDateForBackend(data.request.date || data.date),
-          situation: data.request.situation || 'Open',
+          situation: data.request.situation || 'Ongoing',
           fulfillingDate: data.request.fulfillingDate ? formatDateForBackend(data.request.fulfillingDate) : undefined,
         },
+        holdingCode: data.holdingCode || undefined,
         remarks: data.remarks || '',
       };
       
@@ -746,19 +736,6 @@ export function ParasiteControlDialog({
                       }
                     }}
                   />
-                  <FormField
-                    control={form.control as any}
-                    name="category"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>الفئة</FormLabel>
-                        <FormControl>
-                          <Input {...field} disabled />
-                        </FormControl>
-                        <FormMessage className="text-red-500 text-sm font-medium" />
-                      </FormItem>
-                    )}
-                  />
                   <ValidatedInput
                     label="موقع القطيع"
                     required
@@ -893,20 +870,6 @@ export function ParasiteControlDialog({
                     )}
                   />
                   
-                  {/* Detailed Address */}
-                  <FormField
-                    control={form.control as any}
-                    name="client.detailedAddress"
-                    render={({ field }) => (
-                      <FormItem className="sm:col-span-2">
-                        <FormLabel>العنوان التفصيلي</FormLabel>
-                        <FormControl>
-                          <Textarea placeholder="مزرعة الأحمد، طريق الخرج" {...field} />
-                        </FormControl>
-                        <FormMessage className="text-red-500 text-sm font-medium" />
-                      </FormItem>
-                    )}
-                  />
                   
                   {/* Birth Date */}
                   <FormField
@@ -921,6 +884,26 @@ export function ParasiteControlDialog({
                             onChange={(date) => field.onChange(date ? date.toISOString().split('T')[0] : "")}
                             placeholder="اختر تاريخ الميلاد"
                             maxDate={new Date()}
+                          />
+                        </FormControl>
+                        <FormMessage className="text-red-500 text-sm font-medium" />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  {/* Holding Code Selector */}
+                  <FormField
+                    control={form.control as any}
+                    name="holdingCode"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>رمز الحيازة</FormLabel>
+                        <FormControl>
+                          <HoldingCodeSelector
+                            value={field.value || ""}
+                            onValueChange={field.onChange}
+                            village={form.watch('client.village')}
+                            placeholder="اختر رمز الحيازة"
                           />
                         </FormControl>
                         <FormMessage className="text-red-500 text-sm font-medium" />
@@ -1308,49 +1291,6 @@ export function ParasiteControlDialog({
                       </FormItem>
                     )}
                   />
-                  <FormField
-                    control={form.control as any}
-                    name="parasiteControlVolume"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>حجم مكافحة الطفيليات</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="number"
-                            min="0"
-                            step="0.01"
-                            placeholder="50.25"
-                            {...field}
-                            onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
-                          />
-                        </FormControl>
-                        <FormMessage className="text-red-500 text-sm font-medium" />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control as any}
-                    name="parasiteControlStatus"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>حالة مكافحة الطفيليات</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value}>
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="اختر حالة مكافحة الطفيليات" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                              <SelectItem value="Completed">Completed</SelectItem>
-                            <SelectItem value="In Progress">In Progress</SelectItem>
-                            <SelectItem value="Pending">Pending</SelectItem>
-                            <SelectItem value="Cancelled">Cancelled</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <FormMessage className="text-red-500 text-sm font-medium" />
-                      </FormItem>
-                    )}
-                  />
                 </div>
                 <FormField
                   control={form.control as any}
@@ -1411,35 +1351,37 @@ export function ParasiteControlDialog({
                           <SelectContent>
                             <SelectItem value="Ongoing">Ongoing</SelectItem>
                             <SelectItem value="Closed">Closed</SelectItem>
-                            <SelectItem value="Pending">Pending</SelectItem>
                           </SelectContent>
                         </Select>
                         <FormMessage className="text-red-500 text-sm font-medium" />
                       </FormItem>
                     )}
                   />
-                  <FormField
-                    control={form.control as any}
-                    name="request.fulfillingDate"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormControl>
-                          <SimpleDatePicker
-                            label="تاريخ الإنجاز"
-                            placeholder="اختر تاريخ الإنجاز"
-                            value={field.value}
-                            onChange={(date) => {
-                              const dateString = date ? date.toISOString().split('T')[0] : '';
-                              field.onChange(dateString || undefined);
-                            }}
-                            variant="modern"
-                            size="md"
-                          />
-                        </FormControl>
-                        <FormMessage className="text-red-500 text-sm font-medium" />
-                      </FormItem>
-                    )}
-                  />
+                  {/* عرض تاريخ الإنجاز فقط عندما تكون الحالة Closed */}
+                  {form.watch('request.situation') === 'Closed' && (
+                    <FormField
+                      control={form.control as any}
+                      name="request.fulfillingDate"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormControl>
+                            <SimpleDatePicker
+                              label="تاريخ الإنجاز"
+                              placeholder="اختر تاريخ الإنجاز"
+                              value={field.value}
+                              onChange={(date) => {
+                                const dateString = date ? date.toISOString().split('T')[0] : '';
+                                field.onChange(dateString || undefined);
+                              }}
+                              variant="modern"
+                              size="md"
+                            />
+                          </FormControl>
+                          <FormMessage className="text-red-500 text-sm font-medium" />
+                        </FormItem>
+                      )}
+                    />
+                  )}
                 </div>
               </TabsContent>
               </Tabs>

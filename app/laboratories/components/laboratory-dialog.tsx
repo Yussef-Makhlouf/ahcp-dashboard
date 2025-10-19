@@ -24,6 +24,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { SimpleDatePicker } from "@/components/ui/simple-date-picker";
 import { SupervisorSelect } from "@/components/ui/supervisor-select";
 import { ClientSelector } from "@/components/ui/client-selector";
+import { HoldingCodeSelector } from "@/components/common/HoldingCodeSelector";
 import { VillageSelect } from "@/components/ui/village-select";
 import { CalendarIcon, Plus, Trash2, AlertCircle, CheckCircle2, User, Heart, Shield, Activity } from "lucide-react";
 import { useState } from "react";
@@ -146,6 +147,8 @@ export function LaboratoryDialog({ open, onOpenChange, laboratory, onSave }: Lab
     sampleNumber: "",
     positiveCases: 0,
     negativeCases: 0,
+    followUpDate: "",
+    holdingCode: "",
     remarks: "",
     testResults: [] as TestResult[],
   });
@@ -221,6 +224,8 @@ export function LaboratoryDialog({ open, onOpenChange, laboratory, onSave }: Lab
         sampleNumber: laboratory.sampleNumber || "",
         positiveCases: laboratory.positiveCases || 0,
         negativeCases: laboratory.negativeCases || 0,
+        followUpDate: laboratory.followUpDate || "",
+        holdingCode: typeof laboratory.holdingCode === 'string' ? laboratory.holdingCode : (laboratory.holdingCode?._id || ""),
         remarks: laboratory.remarks || "",
         testResults: laboratory.testResults || [],
       });
@@ -382,6 +387,7 @@ export function LaboratoryDialog({ open, onOpenChange, laboratory, onSave }: Lab
       sampleNumber: formData.sampleNumber,
       positiveCases: formData.positiveCases,
       negativeCases: formData.negativeCases,
+      holdingCode: formData.holdingCode || undefined,
       remarks: formData.remarks,
     };
     
@@ -881,6 +887,23 @@ export function LaboratoryDialog({ open, onOpenChange, laboratory, onSave }: Lab
                   />
                   {getFieldError('farmLocation') && (
                     <p className="text-red-500 text-sm font-medium mt-1">{getFieldError('farmLocation')}</p>
+                  )}
+                </div>
+
+                {/* Holding Code */}
+                <div className="space-y-2">
+                  <Label>رمز الحيازة</Label>
+                  <HoldingCodeSelector
+                    value={formData.holdingCode || ""}
+                    onValueChange={(value) => {
+                      setFormData({ ...formData, holdingCode: value || "" });
+                      clearFieldError('holdingCode');
+                    }}
+                    village={selectedClient?.village || ''}
+                    placeholder="اختر رمز الحيازة"
+                  />
+                  {getFieldError('holdingCode') && (
+                    <p className="text-red-500 text-sm font-medium mt-1">{getFieldError('holdingCode')}</p>
                   )}
                 </div>
 
