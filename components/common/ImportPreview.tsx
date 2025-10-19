@@ -30,6 +30,7 @@ const fieldLabels: Record<string, string> = {
   email: 'البريد الإلكتروني',
   village: 'القرية',
   detailedAddress: 'العنوان التفصيلي',
+  holdingCode: 'رمز الحيازة',
   status: 'الحالة',
   totalAnimals: 'إجمالي الحيوانات',
   farmLocation: 'موقع المزرعة',
