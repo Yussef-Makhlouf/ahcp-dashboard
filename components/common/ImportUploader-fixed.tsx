@@ -101,6 +101,7 @@ export const ImportUploader: React.FC<ImportUploaderProps> = ({
           { label: 'Negative Cases', key: 'negativeCases' },
           { label: 'Sheep Count', key: 'sheepCount' },
           { label: 'Goats Count', key: 'goatsCount' },
+          { label: 'Holding Code', key: 'holdingCode' },
           { label: 'Cattle Count', key: 'cattleCount' },
           { label: 'Camel Count', key: 'camelCount' },
           { label: 'Horse Count', key: 'horseCount' },
@@ -136,6 +137,7 @@ export const ImportUploader: React.FC<ImportUploaderProps> = ({
           { label: 'Herd Number', key: 'herdNumber' },
           { label: 'Herd Females', key: 'herdFemales' },
           { label: 'Total Vaccinated', key: 'totalVaccinated' },
+          { label: 'Holding Code', key: 'holdingCode' },
           { label: 'Herd Health', key: 'herdHealth' },
           { label: 'Animals Handling', key: 'animalsHandling' },
           { label: 'Labours', key: 'labours' },
@@ -168,6 +170,7 @@ export const ImportUploader: React.FC<ImportUploaderProps> = ({
           { label: 'Camel Total', key: 'camelTotal' },
           { label: 'Camel Treated', key: 'camelTreated' },
           { label: 'Horse Total', key: 'horseTotal' },
+          { label: 'Holding Code', key: 'holdingCode' },
           { label: 'Horse Treated', key: 'horseTreated' },
           { label: 'Herd Health Status', key: 'herdHealthStatus' },
           { label: 'Animal Barn Size SqM', key: 'animalBarnSizeSqM' },
@@ -194,6 +197,7 @@ export const ImportUploader: React.FC<ImportUploaderProps> = ({
           { label: 'Intervention Category', key: 'interventionCategory' },
           { label: 'Sheep Count', key: 'sheepCount' },
           { label: 'Goats Count', key: 'goatsCount' },
+          { label: 'Holding Code', key: 'holdingCode' },
           { label: 'Cattle Count', key: 'cattleCount' },
           { label: 'Camel Count', key: 'camelCount' },
           { label: 'Horse Count', key: 'horseCount' },
@@ -213,6 +217,7 @@ export const ImportUploader: React.FC<ImportUploaderProps> = ({
           { label: 'Farm Location', key: 'farmLocation' },
           { label: 'Latitude', key: 'latitude' },
           { label: 'Longitude', key: 'longitude' },
+          { label: 'Holding Code', key: 'holdingCode' },
           { label: 'Horse Count', key: 'horseCount' },
           { label: 'Horse Total', key: 'horseTotal' },
           { label: 'Horse Young', key: 'horseYoung' },
@@ -232,6 +237,7 @@ export const ImportUploader: React.FC<ImportUploaderProps> = ({
           { label: 'ID', key: 'id' },
           { label: 'Phone', key: 'phone' },
           { label: 'Location', key: 'location' },
+          { label: 'Holding Code', key: 'holdingCode' },
           { label: 'Remarks', key: 'remarks' }
         ];
     }
