@@ -23,6 +23,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { SimpleDatePicker } from "@/components/ui/simple-date-picker";
 import { SupervisorSelect } from "@/components/ui/supervisor-select";
+import { ClientSelector } from "@/components/ui/client-selector";
 import { VillageSelect } from "@/components/ui/village-select";
 import { CalendarIcon, Plus, Trash2, AlertCircle, CheckCircle2, User, Heart, Shield, Activity } from "lucide-react";
 import { useState } from "react";
@@ -37,7 +38,7 @@ import { Badge, StatusBadge } from "@/components/ui/badge-modern";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Progress } from "@/components/ui/progress";
-import type { Laboratory } from "@/types";
+import type { Laboratory, Client } from "@/types";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { entityToasts } from "@/lib/utils/toast-utils";
 import { laboratoriesApi } from "@/lib/api/laboratories";
@@ -88,12 +89,22 @@ interface TestResult {
 
 export function LaboratoryDialog({ open, onOpenChange, laboratory, onSave }: LaboratoryDialogProps) {
   const [activeTab, setActiveTab] = useState("basic");
+  const [selectedClient, setSelectedClient] = useState<Client | null>(null);
 
   // Validation rules for unified system
   const validationRules = {
     'clientName': { required: true, minLength: 2 },
     'clientId': { required: true, nationalId: true },
-    'clientPhone': { required: true, phone: true },
+    'clientPhone': { 
+      required: true, 
+      custom: (value: string) => {
+        if (!value) return null;
+        if (!validateSaudiPhone(value)) {
+          return 'رقم الهاتف السعودي غير صحيح. يجب أن يبدأ بـ 05 ويكون مكون من 10 أرقام';
+        }
+        return null;
+      }
+    },
     'supervisor': { required: true },
     'vehicleNo': { required: true },
     'farmLocation': { required: true },
@@ -153,14 +164,37 @@ export function LaboratoryDialog({ open, onOpenChange, laboratory, onSave }: Lab
 
   useEffect(() => {
     if (laboratory) {
+      // Set selected client for editing mode
+      if (laboratory.client && typeof laboratory.client === 'object') {
+        setSelectedClient(laboratory.client as Client);
+      } else if (laboratory.clientName && laboratory.clientId) {
+        // Create a mock client object from flat fields for ClientSelector
+        setSelectedClient({
+          _id: laboratory.clientId, // Use clientId as _id for selector
+          name: laboratory.clientName,
+          nationalId: laboratory.clientId,
+          phone: laboratory.clientPhone || '',
+          birthDate: laboratory.clientBirthDate,
+          village: '',
+          detailedAddress: '',
+          status: 'نشط',
+          animals: [],
+          availableServices: [] // Required field for Client type
+        } as Client);
+      } else {
+        setSelectedClient(null);
+      }
+      
       setFormData({
         serialNo: laboratory.serialNo || 0,
         date: laboratory.date ? new Date(laboratory.date) : undefined,
         sampleCode: laboratory.sampleCode || "",
-        clientName: laboratory.clientName || "",
-        clientId: laboratory.clientId || "",
-        clientBirthDate: laboratory.clientBirthDate ? new Date(laboratory.clientBirthDate) : undefined,
-        clientPhone: laboratory.clientPhone || "",
+        // Handle both flat client fields and nested client object for maximum compatibility
+        clientName: laboratory.clientName || laboratory.client?.name || "",
+        clientId: laboratory.clientId || laboratory.client?.nationalId || "",
+        clientBirthDate: laboratory.clientBirthDate ? new Date(laboratory.clientBirthDate) : 
+                        laboratory.client?.birthDate ? new Date(laboratory.client.birthDate) : undefined,
+        clientPhone: laboratory.clientPhone || laboratory.client?.phone || "",
         farmLocation: laboratory.farmLocation || "",
         coordinates: laboratory.coordinates || { latitude: 0, longitude: 0 },
         speciesCounts: laboratory.speciesCounts ? {
@@ -188,9 +222,12 @@ export function LaboratoryDialog({ open, onOpenChange, laboratory, onSave }: Lab
         testResults: laboratory.testResults || [],
       });
     } else {
+      // Reset selected client for new record
+      setSelectedClient(null);
+      
       // Generate new sample code and serial number
       const newCode = `LAB${String(Math.floor(Math.random() * 10000)).padStart(3, '0')}`;
-      const newSerial = Math.floor(Math.random() * 1000) + 1;
+      const newSerial = Math.floor(Math.random() * 9000000000) + 1000000000;
       setFormData({
         serialNo: newSerial,
         date: new Date(),
@@ -277,9 +314,6 @@ export function LaboratoryDialog({ open, onOpenChange, laboratory, onSave }: Lab
       remarks: formData.remarks,
     };
     
-    // Validate form data before sending
-    // Validation is already handled by validateForm() function
-    
     try {
       if (laboratory) {
         // Update existing laboratory
@@ -293,10 +327,68 @@ export function LaboratoryDialog({ open, onOpenChange, laboratory, onSave }: Lab
       
       onSave(submitData);
       onOpenChange(false);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error saving laboratory:', error);
-      entityToasts.laboratory.error(laboratory ? 'update' : 'create');
+      
+      // Handle validation errors from backend
+      if (error.response?.status === 400 && error.response?.data?.errors) {
+        const backendErrors = error.response.data.errors;
+        
+        // Map backend validation errors to form fields
+        backendErrors.forEach((err: any) => {
+          const fieldName = err.field;
+          let errorMessage = err.message;
+          
+          // Translate common validation messages to Arabic
+          if (errorMessage.includes('required')) {
+            errorMessage = `${getArabicFieldName(fieldName)} مطلوب`;
+          } else if (errorMessage.includes('pattern')) {
+            if (fieldName === 'clientPhone') {
+              errorMessage = 'رقم الهاتف يجب أن يبدأ بـ 05 ويكون مكون من 10 أرقام';
+            } else if (fieldName === 'clientId') {
+              errorMessage = 'رقم الهوية يجب أن يكون مكون من 9-10 أرقام';
+            } else {
+              errorMessage = `${getArabicFieldName(fieldName)} غير صحيح`;
+            }
+          } else if (errorMessage.includes('min')) {
+            errorMessage = `${getArabicFieldName(fieldName)} قصير جداً`;
+          } else if (errorMessage.includes('max')) {
+            errorMessage = `${getArabicFieldName(fieldName)} طويل جداً`;
+          }
+          
+          setFieldError(fieldName, errorMessage);
+        });
+        
+        entityToasts.laboratory.error(laboratory ? 'update' : 'create');
+      } else {
+        entityToasts.laboratory.error(laboratory ? 'update' : 'create');
+      }
     }
+  };
+
+  // Helper function to get Arabic field names
+  const getArabicFieldName = (fieldName: string): string => {
+    const fieldNames: { [key: string]: string } = {
+      'serialNo': 'الرقم التسلسلي',
+      'date': 'التاريخ',
+      'sampleCode': 'رمز العينة',
+      'clientName': 'اسم العميل',
+      'clientId': 'رقم الهوية',
+      'clientPhone': 'رقم الهاتف',
+      'clientBirthDate': 'تاريخ الميلاد',
+      'farmLocation': 'موقع المزرعة',
+      'collector': 'جامع العينة',
+      'sampleType': 'نوع العينة',
+      'sampleNumber': 'رمز جامع العينة',
+      'positiveCases': 'الحالات الإيجابية',
+      'negativeCases': 'الحالات السلبية',
+      'speciesCounts': 'عدد العينات',
+      'coordinates.latitude': 'الإحداثي الشمالي',
+      'coordinates.longitude': 'الإحداثي الشرقي',
+      'remarks': 'الملاحظات'
+    };
+    
+    return fieldNames[fieldName] || fieldName;
   };
 
   const addTestResult = () => {
@@ -402,7 +494,7 @@ export function LaboratoryDialog({ open, onOpenChange, laboratory, onSave }: Lab
                         variant="outline"
                         size="sm"
                         onClick={() => {
-                          const randomSerial = Math.floor(Math.random() * 9999) + 1;
+                          const randomSerial = Math.floor(Math.random() * 9000000000) + 1000000000;
                           setFormData({ ...formData, serialNo: randomSerial });
                         }}
                         className="px-3"
@@ -472,18 +564,41 @@ export function LaboratoryDialog({ open, onOpenChange, laboratory, onSave }: Lab
                 {/* Client Name */}
                 <div className="space-y-2">
                   <Label>اسم العميل *</Label>
-                  <Input
-                    value={formData.clientName}
-                    onChange={(e) => {
-                      setFormData({ ...formData, clientName: e.target.value });
-                      clearFieldError('clientName');
+                  <ClientSelector
+                    value={selectedClient?._id || ''} // Use selected client ID
+                    onValueChange={(client) => {
+                      setSelectedClient(client);
+                      if (client) {
+                        setFormData({ 
+                          ...formData, 
+                          clientName: client.name,
+                          clientId: client.nationalId || '',
+                          clientPhone: client.phone || '',
+                          clientBirthDate: client.birthDate ? new Date(client.birthDate) : undefined
+                        });
+                        clearFieldError('clientName');
+                        clearFieldError('clientId');
+                        clearFieldError('clientPhone');
+                        clearFieldError('clientBirthDate');
+                      } else {
+                        setFormData({ 
+                          ...formData, 
+                          clientName: '',
+                          clientId: '',
+                          clientPhone: '',
+                          clientBirthDate: undefined
+                        });
+                      }
                     }}
-                    placeholder="اسم العميل"
+                    placeholder="اختر العميل"
+                    error={getFieldError('clientName') || undefined}
                     required
-                    className={getFieldError('clientName') ? 'border-red-500' : ''}
                   />
                   {getFieldError('clientName') && (
-                    <p className="text-red-500 text-sm font-medium mt-1">{getFieldError('clientName')}</p>
+                    <div className="flex items-center gap-2 p-2 bg-red-50 border border-red-200 rounded-md">
+                      <AlertCircle className="w-4 h-4 text-red-500 flex-shrink-0" />
+                      <p className="text-red-700 text-sm font-medium">{getFieldError('clientName')}</p>
+                    </div>
                   )}
                 </div>
 
@@ -522,18 +637,24 @@ export function LaboratoryDialog({ open, onOpenChange, laboratory, onSave }: Lab
                 <div className="space-y-2">
                   <Label>رقم الهاتف *</Label>
                   <Input
+                    type="tel"
                     value={formData.clientPhone}
                     onChange={(e) => {
-                      setFormData({ ...formData, clientPhone: e.target.value });
+                      // Allow only numbers and limit to 10 digits
+                      const value = e.target.value.replace(/\D/g, '').slice(0, 10);
+                      setFormData({ ...formData, clientPhone: value });
                       clearFieldError('clientPhone');
                     }}
-                    placeholder="رقم الهاتف (9 أرقام)"
+                    placeholder="رقم الهاتف السعودي (10 أرقام - مثال: 0501234567)"
                     required
-                    maxLength={9}
-                    className={getFieldError('clientPhone') ? 'border-red-500' : ''}
+                    maxLength={10}
+                    className={getFieldError('clientPhone') ? 'border-red-500 focus:border-red-500' : ''}
                   />
                   {getFieldError('clientPhone') && (
-                    <p className="text-red-500 text-sm font-medium mt-1">{getFieldError('clientPhone')}</p>
+                    <div className="flex items-center gap-2 p-2 bg-red-50 border border-red-200 rounded-md">
+                      <AlertCircle className="w-4 h-4 text-red-500 flex-shrink-0" />
+                      <p className="text-red-700 text-sm font-medium">{getFieldError('clientPhone')}</p>
+                    </div>
                   )}
                 </div>
 
@@ -586,17 +707,21 @@ export function LaboratoryDialog({ open, onOpenChange, laboratory, onSave }: Lab
                 {/* Sample Collector */}
                 <div className="space-y-2">
                   <Label>جامع العينة *</Label>
-                  <SupervisorSelect
+                  <Input
                     value={formData.collector}
-                    onValueChange={(value) => {
-                      setFormData({ ...formData, collector: value });
+                    onChange={(e) => {
+                      setFormData({ ...formData, collector: e.target.value });
                       clearFieldError('collector');
                     }}
-                    placeholder="اختر جامع العينة"
-                    section="المختبرات"
+                    placeholder="اسم جامع العينة"
+                    required
+                    className={getFieldError('collector') ? 'border-red-500 focus:border-red-500' : ''}
                   />
                   {getFieldError('collector') && (
-                    <p className="text-red-500 text-sm font-medium mt-1">{getFieldError('collector')}</p>
+                    <div className="flex items-center gap-2 p-2 bg-red-50 border border-red-200 rounded-md">
+                      <AlertCircle className="w-4 h-4 text-red-500 flex-shrink-0" />
+                      <p className="text-red-700 text-sm font-medium">{getFieldError('collector')}</p>
+                    </div>
                   )}
                 </div>
 

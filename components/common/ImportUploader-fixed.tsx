@@ -221,6 +221,7 @@ export const ImportUploader: React.FC<ImportUploaderProps> = ({
           { label: 'Diagnosis', key: 'diagnosis' },
           { label: 'Treatment', key: 'treatment' },
           { label: 'Veterinarian', key: 'veterinarian' },
+{ label: 'Request Fulfilling Date', key: 'requestFulfillingDate' },
           { label: 'Remarks', key: 'remarks' }
         ];
       default:

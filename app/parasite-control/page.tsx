@@ -20,6 +20,7 @@ import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { ImportExportManager } from "@/components/import-export";
 import { ImportDialog } from "@/components/common/ImportDialog";
+import { ResponsiveActions, createActions } from "@/components/ui/responsive-actions";
 import { apiConfig } from "@/lib/api-config";
 
 // تعريف حقول النموذج
@@ -345,41 +346,35 @@ export default function ParasiteControlPage() {
               إدارة سجلات مكافحة الطفيليات للحيوانات
             </p>
           </div>
-          <div className="flex gap-2">
-            <Button 
-              onClick={() => setIsImportDialogOpen(true)}
-              size="sm" 
-              variant="outline" 
-              className="h-9 px-3"
-            >
-              <FileSpreadsheet className="h-4 w-4 mr-2" />
-              استيراد عبر Dromo
-            </Button>
-            <ImportExportManager
-              exportEndpoint={apiConfig.endpoints.parasiteControl.export}
-              importEndpoint={apiConfig.endpoints.parasiteControl.import}
-              templateEndpoint={apiConfig.endpoints.parasiteControl.template}
-              title="مكافحة الطفيليات"
-              queryKey="parasite-control"
-              acceptedFormats={[".csv", ".xlsx"]}
-              maxFileSize={10}
-              onImportSuccess={() => {
-                queryClient.invalidateQueries({ queryKey: ['parasite-control'] });
-              }}
-              onExportSuccess={() => {
-                toast.success('تم تصدير البيانات بنجاح');
-              }}
-              onRefresh={() => {
-                queryClient.invalidateQueries({ queryKey: ['parasite-control'] });
-              }}
-            />
-            {checkPermission({ module: 'parasite-control', action: 'create' }) && (
-              <Button onClick={handleAdd} className="h-9 px-3">
-                <Plus className="h-4 w-4 mr-2" />
-                إضافة سجل جديد
-              </Button>
-            )}
-          </div>
+          <ResponsiveActions
+            primaryAction={checkPermission({ module: 'parasite-control', action: 'create' }) ? 
+              createActions.add(handleAdd, "إضافة سجل جديد") : undefined
+            }
+            actions={[
+              createActions.importDromo(() => setIsImportDialogOpen(true))
+            ]}
+            maxVisibleActions={2}
+          />
+          
+          {/* ImportExportManager - Now visible for file upload */}
+          <ImportExportManager
+            exportEndpoint={apiConfig.endpoints.parasiteControl.export}
+            importEndpoint={apiConfig.endpoints.parasiteControl.import}
+            templateEndpoint={apiConfig.endpoints.parasiteControl.template}
+            title="مكافحة الطفيليات"
+            queryKey="parasite-control"
+            acceptedFormats={[".csv", ".xlsx"]}
+            maxFileSize={10}
+            onImportSuccess={() => {
+              queryClient.invalidateQueries({ queryKey: ['parasite-control'] });
+            }}
+            onExportSuccess={() => {
+              toast.success('تم تصدير البيانات بنجاح');
+            }}
+            onRefresh={() => {
+              queryClient.invalidateQueries({ queryKey: ['parasite-control'] });
+            }}
+          />
         </div>
 
         {/* Stats Cards */}

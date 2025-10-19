@@ -42,9 +42,12 @@ export function DateCell({
  */
 export function BirthDateCell({ date, className = "" }: { date: string | Date | null | undefined; className?: string }) {
   // تسجيل للتشخيص
-  if (date && typeof date === 'string') {
-    console.log(`🔍 BirthDateCell received: "${date}"`);
-  }
+  console.log(`🔍 BirthDateCell received:`, {
+    value: date,
+    type: typeof date,
+    isDate: date instanceof Date,
+    stringValue: date ? date.toString() : 'null/undefined'
+  });
   
   return <DateCell date={date} showIcon={true} className={className} emptyText="غير محدد" />;
 }

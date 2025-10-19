@@ -18,6 +18,7 @@ import { usePermissions } from "@/lib/hooks/usePermissions";
 import { toast } from "sonner";
 import { ImportExportManager } from "@/components/import-export";
 import { ImportDialog } from "@/components/common/ImportDialog";
+import { ResponsiveActions, createActions } from "@/components/ui/responsive-actions";
 import { apiConfig } from "@/lib/api-config";
 
 // تعريف حقول النموذج
@@ -348,41 +349,35 @@ export default function LaboratoriesPage() {
               إدارة سجلات الفحوصات المخبرية والعينات للحيوانات
             </p>
           </div>
-          <div className="flex gap-2">
-            <Button 
-              onClick={() => setIsImportDialogOpen(true)}
-              size="sm" 
-              variant="outline" 
-              className="h-9 px-3"
-            >
-              <FileSpreadsheet className="h-4 w-4 mr-2" />
-              استيراد عبر Dromo
-            </Button>
-            <ImportExportManager
-              exportEndpoint={apiConfig.endpoints.laboratories.export}
-              importEndpoint={apiConfig.endpoints.laboratories.import}
-              templateEndpoint={apiConfig.endpoints.laboratories.template}
-              title="المختبرات"
-              queryKey="laboratories"
-              acceptedFormats={[".csv", ".xlsx"]}
-              maxFileSize={10}
-              onImportSuccess={() => {
-                queryClient.invalidateQueries({ queryKey: ['laboratories'] });
-              }}
-              onExportSuccess={() => {
-                toast.success('تم تصدير البيانات بنجاح');
-              }}
-              onRefresh={() => {
-                queryClient.invalidateQueries({ queryKey: ['laboratories'] });
-              }}
-            />
-            {checkPermission({ module: 'laboratories', action: 'create' }) && (
-              <Button onClick={handleAdd} className="h-9 px-3">
-                <Plus className="h-4 w-4 mr-2" />
-                إضافة عينة جديدة
-              </Button>
-            )}
-          </div>
+          <ResponsiveActions
+            primaryAction={checkPermission({ module: 'laboratories', action: 'create' }) ? 
+              createActions.add(handleAdd, "إضافة عينة جديدة") : undefined
+            }
+            actions={[
+              createActions.importDromo(() => setIsImportDialogOpen(true))
+            ]}
+            maxVisibleActions={2}
+          />
+          
+          {/* ImportExportManager - Now visible for file upload */}
+          <ImportExportManager
+            exportEndpoint={apiConfig.endpoints.laboratories.export}
+            importEndpoint={apiConfig.endpoints.laboratories.import}
+            templateEndpoint={apiConfig.endpoints.laboratories.template}
+            title="المختبرات"
+            queryKey="laboratories"
+            acceptedFormats={[".csv", ".xlsx"]}
+            maxFileSize={10}
+            onImportSuccess={() => {
+              queryClient.invalidateQueries({ queryKey: ['laboratories'] });
+            }}
+            onExportSuccess={() => {
+              toast.success('تم تصدير البيانات بنجاح');
+            }}
+            onRefresh={() => {
+              queryClient.invalidateQueries({ queryKey: ['laboratories'] });
+            }}
+          />
         </div>
 
         {/* Stats Cards */}

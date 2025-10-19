@@ -17,6 +17,7 @@ import { usePermissions } from "@/lib/hooks/usePermissions";
 import { toast } from "sonner";
 import { ImportExportManager } from "@/components/import-export";
 import { ImportDialog } from "@/components/common/ImportDialog";
+import { ResponsiveActions, createActions } from "@/components/ui/responsive-actions";
 import { apiConfig } from "@/lib/api-config";
 
 
@@ -140,41 +141,35 @@ export default function VaccinationPage() {
               إدارة سجلات التطعيمات واللقاحات للحيوانات
             </p>
           </div>
-          <div className="flex gap-2">
-            <Button 
-              onClick={() => setIsImportDialogOpen(true)}
-              size="sm" 
-              variant="outline" 
-              className="h-9 px-3"
-            >
-              <FileSpreadsheet className="h-4 w-4 mr-2" />
-              استيراد عبر Dromo
-            </Button>
-            <ImportExportManager
-              exportEndpoint={apiConfig.endpoints.vaccination.export}
-              importEndpoint={apiConfig.endpoints.vaccination.import}
-              templateEndpoint={apiConfig.endpoints.vaccination.template}
-              title="التطعيمات"
-              queryKey="vaccination"
-              acceptedFormats={[".csv", ".xlsx"]}
-              maxFileSize={10}
-              onImportSuccess={() => {
-                queryClient.invalidateQueries({ queryKey: ['vaccination'] });
-              }}
-              onExportSuccess={() => {
-                toast.success('تم تصدير البيانات بنجاح');
-              }}
-              onRefresh={() => {
-                queryClient.invalidateQueries({ queryKey: ['vaccination'] });
-              }}
-            />
-            {checkPermission({ module: 'vaccination', action: 'create' }) && (
-              <Button onClick={handleAdd} className="h-9 px-3">
-                <Plus className="h-4 w-4 mr-2" />
-                إضافة تطعيم جديد
-              </Button>
-            )}
-          </div>
+          <ResponsiveActions
+            primaryAction={checkPermission({ module: 'vaccination', action: 'create' }) ? 
+              createActions.add(handleAdd, "إضافة تطعيم جديد") : undefined
+            }
+            actions={[
+              createActions.importDromo(() => setIsImportDialogOpen(true))
+            ]}
+            maxVisibleActions={2}
+          />
+          
+          {/* ImportExportManager - Now visible for file upload */}
+          <ImportExportManager
+            exportEndpoint={apiConfig.endpoints.vaccination.export}
+            importEndpoint={apiConfig.endpoints.vaccination.import}
+            templateEndpoint={apiConfig.endpoints.vaccination.template}
+            title="التطعيمات"
+            queryKey="vaccination"
+            acceptedFormats={[".csv", ".xlsx"]}
+            maxFileSize={10}
+            onImportSuccess={() => {
+              queryClient.invalidateQueries({ queryKey: ['vaccination'] });
+            }}
+            onExportSuccess={() => {
+              toast.success('تم تصدير البيانات بنجاح');
+            }}
+            onRefresh={() => {
+              queryClient.invalidateQueries({ queryKey: ['vaccination'] });
+            }}
+          />
         </div>
 
         {/* Stats Cards */}

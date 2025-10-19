@@ -226,50 +226,122 @@ export const ImportUploader: React.FC<ImportUploaderProps> = ({
             ];
           case 'mobile':
             return [
+              // Basic Information
               { label: 'Serial No', key: 'serialNo' },
               { label: 'Date', key: 'date' },
-              { label: 'Name', key: 'name' },
-              { label: 'ID', key: 'id' },
+              
+              // Client Information (will be populated from Client reference)
+              { label: 'Client Name', key: 'clientName' },
+              { label: 'National ID', key: 'nationalId' },
               { label: 'Birth Date', key: 'birthDate' },
               { label: 'Phone', key: 'phone' },
-              { label: 'Holding Code', key: 'holdingCode' },
-              { label: 'Location', key: 'location' },
+              { label: 'Village', key: 'village' },
+              { label: 'Detailed Address', key: 'detailedAddress' },
+              
+              // Location Information
+              { label: 'Farm Location', key: 'farmLocation' },
               { label: 'Latitude', key: 'latitude' },
               { label: 'Longitude', key: 'longitude' },
+              
+              // Staff Information
               { label: 'Supervisor', key: 'supervisor' },
-              { label: 'Team', key: 'team' },
               { label: 'Vehicle No', key: 'vehicleNo' },
-              { label: 'Intervention Category', key: 'interventionCategory' },
+              
+              // Animal Counts
               { label: 'Sheep Count', key: 'sheepCount' },
               { label: 'Goats Count', key: 'goatsCount' },
-              { label: 'Cattle Count', key: 'cattleCount' },
               { label: 'Camel Count', key: 'camelCount' },
+              { label: 'Cattle Count', key: 'cattleCount' },
               { label: 'Horse Count', key: 'horseCount' },
-              { label: 'Total Animals', key: 'totalAnimals' },
-              { label: 'Medications Used', key: 'medicationsUsed' },
+              
+              // Medical Information
+              { label: 'Diagnosis', key: 'diagnosis' },
+              { label: 'Intervention Category', key: 'interventionCategory' },
+              { label: 'Treatment', key: 'treatment' },
+              
+              // Medication Information
+              { label: 'Medication Name', key: 'medicationName' },
+              { label: 'Medication Dosage', key: 'dosage' },
+              { label: 'Medication Quantity', key: 'quantity' },
+              { label: 'Administration Route', key: 'route' },
+              
+              // Request Information
+              { label: 'Request Date', key: 'requestDate' },
+              { label: 'Request Situation', key: 'requestSituation' },
+              { label: 'Request Fulfilling Date', key: 'requestFulfillingDate' },
+              
+              // Follow-up Information
               { label: 'Follow Up Required', key: 'followUpRequired' },
+              { label: 'Follow Up Date', key: 'followUpDate' },
+              
+              // Additional Information
               { label: 'Remarks', key: 'remarks' }
             ];
           case 'equine_health':
             return [
+              // Basic Information
               { label: 'Serial No', key: 'serialNo' },
               { label: 'Date', key: 'date' },
-              { label: 'Name', key: 'name' },
-              { label: 'ID', key: 'id' },
+              
+              // Client Information
+              { label: 'Client Name', key: 'clientName' },
+              { label: 'National ID', key: 'nationalId' },
               { label: 'Birth Date', key: 'birthDate' },
               { label: 'Phone', key: 'phone' },
-              { label: 'Holding Code', key: 'holdingCode' },
+              { label: 'Village', key: 'village' },
+              { label: 'Detailed Address', key: 'detailedAddress' },
+              
+              // Location Information
               { label: 'Farm Location', key: 'farmLocation' },
               { label: 'Latitude', key: 'latitude' },
               { label: 'Longitude', key: 'longitude' },
+              
+              // Staff Information
+              { label: 'Supervisor', key: 'supervisor' },
+              { label: 'Vehicle No', key: 'vehicleNo' },
+              
+              // Horse Information
               { label: 'Horse Count', key: 'horseCount' },
-              { label: 'Horse Total', key: 'horseTotal' },
-              { label: 'Horse Young', key: 'horseYoung' },
-              { label: 'Horse Female', key: 'horseFemale' },
-              { label: 'Horse Treated', key: 'horseTreated' },
+              
+              // Horse Details (for individual horses)
+              { label: 'Horse ID', key: 'horseId' },
+              { label: 'Horse Breed', key: 'breed' },
+              { label: 'Horse Age', key: 'age' },
+              { label: 'Horse Gender', key: 'gender' },
+              { label: 'Horse Color', key: 'color' },
+              { label: 'Horse Health Status', key: 'healthStatus' },
+              { label: 'Horse Weight', key: 'weight' },
+              { label: 'Temperature', key: 'temperature' },
+              { label: 'Heart Rate', key: 'heartRate' },
+              { label: 'Respiratory Rate', key: 'respiratoryRate' },
+              
+              // Medical Information
               { label: 'Diagnosis', key: 'diagnosis' },
+              { label: 'Intervention Category', key: 'interventionCategory' },
               { label: 'Treatment', key: 'treatment' },
-              { label: 'Veterinarian', key: 'veterinarian' },
+              
+              // Medication Information
+              { label: 'Medication Name', key: 'medicationName' },
+              { label: 'Medication Dosage', key: 'dosage' },
+              { label: 'Medication Quantity', key: 'quantity' },
+              { label: 'Administration Route', key: 'route' },
+              { label: 'Medication Frequency', key: 'frequency' },
+              { label: 'Treatment Duration', key: 'duration' },
+              
+              // Request Information
+              { label: 'Request Date', key: 'requestDate' },
+              { label: 'Request Situation', key: 'requestSituation' },
+              { label: 'Request Fulfilling Date', key: 'requestFulfillingDate' },
+              
+              // Follow-up Information
+              { label: 'Follow Up Required', key: 'followUpRequired' },
+              { label: 'Follow Up Date', key: 'followUpDate' },
+              
+              // Health Status Information
+              { label: 'Vaccination Status', key: 'vaccinationStatus' },
+              { label: 'Deworming Status', key: 'dewormingStatus' },
+              
+              // Additional Information
               { label: 'Remarks', key: 'remarks' }
             ];
           default:

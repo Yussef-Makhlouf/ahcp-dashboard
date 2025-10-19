@@ -456,19 +456,27 @@ export interface EquineHealth {
   category?: string;
 }
 
-// Laboratory Types - Updated to match the table structure exactly
+// Laboratory Types - Updated to match the backend structure exactly
 export interface Laboratory {
   _id?: string; // MongoDB ID
   serialNo: number; // Serial number from table
   date: string; // Date column
   sampleCode: string; // Sample Code column
-  client: {
+  
+  // Support both flat client fields (current backend) and nested client object (future compatibility)
+  clientName?: string; // Flat client name field (backend primary)
+  clientId?: string; // Flat client ID field (backend primary)
+  clientBirthDate?: string; // Flat client birth date field (backend primary)
+  clientPhone?: string; // Flat client phone field (backend primary)
+  
+  client?: {
     _id?: string;
     name: string; // Name column (client name)
     nationalId: string; // ID column (client ID - 10 digits)
     birthDate?: string; // Birth Date column
-    phone: string; // phone column (9 digits)
+    phone: string; // phone column (10 digits)
   };
+  
   farmLocation: string; // Location column
   coordinates: {
     latitude: number; // N column (North coordinate)

@@ -27,6 +27,7 @@ import { toast } from "sonner";
 import { usePermissions } from "@/lib/hooks/usePermissions";
 import { ProtectedButton } from "@/components/ui/protected-button";
 import { ImportExportManager } from "@/components/import-export";
+import { ResponsiveActions, createActions } from "@/components/ui/responsive-actions";
 import { apiConfig } from "@/lib/api-config";
 
 export default function ClientsPage() {
@@ -386,39 +387,35 @@ export default function ClientsPage() {
               إدارة بيانات المربيين والعملاء
             </p>
           </div>
-          <div className="flex gap-2">
-            <ImportExportManager
-              exportEndpoint={apiConfig.endpoints.clients.export}
-              importEndpoint={apiConfig.endpoints.clients.import}
-              templateEndpoint={apiConfig.endpoints.clients.template}
-              title="العملاء"
-              queryKey="clients"
-              acceptedFormats={[".csv", ".xlsx"]}
-              maxFileSize={10}
-              onImportSuccess={() => {
-                queryClient.invalidateQueries({ queryKey: ['clients'] });
-                queryClient.invalidateQueries({ queryKey: ['clients-stats'] });
-              }}
-              onExportSuccess={() => {
-                toast.success('تم تصدير البيانات بنجاح');
-              }}
-              onRefresh={() => {
-                queryClient.invalidateQueries({ queryKey: ['clients'] });
-                queryClient.invalidateQueries({ queryKey: ['clients-stats'] });
-              }}
-            />
-            
-            {/* زر إضافة مربي جديد - للمدير العام والمشرفين فقط */}
-            {checkPermission({ module: 'clients', action: 'create' }) && (
-              <Button 
-                onClick={handleAddNewClient}
-                className="h-9 px-3"
-              >
-                <Plus className="ml-2 h-4 w-4" />
-                إضافة مربي جديد
-              </Button>
-            )}
-          </div>
+          <ResponsiveActions
+            primaryAction={checkPermission({ module: 'clients', action: 'create' }) ? 
+              createActions.add(handleAddNewClient, "إضافة مربي جديد") : undefined
+            }
+            actions={[]}
+            maxVisibleActions={2}
+          />
+          
+          {/* ImportExportManager - Now visible for file upload */}
+          <ImportExportManager
+            exportEndpoint={apiConfig.endpoints.clients.export}
+            importEndpoint={apiConfig.endpoints.clients.import}
+            templateEndpoint={apiConfig.endpoints.clients.template}
+            title="العملاء"
+            queryKey="clients"
+            acceptedFormats={[".csv", ".xlsx"]}
+            maxFileSize={10}
+            onImportSuccess={() => {
+              queryClient.invalidateQueries({ queryKey: ['clients'] });
+              queryClient.invalidateQueries({ queryKey: ['clients-stats'] });
+            }}
+            onExportSuccess={() => {
+              toast.success('تم تصدير البيانات بنجاح');
+            }}
+            onRefresh={() => {
+              queryClient.invalidateQueries({ queryKey: ['clients'] });
+              queryClient.invalidateQueries({ queryKey: ['clients-stats'] });
+            }}
+          />
         </div>
 
         {/* Stats Cards */}

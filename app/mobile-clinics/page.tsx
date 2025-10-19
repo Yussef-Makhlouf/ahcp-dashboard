@@ -20,6 +20,7 @@ import { toast } from "sonner";
 import { apiConfig } from "@/lib/api-config";
 import { ImportExportManager } from "@/components/import-export";
 import { ImportDialog } from "@/components/common/ImportDialog";
+import { ResponsiveActions, createActions } from "@/components/ui/responsive-actions";
 
 // تعريف حقول النموذج
 const formFields = [
@@ -379,41 +380,35 @@ export default function MobileClinicsPage() {
               إدارة سجلات زيارات العيادات المتنقلة
             </p>
           </div>
-          <div className="flex gap-2">
-            <Button 
-              onClick={() => setIsImportDialogOpen(true)}
-              size="sm" 
-              variant="outline" 
-              className="h-9 px-3"
-            >
-              <FileSpreadsheet className="h-4 w-4 mr-2" />
-              استيراد عبر Dromo
-            </Button>
-            <ImportExportManager
-              exportEndpoint={apiConfig.endpoints.mobileClinics.export}
-              importEndpoint={apiConfig.endpoints.mobileClinics.import}
-              templateEndpoint={apiConfig.endpoints.mobileClinics.template}
-              title="العيادات المتنقلة"
-              queryKey="mobile-clinics"
-              acceptedFormats={[".csv", ".xlsx"]}
-              maxFileSize={10}
-              onImportSuccess={() => {
-                queryClient.invalidateQueries({ queryKey: ['mobile-clinics'] });
-              }}
-              onExportSuccess={() => {
-                toast.success('تم تصدير البيانات بنجاح');
-              }}
-              onRefresh={() => {
-                queryClient.invalidateQueries({ queryKey: ['mobile-clinics'] });
-              }}
-            />
-            {checkPermission({ module: 'mobile-clinics', action: 'create' }) && (
-              <Button onClick={handleAdd} className="h-9 px-3 " >
-                <Plus className="h-4 w-4 mr-2" />
-                إضافة زيارة جديدة
-              </Button>
-            )}
-          </div>
+          <ResponsiveActions
+            primaryAction={checkPermission({ module: 'mobile-clinics', action: 'create' }) ? 
+              createActions.add(handleAdd, "إضافة زيارة جديدة") : undefined
+            }
+            actions={[
+              createActions.importDromo(() => setIsImportDialogOpen(true))
+            ]}
+            maxVisibleActions={2}
+          />
+          
+          {/* ImportExportManager - Now visible for file upload */}
+          <ImportExportManager
+            exportEndpoint={apiConfig.endpoints.mobileClinics.export}
+            importEndpoint={apiConfig.endpoints.mobileClinics.import}
+            templateEndpoint={apiConfig.endpoints.mobileClinics.template}
+            title="العيادات المتنقلة"
+            queryKey="mobile-clinics"
+            acceptedFormats={[".csv", ".xlsx"]}
+            maxFileSize={10}
+            onImportSuccess={() => {
+              queryClient.invalidateQueries({ queryKey: ['mobile-clinics'] });
+            }}
+            onExportSuccess={() => {
+              toast.success('تم تصدير البيانات بنجاح');
+            }}
+            onRefresh={() => {
+              queryClient.invalidateQueries({ queryKey: ['mobile-clinics'] });
+            }}
+          />
         </div>
 
         {/* Stats Cards */}

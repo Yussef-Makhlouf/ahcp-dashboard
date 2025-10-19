@@ -16,6 +16,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { ImportExportManager } from "@/components/import-export";
 import { ImportDialog } from "@/components/common/ImportDialog";
+import { ResponsiveActions, createActions } from "@/components/ui/responsive-actions";
 import { apiConfig } from "@/lib/api-config";
 
 export default function EquineHealthPage() {
@@ -110,47 +111,38 @@ export default function EquineHealthPage() {
               إدارة خدمات صحة الخيول والفحوصات الطبية
             </p>
           </div>
-          <div className="flex gap-2">
-            <Button 
-              onClick={() => setIsImportDialogOpen(true)}
-              size="sm" 
-              variant="outline" 
-              className="h-9 px-3"
-            >
-              <FileSpreadsheet className="h-4 w-4 mr-2" />
-              استيراد عبر Dromo
-            </Button>
-            <ImportExportManager
-              exportEndpoint={apiConfig.endpoints.equineHealth.export}
-              importEndpoint={apiConfig.endpoints.equineHealth.import}
-              templateEndpoint={apiConfig.endpoints.equineHealth.template}
-              title="صحة الخيول"
-              queryKey="equineHealth"
-              acceptedFormats={[".csv", ".xlsx"]}
-              maxFileSize={10}
-              onImportSuccess={() => {
-                queryClient.invalidateQueries({ queryKey: ['equineHealth'] });
-              }}
-              onExportSuccess={() => {
-                toast.success('تم تصدير البيانات بنجاح');
-              }}
-              onRefresh={() => {
-                queryClient.invalidateQueries({ queryKey: ['equineHealth'] });
-              }}
-            />
-            {checkPermission({ module: 'equine-health', action: 'create' }) && (
-              <Button
-                onClick={() => {
-                  setSelectedItem(null);
-                  setIsDialogOpen(true);
-                }}
-                className="h-9 px-3"
-              >
-                <Plus className="ml-2 h-4 w-4" />
-                إضافة سجل جديد
-              </Button>
-            )}
-          </div>
+          <ResponsiveActions
+            primaryAction={checkPermission({ module: 'equine-health', action: 'create' }) ? 
+              createActions.add(() => {
+                setSelectedItem(null);
+                setIsDialogOpen(true);
+              }, "إضافة سجل جديد") : undefined
+            }
+            actions={[
+              createActions.importDromo(() => setIsImportDialogOpen(true))
+            ]}
+            maxVisibleActions={2}
+          />
+          
+          {/* ImportExportManager - Now visible for file upload */}
+          <ImportExportManager
+            exportEndpoint={apiConfig.endpoints.equineHealth.export}
+            importEndpoint={apiConfig.endpoints.equineHealth.import}
+            templateEndpoint={apiConfig.endpoints.equineHealth.template}
+            title="صحة الخيول"
+            queryKey="equineHealth"
+            acceptedFormats={[".csv", ".xlsx"]}
+            maxFileSize={10}
+            onImportSuccess={() => {
+              queryClient.invalidateQueries({ queryKey: ['equineHealth'] });
+            }}
+            onExportSuccess={() => {
+              toast.success('تم تصدير البيانات بنجاح');
+            }}
+            onRefresh={() => {
+              queryClient.invalidateQueries({ queryKey: ['equineHealth'] });
+            }}
+          />
         </div>
 
         {/* Stats Cards */}

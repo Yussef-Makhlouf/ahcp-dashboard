@@ -23,7 +23,7 @@ interface GetColumnsProps {
 export function getColumns({
   onEdit,
   onDelete,
-  onView
+
 }: GetColumnsProps): ColumnDef<Laboratory>[] {
   const { checkPermission } = usePermissions();
   
@@ -55,16 +55,16 @@ export function getColumns({
       ),
       size: 120,
     },
-    // Client Info (Name, ID, Birth Date, Phone)
+    // Client Info (Name, ID, Birth Date, Phone) - Enhanced to support both flat and nested structures
     {
       id: "clientInfo",
       header: "Client Info",
       cell: ({ row }) => {
-        const client = row.original.client;
-        const name = client?.name || '-';
-        const nationalId = client?.nationalId || '';
-        const phone = client?.phone || '';
-        const birthDate = client?.birthDate ? new Date(client.birthDate).toLocaleDateString("en-US") : '';
+        // Support both flat client fields and nested client object
+        const name = row.original.clientName || row.original.client?.name || '-';
+        const nationalId = row.original.clientId || row.original.client?.nationalId || '';
+        const phone = row.original.clientPhone || row.original.client?.phone || '';
+        const birthDate = row.original.clientBirthDate || row.original.client?.birthDate;
         
         return (
           <div className="space-y-1 min-w-[200px]">
@@ -91,24 +91,39 @@ export function getColumns({
         );
       },
     },
-    // Birth Date
+    // Birth Date - Enhanced to support both flat and nested structures
     {
-      accessorKey: "client.birthDate",
-      header: "Birth Date",
+      accessorKey: "clientBirthDate",
+      header: "Birth Date", 
       cell: ({ row }) => {
-        const client = row.original.client;
-        const birthDate = client?.birthDate;
+        // Support both flat client fields and nested client object
+        const birthDate = row.original.clientBirthDate || row.original.client?.birthDate;
+        
+        // Debug logging
+        console.log(`🔍 Birth Date Column - Row data:`, {
+          clientBirthDate: row.original.clientBirthDate,
+          clientBirthDateType: typeof row.original.clientBirthDate,
+          nestedBirthDate: row.original.client?.birthDate,
+          nestedBirthDateType: typeof row.original.client?.birthDate,
+          finalValue: birthDate,
+          finalType: typeof birthDate
+        });
+        
         return <BirthDateCell date={birthDate} className="text-sm" />;
       },
       size: 120,
     },
-    // Phone
+    // Phone - Enhanced to support both flat and nested structures
     {
       accessorKey: "clientPhone",
       header: "Phone",
-      cell: ({ row }) => (
-        <div className="font-mono text-sm">{row.getValue("clientPhone")}</div>
-      ),
+      cell: ({ row }) => {
+        // Support both flat client fields and nested client object
+        const phone = row.original.clientPhone || row.original.client?.phone || '';
+        return (
+          <div className="font-mono text-sm">{phone}</div>
+        );
+      },
       size: 120,
     },
     // Location
@@ -328,18 +343,7 @@ export function getColumns({
         
         return (
           <div className="flex items-center gap-2">
-            {/* Always show Eye icon for viewing */}
-            {onView && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => onView(row.original)}
-                className="h-8 w-8 p-0 text-blue-600 hover:text-blue-800"
-              >
-                <Eye className="h-4 w-4" />
-              </Button>
-            )}
-            
+      
             {/* Show dropdown only if user has edit or delete permissions */}
             {(canEdit || canDelete) && (
               <DropdownMenu>

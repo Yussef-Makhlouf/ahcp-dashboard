@@ -8,7 +8,9 @@ export function parseFlexibleDate(dateInput: string | Date | null | undefined): 
   
   // إذا كان التاريخ من نوع Date بالفعل
   if (dateInput instanceof Date) {
-    return isNaN(dateInput.getTime()) ? null : dateInput;
+    const isValid = !isNaN(dateInput.getTime());
+    console.log(`🔍 Date object received: ${dateInput} - Valid: ${isValid}`);
+    return isValid ? dateInput : null;
   }
   
   const dateStr = dateInput.toString().trim();
