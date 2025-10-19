@@ -289,21 +289,27 @@ export default function LaboratoriesPage() {
   };
 
   const handleSave = async (data: any) => {
+    console.log('💾 handleSave called with data:', data);
     try {
       if (selectedItem) {
+        console.log('🔄 Updating existing item:', selectedItem);
         await laboratoriesApi.update((selectedItem as any)._id || selectedItem.sampleCode, data);
         alert('تم تحديث السجل بنجاح');
       } else {
-        await laboratoriesApi.create(data);
+        console.log('➕ Creating new item...');
+        const result = await laboratoriesApi.create(data);
+        console.log('✅ Create result:', result);
         alert('تم إضافة السجل بنجاح');
       }
+      console.log('🔄 Refreshing data...');
       refetch(); // Refresh data
       // Refresh statistics as well
       queryClient.invalidateQueries({ queryKey: ['laboratories-stats'] });
       setIsDialogOpen(false);
       setSelectedItem(null);
+      console.log('✅ handleSave completed successfully');
     } catch (error) {
-      console.error('Save failed:', error);
+      console.error('❌ Save failed:', error);
       alert('فشل في حفظ السجل');
     }
   };

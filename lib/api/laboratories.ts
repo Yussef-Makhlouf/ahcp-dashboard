@@ -82,21 +82,26 @@ export const laboratoriesApi = {
   // Create new record
   create: async (data: any): Promise<Laboratory> => {
     try {
+      console.log('🚀 Sending laboratory data to API:', data);
       const response = await api.post('/laboratories', data, {
         timeout: 30000,
       });
+      console.log('✅ Laboratory API response:', (response as any).data);
       // Handle response structure: { success: true, data: { record: {...} } }
-      const recordData = (response as any).data?.record || (response as any).data || response;
-      return recordData;
+      return (response as any).data.data?.record || (response as any).data.data || (response as any).data;
     } catch (error: any) {
-      console.error('Error creating record:', error);
-      throw new Error(`Failed to create record: ${error.message || 'Unknown error'}`);
+      console.error('❌ Create laboratory error:', error);
+      console.error('📊 Error response data:', error.response?.data);
+      console.error('📊 Error status:', error.response?.status);
+      console.error('📊 Error headers:', error.response?.headers);
+      throw error;
     }
   },
 
   // Update record
   update: async (sampleCode: string, data: any): Promise<Laboratory> => {
     try {
+      console.log('🚀 Sending laboratory update data to API:', data);
       const response = await api.put(`/laboratories/${sampleCode}`, data, {
         timeout: 30000,
       });

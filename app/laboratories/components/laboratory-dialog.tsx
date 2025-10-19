@@ -90,8 +90,9 @@ interface TestResult {
 export function LaboratoryDialog({ open, onOpenChange, laboratory, onSave }: LaboratoryDialogProps) {
   const [activeTab, setActiveTab] = useState("basic");
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
+  const [manualClientInput, setManualClientInput] = useState(false);
 
-  // Validation rules for unified system
+  // Validation rules for unified system - matching backend requirements
   const validationRules = {
     'clientName': { required: true, minLength: 2 },
     'clientId': { required: true, nationalId: true },
@@ -105,11 +106,11 @@ export function LaboratoryDialog({ open, onOpenChange, laboratory, onSave }: Lab
         return null;
       }
     },
-    'supervisor': { required: true },
-    'vehicleNo': { required: true },
     'farmLocation': { required: true },
     'sampleCode': { required: true },
-    'testType': { required: true },
+    'collector': { required: true },
+    'sampleType': { required: true },
+    'sampleNumber': { required: true },
   };
 
   const {
@@ -164,25 +165,31 @@ export function LaboratoryDialog({ open, onOpenChange, laboratory, onSave }: Lab
 
   useEffect(() => {
     if (laboratory) {
-      // Set selected client for editing mode
+      console.log('🔄 Loading laboratory for edit:', laboratory);
+      console.log('📋 Client data check:', {
+        hasClientObject: !!(laboratory.client && typeof laboratory.client === 'object'),
+        hasClientName: !!laboratory.clientName,
+        hasClientId: !!laboratory.clientId,
+        clientName: laboratory.clientName,
+        clientId: laboratory.clientId,
+        clientPhone: laboratory.clientPhone
+      });
+      
+      // Handle client data - support both flat and nested structures
       if (laboratory.client && typeof laboratory.client === 'object') {
+        // Client exists as an object - use ClientSelector
+        console.log('✅ Using ClientSelector - client object found');
         setSelectedClient(laboratory.client as Client);
+        setManualClientInput(false);
       } else if (laboratory.clientName && laboratory.clientId) {
-        // Create a mock client object from flat fields for ClientSelector
-        setSelectedClient({
-          _id: laboratory.clientId, // Use clientId as _id for selector
-          name: laboratory.clientName,
-          nationalId: laboratory.clientId,
-          phone: laboratory.clientPhone || '',
-          birthDate: laboratory.clientBirthDate,
-          village: '',
-          detailedAddress: '',
-          status: 'نشط',
-          animals: [],
-          availableServices: [] // Required field for Client type
-        } as Client);
-      } else {
+        // Client data exists as flat fields - this was manual input
+        console.log('✅ Using manual input - flat client data found');
         setSelectedClient(null);
+        setManualClientInput(true); // Use manual input to show the existing data
+      } else {
+        console.log('⚠️ No client data found - defaulting to ClientSelector');
+        setSelectedClient(null);
+        setManualClientInput(false); // Default to client selector
       }
       
       setFormData({
@@ -224,6 +231,7 @@ export function LaboratoryDialog({ open, onOpenChange, laboratory, onSave }: Lab
     } else {
       // Reset selected client for new record
       setSelectedClient(null);
+      setManualClientInput(false); // Default to client selector for new records
       
       // Generate new sample code and serial number
       const newCode = `LAB${String(Math.floor(Math.random() * 10000)).padStart(3, '0')}`;
@@ -259,50 +267,117 @@ export function LaboratoryDialog({ open, onOpenChange, laboratory, onSave }: Lab
   }, [laboratory]);
 
   const validateForm = () => {
+    console.log('🔍 Starting form validation...');
+    console.log('📋 Form data to validate:', formData);
+    
+    // Validate phone number format for backend
+    if (formData.clientPhone && !formData.clientPhone.match(/^05\d{8}$/)) {
+      const normalizedPhone = formData.clientPhone.startsWith('05') ? formData.clientPhone : `05${formData.clientPhone.replace(/^0+/, '')}`;
+      if (!normalizedPhone.match(/^05\d{8}$/)) {
+        console.log('❌ Phone validation failed:', formData.clientPhone, '-> normalized:', normalizedPhone);
+        setFieldError('clientPhone', 'رقم الهاتف يجب أن يبدأ بـ 05 ويكون مكون من 10 أرقام');
+        return false;
+      }
+    }
+    
+    // Clear all previous errors
+    clearAllErrors();
+    
+    // Check required fields manually - matching backend schema
+    const requiredFields = {
+      'clientName': formData.clientName,
+      'clientId': formData.clientId,
+      'clientPhone': formData.clientPhone,
+      'farmLocation': formData.farmLocation,
+      'collector': formData.collector,
+      'sampleType': formData.sampleType,
+      'sampleNumber': formData.sampleNumber,
+      'sampleCode': formData.sampleCode
+    };
+    
+    let hasErrors = false;
+    
+    // Check each required field
+    Object.entries(requiredFields).forEach(([fieldName, value]) => {
+      if (!value || (typeof value === 'string' && value.trim() === '')) {
+        console.log(`❌ Required field missing: ${fieldName}`);
+        setFieldError(fieldName, `${getArabicFieldName(fieldName)} مطلوب`);
+        hasErrors = true;
+      }
+    });
+    
     // Use the unified validation system
     const isValid = validateFormData(formData);
+    console.log('📝 Basic validation result:', isValid);
+    
+    if (!isValid) {
+      hasErrors = true;
+    }
     
     // Additional custom validations
     const totalSamples = getTotalSamples();
+    console.log('🔢 Total samples calculated:', totalSamples);
+    
     if (totalSamples === 0) {
-      setFieldError('speciesCounts', "يجب إدخال عدد العينات");
-      return false;
+      console.log('❌ Validation failed: No samples');
+      setFieldError('speciesCounts', "يجب إدخال عدد العينات في تبويب العينات");
+      hasErrors = true;
     }
     
     // Validate positive and negative cases
     if (formData.positiveCases < 0) {
+      console.log('❌ Validation failed: Negative positive cases');
       setFieldError('positiveCases', "الحالات الإيجابية لا يمكن أن تكون سالبة");
-      return false;
+      hasErrors = true;
     }
     
     if (formData.negativeCases < 0) {
+      console.log('❌ Validation failed: Negative negative cases');
       setFieldError('negativeCases', "الحالات السلبية لا يمكن أن تكون سالبة");
-      return false;
+      hasErrors = true;
     }
     
     const totalCases = formData.positiveCases + formData.negativeCases;
+    console.log('🔢 Total cases:', totalCases, 'vs Total samples:', totalSamples);
+    
     if (totalCases > totalSamples) {
+      console.log('❌ Validation failed: Cases exceed samples');
       setFieldError('positiveCases', "مجموع الحالات الإيجابية والسلبية لا يمكن أن يكون أكبر من إجمالي العينات");
-      return false;
+      hasErrors = true;
     }
     
-    return isValid;
+    const finalResult = !hasErrors;
+    console.log('✅ Final validation result:', finalResult);
+    
+    if (hasErrors) {
+      console.log('❌ Validation errors found, please check all required fields');
+    }
+    
+    return finalResult;
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (e?: React.FormEvent | React.MouseEvent) => {
+    if (e) e.preventDefault();
     
-    if (!validateForm()) return;
+    console.log('🔍 Form submission started');
+    console.log('📋 Current form data:', formData);
+    
+    if (!validateForm()) {
+      console.log('❌ Form validation failed');
+      return;
+    }
+    
+    console.log('✅ Form validation passed');
     
     // Prepare data for backend - matching the table structure exactly
     const submitData = {
       serialNo: formData.serialNo,
-      date: formData.date ? format(formData.date, "yyyy-MM-dd") : "",
+      date: formData.date ? format(formData.date, "yyyy-MM-dd") : format(new Date(), "yyyy-MM-dd"), // Use current date if not set
       sampleCode: formData.sampleCode,
       clientName: formData.clientName,
       clientId: formData.clientId,
-      clientBirthDate: formData.clientBirthDate ? format(formData.clientBirthDate, "yyyy-MM-dd") : "",
-      clientPhone: formData.clientPhone,
+      clientBirthDate: formData.clientBirthDate ? format(formData.clientBirthDate, "yyyy-MM-dd") : undefined,
+      clientPhone: formData.clientPhone.startsWith('05') ? formData.clientPhone : `05${formData.clientPhone.replace(/^0+/, '')}`, // Ensure phone starts with 05
       farmLocation: formData.farmLocation,
       coordinates: formData.coordinates,
       speciesCounts: formData.speciesCounts,
@@ -314,50 +389,114 @@ export function LaboratoryDialog({ open, onOpenChange, laboratory, onSave }: Lab
       remarks: formData.remarks,
     };
     
+    console.log('📤 Data being sent to API:', submitData);
+    
     try {
       if (laboratory) {
+        console.log('🔄 Updating existing laboratory...');
         // Update existing laboratory
         await laboratoriesApi.update(laboratory._id || '', submitData);
         entityToasts.laboratory.update();
       } else {
+        console.log('➕ Creating new laboratory...');
+        
+        // If manual client input, create client first
+        if (manualClientInput && formData.clientName && formData.clientId) {
+          console.log('👤 Creating client from manual input...');
+          try {
+            const clientData = {
+              name: formData.clientName,
+              nationalId: formData.clientId,
+              phone: submitData.clientPhone, // Use formatted phone
+              birthDate: formData.clientBirthDate ? format(formData.clientBirthDate, "yyyy-MM-dd") : undefined,
+              village: '', // Default empty
+              detailedAddress: '', // Default empty
+              status: 'نشط'
+            };
+            
+            // Create client via API
+            const clientResponse = await fetch('/api/clients', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify(clientData),
+            });
+            
+            if (clientResponse.ok) {
+              const createdClient = await clientResponse.json();
+              console.log('✅ Client created successfully:', createdClient);
+              
+              // Add client reference to submitData
+              (submitData as any).client = createdClient.data?._id || createdClient._id;
+            } else {
+              console.log('⚠️ Client creation failed, proceeding with flat data');
+            }
+          } catch (clientError) {
+            console.error('❌ Error creating client:', clientError);
+            console.log('⚠️ Proceeding with flat client data');
+          }
+        }
+        
         // Create new laboratory
-        await laboratoriesApi.create(submitData);
+        const result = await laboratoriesApi.create(submitData);
+        console.log('✅ Laboratory created successfully:', result);
         entityToasts.laboratory.create();
       }
       
+      console.log('🎉 Laboratory saved successfully, calling onSave...');
       onSave(submitData);
       onOpenChange(false);
     } catch (error: any) {
-      console.error('Error saving laboratory:', error);
+      console.error('❌ Error saving laboratory:', error);
+      console.error('📊 Error details:', {
+        status: error.response?.status,
+        data: error.response?.data,
+        message: error.message
+      });
       
       // Handle validation errors from backend
-      if (error.response?.status === 400 && error.response?.data?.errors) {
-        const backendErrors = error.response.data.errors;
+      if (error.response?.status === 400) {
+        const errorData = error.response.data;
+        console.log('📊 Backend validation error details:', errorData);
         
-        // Map backend validation errors to form fields
-        backendErrors.forEach((err: any) => {
-          const fieldName = err.field;
-          let errorMessage = err.message;
-          
-          // Translate common validation messages to Arabic
-          if (errorMessage.includes('required')) {
-            errorMessage = `${getArabicFieldName(fieldName)} مطلوب`;
-          } else if (errorMessage.includes('pattern')) {
-            if (fieldName === 'clientPhone') {
-              errorMessage = 'رقم الهاتف يجب أن يبدأ بـ 05 ويكون مكون من 10 أرقام';
-            } else if (fieldName === 'clientId') {
-              errorMessage = 'رقم الهوية يجب أن يكون مكون من 9-10 أرقام';
-            } else {
-              errorMessage = `${getArabicFieldName(fieldName)} غير صحيح`;
+        // Handle different error response formats
+        if (errorData?.errors && Array.isArray(errorData.errors)) {
+          // Joi validation errors format
+          errorData.errors.forEach((err: any) => {
+            const fieldName = err.field;
+            let errorMessage = err.message;
+            
+            // Translate common validation messages to Arabic
+            if (errorMessage.includes('required')) {
+              errorMessage = `${getArabicFieldName(fieldName)} مطلوب`;
+            } else if (errorMessage.includes('pattern')) {
+              if (fieldName === 'clientPhone') {
+                errorMessage = 'رقم الهاتف يجب أن يبدأ بـ 05 ويكون مكون من 10 أرقام';
+              } else if (fieldName === 'clientId') {
+                errorMessage = 'رقم الهوية يجب أن يكون مكون من 9-10 أرقام';
+              } else {
+                errorMessage = `${getArabicFieldName(fieldName)} غير صحيح`;
+              }
+            } else if (errorMessage.includes('min')) {
+              errorMessage = `${getArabicFieldName(fieldName)} قصير جداً`;
+            } else if (errorMessage.includes('max')) {
+              errorMessage = `${getArabicFieldName(fieldName)} طويل جداً`;
             }
-          } else if (errorMessage.includes('min')) {
-            errorMessage = `${getArabicFieldName(fieldName)} قصير جداً`;
-          } else if (errorMessage.includes('max')) {
-            errorMessage = `${getArabicFieldName(fieldName)} طويل جداً`;
+            
+            setFieldError(fieldName, errorMessage);
+          });
+        } else if (errorData?.message) {
+          // Handle specific error messages
+          if (errorData.message.includes('Sample code already exists')) {
+            setFieldError('sampleCode', 'رمز العينة موجود مسبقاً، يرجى استخدام رمز آخر');
+          } else if (errorData.message.includes('Serial number')) {
+            setFieldError('serialNo', 'الرقم التسلسلي موجود مسبقاً، يرجى استخدام رقم آخر');
+          } else {
+            // Generic error message
+            alert(`خطأ في البيانات: ${errorData.message}`);
           }
-          
-          setFieldError(fieldName, errorMessage);
-        });
+        }
         
         entityToasts.laboratory.error(laboratory ? 'update' : 'create');
       } else {
@@ -438,7 +577,24 @@ export function LaboratoryDialog({ open, onOpenChange, laboratory, onSave }: Lab
         </DialogHeader>
 
         <DialogBody>
-          <form id="laboratory-form" onSubmit={handleSubmit}>
+          <form id="laboratory-form">
+            {/* Display validation errors */}
+            {Object.keys(errors).length > 0 && (
+              <Alert className="mb-4 border-red-200 bg-red-50">
+                <AlertCircle className="h-4 w-4 text-red-600" />
+                <AlertDescription className="text-red-800">
+                  <div className="font-medium mb-2">يرجى تصحيح الأخطاء التالية:</div>
+                  <ul className="list-disc list-inside space-y-1">
+                    {Object.entries(errors).map(([field, error]) => (
+                      <li key={field} className="text-sm">
+                        <strong>{getArabicFieldName(field)}:</strong> {error}
+                      </li>
+                    ))}
+                  </ul>
+                </AlertDescription>
+              </Alert>
+            )}
+            
             <Tabs value={activeTab} onValueChange={setActiveTab} className="tabs-modern" dir="rtl">
               <EnhancedMobileTabs
                 value={activeTab}
@@ -561,102 +717,208 @@ export function LaboratoryDialog({ open, onOpenChange, laboratory, onSave }: Lab
                   )}
                 </div>
 
-                {/* Client Name */}
-                <div className="space-y-2">
-                  <Label>اسم العميل *</Label>
-                  <ClientSelector
-                    value={selectedClient?._id || ''} // Use selected client ID
-                    onValueChange={(client) => {
-                      setSelectedClient(client);
-                      if (client) {
-                        setFormData({ 
-                          ...formData, 
-                          clientName: client.name,
-                          clientId: client.nationalId || '',
-                          clientPhone: client.phone || '',
-                          clientBirthDate: client.birthDate ? new Date(client.birthDate) : undefined
-                        });
-                        clearFieldError('clientName');
-                        clearFieldError('clientId');
-                        clearFieldError('clientPhone');
-                        clearFieldError('clientBirthDate');
-                      } else {
-                        setFormData({ 
-                          ...formData, 
-                          clientName: '',
-                          clientId: '',
-                          clientPhone: '',
-                          clientBirthDate: undefined
-                        });
-                      }
-                    }}
-                    placeholder="اختر العميل"
-                    error={getFieldError('clientName') || undefined}
-                    required
-                  />
-                  {getFieldError('clientName') && (
-                    <div className="flex items-center gap-2 p-2 bg-red-50 border border-red-200 rounded-md">
-                      <AlertCircle className="w-4 h-4 text-red-500 flex-shrink-0" />
-                      <p className="text-red-700 text-sm font-medium">{getFieldError('clientName')}</p>
+                {/* Client Input Type Selection */}
+                <div className="col-span-full">
+                  <div className="bg-gray-50 p-4 rounded-lg space-y-3">
+                    <Label className="text-base font-semibold">طريقة إدخال بيانات العميل</Label>
+                    <div className="flex items-center gap-6">
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="radio"
+                          id="existing-client"
+                          name="clientInputType"
+                          checked={!manualClientInput}
+                          onChange={() => {
+                            setManualClientInput(false);
+                            setSelectedClient(null);
+                            // Clear form data when switching
+                            setFormData({ 
+                              ...formData, 
+                              clientName: '',
+                              clientId: '',
+                              clientPhone: '',
+                              clientBirthDate: undefined
+                            });
+                          }}
+                          className="w-4 h-4 text-blue-600"
+                        />
+                        <label htmlFor="existing-client" className="text-sm font-medium cursor-pointer">
+                          اختيار من القائمة
+                        </label>
+                      </div>
+                      
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="radio"
+                          id="manual-client"
+                          name="clientInputType"
+                          checked={manualClientInput}
+                          onChange={() => {
+                            setManualClientInput(true);
+                            setSelectedClient(null);
+                            // Clear form data when switching
+                            setFormData({ 
+                              ...formData, 
+                              clientName: '',
+                              clientId: '',
+                              clientPhone: '',
+                              clientBirthDate: undefined
+                            });
+                          }}
+                          className="w-4 h-4 text-blue-600"
+                        />
+                        <label htmlFor="manual-client" className="text-sm font-medium cursor-pointer">
+                          إدخال يدوي
+                        </label>
+                      </div>
                     </div>
-                  )}
+                  </div>
                 </div>
 
-                {/* Client ID */}
-                <div className="space-y-2">
-                  <Label>رقم الهوية *</Label>
-                  <Input
-                    value={formData.clientId}
-                    onChange={(e) => {
-                      setFormData({ ...formData, clientId: e.target.value });
-                      clearFieldError('clientId');
-                    }}
-                    placeholder="رقم الهوية (9-10 أرقام)"
-                    required
-                    maxLength={10}
-                    className={getFieldError('clientId') ? 'border-red-500' : ''}
-                  />
-                  {getFieldError('clientId') && (
-                    <p className="text-red-500 text-sm font-medium mt-1">{getFieldError('clientId')}</p>
-                  )}
-                </div>
+                {/* Client Selection/Input */}
+                {!manualClientInput ? (
+                  /* Client Selector */
+                  <div className="space-y-2">
+                    <Label>اختيار العميل *</Label>
+                    <ClientSelector
+                      value={selectedClient?._id || ''}
+                      onValueChange={(client) => {
+                        setSelectedClient(client);
+                        if (client) {
+                          setFormData({ 
+                            ...formData, 
+                            clientName: client.name,
+                            clientId: client.nationalId || '',
+                            clientPhone: client.phone || '',
+                            clientBirthDate: client.birthDate ? new Date(client.birthDate) : undefined
+                          });
+                          clearFieldError('clientName');
+                          clearFieldError('clientId');
+                          clearFieldError('clientPhone');
+                          clearFieldError('clientBirthDate');
+                        } else {
+                          setFormData({ 
+                            ...formData, 
+                            clientName: '',
+                            clientId: '',
+                            clientPhone: '',
+                            clientBirthDate: undefined
+                          });
+                        }
+                      }}
+                      placeholder="ابحث عن العميل"
+                      error={getFieldError('clientName') || undefined}
+                      required
+                      showDetails
+                    />
+                    {getFieldError('clientName') && (
+                      <div className="flex items-center gap-2 p-2 bg-red-50 border border-red-200 rounded-md">
+                        <AlertCircle className="w-4 h-4 text-red-500 flex-shrink-0" />
+                        <p className="text-red-700 text-sm font-medium">{getFieldError('clientName')}</p>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  /* Manual Client Input */
+                  <div className="col-span-full">
+                    <div className="bg-blue-50 p-4 rounded-lg space-y-4">
+                      <Label className="text-base font-semibold text-blue-900">بيانات العميل الجديد</Label>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {/* Client Name */}
+                        <div className="space-y-2">
+                          <Label>اسم العميل الكامل *</Label>
+                          <Input
+                            value={formData.clientName}
+                            onChange={(e) => {
+                              setFormData({ ...formData, clientName: e.target.value });
+                              clearFieldError('clientName');
+                            }}
+                            placeholder="اسم العميل الكامل"
+                            required
+                            className={getFieldError('clientName') ? 'border-red-500 focus:border-red-500' : ''}
+                          />
+                          {getFieldError('clientName') && (
+                            <div className="flex items-center gap-2 p-2 bg-red-50 border border-red-200 rounded-md">
+                              <AlertCircle className="w-4 h-4 text-red-500 flex-shrink-0" />
+                              <p className="text-red-700 text-sm font-medium">{getFieldError('clientName')}</p>
+                            </div>
+                          )}
+                        </div>
 
-                {/* Client Birth Date */}
-                <div className="space-y-2">
-                  <SimpleDatePicker
-                    label="تاريخ الميلاد"
-                    placeholder="اختر تاريخ الميلاد"
-                    value={formData.clientBirthDate}
-                    onChange={(date) => setFormData({ ...formData, clientBirthDate: date || undefined })}
-                    variant="modern"
-                    size="md"
-                  />
-                </div>
+                        {/* Client National ID */}
+                        <div className="space-y-2">
+                          <Label>رقم الهوية الوطنية *</Label>
+                          <Input
+                            value={formData.clientId}
+                            onChange={(e) => {
+                              // Allow only numbers and limit to 10 digits
+                              const value = e.target.value.replace(/\D/g, '').slice(0, 10);
+                              setFormData({ ...formData, clientId: value });
+                              clearFieldError('clientId');
+                            }}
+                            placeholder="رقم الهوية (10 أرقام)"
+                            required
+                            maxLength={10}
+                            className={getFieldError('clientId') ? 'border-red-500 focus:border-red-500' : ''}
+                          />
+                          {getFieldError('clientId') && (
+                            <div className="flex items-center gap-2 p-2 bg-red-50 border border-red-200 rounded-md">
+                              <AlertCircle className="w-4 h-4 text-red-500 flex-shrink-0" />
+                              <p className="text-red-700 text-sm font-medium">{getFieldError('clientId')}</p>
+                            </div>
+                          )}
+                        </div>
 
-                {/* Client Phone */}
-                <div className="space-y-2">
-                  <Label>رقم الهاتف *</Label>
-                  <Input
-                    type="tel"
-                    value={formData.clientPhone}
-                    onChange={(e) => {
-                      // Allow only numbers and limit to 10 digits
-                      const value = e.target.value.replace(/\D/g, '').slice(0, 10);
-                      setFormData({ ...formData, clientPhone: value });
-                      clearFieldError('clientPhone');
-                    }}
-                    placeholder="رقم الهاتف السعودي (10 أرقام - مثال: 0501234567)"
-                    required
-                    maxLength={10}
-                    className={getFieldError('clientPhone') ? 'border-red-500 focus:border-red-500' : ''}
-                  />
-                  {getFieldError('clientPhone') && (
-                    <div className="flex items-center gap-2 p-2 bg-red-50 border border-red-200 rounded-md">
-                      <AlertCircle className="w-4 h-4 text-red-500 flex-shrink-0" />
-                      <p className="text-red-700 text-sm font-medium">{getFieldError('clientPhone')}</p>
+                        {/* Client Phone */}
+                        <div className="space-y-2">
+                          <Label>رقم الهاتف *</Label>
+                          <Input
+                            type="tel"
+                            value={formData.clientPhone}
+                            onChange={(e) => {
+                              // Allow only numbers and limit to 10 digits
+                              const value = e.target.value.replace(/\D/g, '').slice(0, 10);
+                              setFormData({ ...formData, clientPhone: value });
+                              clearFieldError('clientPhone');
+                            }}
+                            placeholder="رقم الهاتف السعودي (10 أرقام - مثال: 0501234567)"
+                            required
+                            maxLength={10}
+                            className={getFieldError('clientPhone') ? 'border-red-500 focus:border-red-500' : ''}
+                          />
+                          {getFieldError('clientPhone') && (
+                            <div className="flex items-center gap-2 p-2 bg-red-50 border border-red-200 rounded-md">
+                              <AlertCircle className="w-4 h-4 text-red-500 flex-shrink-0" />
+                              <p className="text-red-700 text-sm font-medium">{getFieldError('clientPhone')}</p>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Client Birth Date */}
+                        <div className="space-y-2">
+                          <SimpleDatePicker
+                            label="تاريخ الميلاد"
+                            placeholder="اختر تاريخ الميلاد"
+                            value={formData.clientBirthDate}
+                            onChange={(date) => {
+                              setFormData({ ...formData, clientBirthDate: date || undefined });
+                              clearFieldError('clientBirthDate');
+                            }}
+                            variant="modern"
+                            size="md"
+                          />
+                          {getFieldError('clientBirthDate') && (
+                            <div className="flex items-center gap-2 p-2 bg-red-50 border border-red-200 rounded-md">
+                              <AlertCircle className="w-4 h-4 text-red-500 flex-shrink-0" />
+                              <p className="text-red-700 text-sm font-medium">{getFieldError('clientBirthDate')}</p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
                     </div>
-                  )}
-                </div>
+                  </div>
+                )}
+
 
                 {/* Location */}
                 <div className="space-y-2">
@@ -1105,8 +1367,8 @@ export function LaboratoryDialog({ open, onOpenChange, laboratory, onSave }: Lab
             إلغاء
           </Button>
           <LoadingButton 
-            type="submit"
-            form="laboratory-form"
+            type="button"
+            onClick={handleSubmit}
             variant="default"
             leftIcon={<Activity className="w-4 h-4" />}
           >
