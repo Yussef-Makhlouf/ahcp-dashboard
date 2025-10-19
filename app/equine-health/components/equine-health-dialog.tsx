@@ -48,6 +48,7 @@ import { ClientSelector } from "@/components/ui/client-selector";
 import { useClientData } from "@/lib/hooks/use-client-data";
 import { entityToasts } from "@/lib/utils/toast-utils";
 import { useFormValidation } from "@/lib/hooks/use-form-validation";
+import { handleFormError, showSuccessToast, showErrorToast, translateFieldName } from "@/lib/utils/error-handler";
 import { ValidatedInput } from "@/components/ui/validated-input";
 import { ValidatedSelect } from "@/components/ui/validated-select";
 import { ValidatedTextarea } from "@/components/ui/validated-textarea";
@@ -78,10 +79,11 @@ const formSchema = z.object({
   diagnosis: z.string().min(3, "التشخيص يجب أن يكون أكثر من 3 أحرف"),
   interventionCategory: z.enum([
     "Clinical Examination",
-    "Ultrasonography", 
+    "Ultrasonography",
     "Lab Analysis",
     "Surgical Operation",
     "Farriery",
+    "Other",
   ]),
   treatment: z.string().min(3, "العلاج يجب أن يكون أكثر من 3 أحرف"),
   request: z.object({
@@ -198,15 +200,21 @@ export function EquineHealthDialog({
         },
         remarks: item.remarks || "",
       };
-      form.reset(safeItem);
+      form.reset(safeItem as any);
     }
   }, [item, form]);
 
   const onSubmit = async (data: FormData) => {
     try {
+      console.log('🔍 Form submission started for equine health');
+      console.log('📋 Current form data:', data);
+      
+      // مسح الأخطاء السابقة
+      clearAllErrors();
+      
       // تحويل البيانات إلى الشكل المطلوب من الباك إند
       const apiData = {
-        serialNo: data.serialNo,
+        serialNo: data.serialNo || undefined, // سيتم إنشاؤه تلقائياً إذا لم يوجد
         date: data.date,
         client: data.client,
         farmLocation: data.farmLocation,
@@ -225,18 +233,26 @@ export function EquineHealthDialog({
         remarks: data.remarks || "",
       };
 
+      console.log('📤 Data being sent to API:', apiData);
+
       if (item) {
-        await equineHealthApi.update(item.serialNo, apiData);
-        entityToasts.equineHealth.update();
+        const result = await equineHealthApi.update(item._id || item.serialNo, apiData as any);
+        console.log('✅ Equine health record updated successfully:', result);
+        showSuccessToast('تم تحديث سجل صحة الخيول بنجاح', 'تم التحديث');
       } else {
-        await equineHealthApi.create(apiData);
-        entityToasts.equineHealth.create();
+        const result = await equineHealthApi.create(apiData as any);
+        console.log('✅ Equine health record created successfully:', result);
+        showSuccessToast('تم إنشاء سجل صحة الخيول بنجاح', 'تم الإنشاء');
       }
+      
       onSuccess();
       form.reset();
+      onOpenChange(false);
     } catch (error) {
-      console.error("Error saving data:", error);
-      entityToasts.equineHealth.error(item ? 'update' : 'create');
+      console.error('❌ Create/Update equine health error:', error);
+      
+      // استخدام نظام الأخطاء المحسن
+      handleFormError(error, setFieldError, clearAllErrors);
     }
   };
 
@@ -253,6 +269,23 @@ export function EquineHealthDialog({
         </DialogHeader>
 
         <DialogBody>
+          {/* عرض الأخطاء */}
+          {Object.keys(errors).length > 0 && (
+            <div className="mb-4 p-4 border border-red-200 bg-red-50 rounded-lg">
+              <div className="flex items-center mb-2">
+                <div className="w-5 h-5 text-red-600 ml-2">⚠️</div>
+                <h4 className="text-red-800 font-semibold">يرجى تصحيح الأخطاء التالية:</h4>
+              </div>
+              <ul className="list-disc list-inside space-y-1 text-sm text-red-700">
+                {Object.entries(errors).map(([field, error]) => (
+                  <li key={field}>
+                    <strong>{translateFieldName(field)}:</strong> {error}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+          
           <Form {...form}>
             <form id="equine-health-form" onSubmit={form.handleSubmit(onSubmit)}>
               <Tabs value={activeTab} onValueChange={setActiveTab} className="tabs-modern" dir="rtl">
@@ -296,8 +329,17 @@ export function EquineHealthDialog({
                       <FormItem>
                         <FormLabel>رقم السجل</FormLabel>
                         <FormControl>
-                          <Input placeholder="EH001" {...field} />
+                          <Input 
+                            placeholder="EH001" 
+                            {...field} 
+                            className={getFieldError('serialNo') ? 'border-red-500 focus:border-red-500' : ''}
+                          />
                         </FormControl>
+                        {getFieldError('serialNo') && (
+                          <div className="text-red-500 text-sm font-medium mt-1">
+                            {getFieldError('serialNo')}
+                          </div>
+                        )}
                         <FormMessage className="text-red-500 text-sm font-medium" />
                       </FormItem>
                     )}

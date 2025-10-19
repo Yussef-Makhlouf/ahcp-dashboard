@@ -6,6 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { format } from "date-fns";
 import { arEG } from "date-fns/locale/ar-EG";
+import { handleFormError, showSuccessToast, showErrorToast, translateFieldName } from "@/lib/utils/error-handler";
 
 import { Button, LoadingButton } from "@/components/ui/button-modern";
 import {
@@ -321,24 +322,14 @@ export function VaccinationDialog({
   const onSubmit = async (data: any) => {
     try {
       setIsSubmitting(true);
-
-      // First, find or create client to get ObjectId
-      let clientId: string;
-      
-      if (item && item.client && typeof item.client === 'object' && item.client._id) {
-        // Existing client - use the ID
-        clientId = item.client._id;
-      } else {
-        // For now, we'll send the client data and let backend handle it
-        // In a real scenario, we'd need to create/find the client first
-        clientId = 'temp-client-id'; // This should be handled by backend
-      }
+      console.log('🔍 Form submission started for vaccination');
+      console.log('📋 Current form data:', data);
 
       // Transform form data to match backend validation schema exactly
       const transformedData = {
-        serialNo: data.serialNo,
+        serialNo: data.serialNo || undefined, // سيتم إنشاؤه تلقائياً إذا لم يوجد
         date: new Date(data.date).toISOString(),
-        client: clientId || {
+        client: {
           _id: data.client._id || '',
           name: data.client.name,
           nationalId: data.client.nationalId,
@@ -374,33 +365,32 @@ export function VaccinationDialog({
           fulfillingDate: data.request.fulfillingDate ? new Date(data.request.fulfillingDate).toISOString() : undefined,
         },
         remarks: data.remarks || '',
-        // Include client data for backend to handle client creation/update
-        clientData: {
-          name: data.client.name,
-          nationalId: data.client.nationalId,
-          phone: data.client.phone,
-          village: data.client.village || '',
-          detailedAddress: data.client.detailedAddress || '',
-          birthDate: data.client.birthDate ? new Date(data.client.birthDate).toISOString() : undefined,
-        },
       };
 
+      console.log('📤 Data being sent to API:', transformedData);
+
       if (item) {
-        // Update existing item
         const updateId = item._id || item.serialNo;
-        await vaccinationApi.update(updateId, transformedData);
-        entityToasts.vaccination.update();
+        const result = await vaccinationApi.update(updateId, transformedData as any);
+        console.log('✅ Vaccination record updated successfully:', result);
+        showSuccessToast('تم تحديث سجل التطعيم بنجاح', 'تم التحديث');
       } else {
-        // Create new item
-        await vaccinationApi.create(transformedData);
-        entityToasts.vaccination.create();
+        const result = await vaccinationApi.create(transformedData as any);
+        console.log('✅ Vaccination record created successfully:', result);
+        showSuccessToast('تم إنشاء سجل التطعيم بنجاح', 'تم الإنشاء');
       }
 
       onOpenChange(false);
       onSuccess?.();
     } catch (error) {
-      console.error("Error saving vaccination record:", error);
-      entityToasts.vaccination.error(item ? 'update' : 'create');
+      console.error('❌ Create/Update vaccination error:', error);
+      
+      // استخدام نظام الأخطاء المحسن
+      handleFormError(error, (field: string, message: string) => {
+        form.setError(field as any, { message });
+      }, () => {
+        form.clearErrors();
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -939,9 +929,9 @@ export function VaccinationDialog({
                         <SelectValue placeholder="اختر حالة القطيع" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="Healthy">صحي</SelectItem>
-                        <SelectItem value="Sick">مريض</SelectItem>
-                        <SelectItem value="Under Treatment">قيد العلاج</SelectItem>
+                        <SelectItem value="Healthy">Healthy</SelectItem>
+                        <SelectItem value="Sick">Sick</SelectItem>
+                        <SelectItem value="Sporadic Cases">Sporadic Cases</SelectItem>
                       </SelectContent>
                     </Select>
                     {getFieldError("herdHealth") && (
@@ -957,7 +947,7 @@ export function VaccinationDialog({
                     <Select
                       value={form.watch("animalsHandling") || ""}
                       onValueChange={(value) => {
-                        form.setValue("animalsHandling", value);
+                        form.setValue("animalsHandling", value as "Easy" | "Difficult");
                         clearFieldError("animalsHandling");
                       }}
                     >
@@ -965,8 +955,8 @@ export function VaccinationDialog({
                         <SelectValue placeholder="اختر معاملة الحيوانات" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="Easy">سهلة</SelectItem>
-                        <SelectItem value="Difficult">صعبة</SelectItem>
+                        <SelectItem value="Easy">Easy</SelectItem>
+                        <SelectItem value="Difficult">Difficult</SelectItem>
                       </SelectContent>
                     </Select>
                     {getFieldError("animalsHandling") && (
@@ -990,8 +980,9 @@ export function VaccinationDialog({
                         <SelectValue placeholder="اختر حالة العمال" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="Available">متوفر</SelectItem>
-                        <SelectItem value="Not Available">غير متوفر</SelectItem>
+                        <SelectItem value="Available">Available</SelectItem>
+                        <SelectItem value="Not Available">Not Available</SelectItem>
+                        <SelectItem value="Not Helpful">Not Helpful</SelectItem>
                       </SelectContent>
                     </Select>
                     {getFieldError("labours") && (
@@ -1015,8 +1006,9 @@ export function VaccinationDialog({
                         <SelectValue placeholder="اختر سهولة الوصول للموقع" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="Easy">سهل</SelectItem>
-                        <SelectItem value="Hard to reach">صعب الوصول</SelectItem>
+                        <SelectItem value="Easy">Easy</SelectItem>
+                        <SelectItem value="Hard to reach">Difficult</SelectItem>
+                        <SelectItem value="Moderate">Moderate</SelectItem>
                       </SelectContent>
                     </Select>
                     {getFieldError("reachableLocation") && (
@@ -1085,9 +1077,9 @@ export function VaccinationDialog({
                             <SelectValue placeholder="اختر حالة الطلب" />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="Open">مفتوح</SelectItem>
-                            <SelectItem value="Closed">مغلق</SelectItem>
-                            <SelectItem value="Pending">معلق</SelectItem>
+                            <SelectItem value="Ongoing">Ongoing</SelectItem>
+                            <SelectItem value="Closed">Closed</SelectItem>
+                            <SelectItem value="Pending">Pending</SelectItem>
                           </SelectContent>
                         </Select>
                         {getFieldError("request.situation") && (

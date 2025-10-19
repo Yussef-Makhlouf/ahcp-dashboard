@@ -28,6 +28,7 @@ import { VillageSelect } from "@/components/ui/village-select";
 import { CalendarIcon, Plus, Trash2, AlertCircle, CheckCircle2, User, Heart, Shield, Activity } from "lucide-react";
 import { useState } from "react";
 import { format } from "date-fns";
+import { handleFormError, showSuccessToast, showErrorToast, translateFieldName } from "@/lib/utils/error-handler";
 import { ar } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { validateSaudiPhone } from "@/lib/utils";
@@ -55,15 +56,10 @@ interface LaboratoryDialogProps {
 }
 
 const sampleTypes = [
-  { value: "Blood", label: "دم" },
-  { value: "Serum", label: "مصل" },
-  { value: "Urine", label: "بول" },
-  { value: "Feces", label: "براز" },
-  { value: "Milk", label: "حليب" },
-  { value: "Tissue", label: "أنسجة" },
-  { value: "Swab", label: "مسحة" },
-  { value: "Hair", label: "شعر" },
-  { value: "Skin", label: "جلد" },
+  { value: "Serum", label: "Serum" },
+  { value: "Whole Blood", label: "Whole Blood" },
+  { value: "Fecal Sample", label: "Fecal Sample" },
+  { value: "Skin Scrape", label: "Skin Scrape" },
 ];
 
 // Removed static collectors array - now using API
@@ -448,60 +444,10 @@ export function LaboratoryDialog({ open, onOpenChange, laboratory, onSave }: Lab
       onSave(submitData);
       onOpenChange(false);
     } catch (error: any) {
-      console.error('❌ Error saving laboratory:', error);
-      console.error('📊 Error details:', {
-        status: error.response?.status,
-        data: error.response?.data,
-        message: error.message
-      });
+      console.error('❌ Create/Update laboratory error:', error);
       
-      // Handle validation errors from backend
-      if (error.response?.status === 400) {
-        const errorData = error.response.data;
-        console.log('📊 Backend validation error details:', errorData);
-        
-        // Handle different error response formats
-        if (errorData?.errors && Array.isArray(errorData.errors)) {
-          // Joi validation errors format
-          errorData.errors.forEach((err: any) => {
-            const fieldName = err.field;
-            let errorMessage = err.message;
-            
-            // Translate common validation messages to Arabic
-            if (errorMessage.includes('required')) {
-              errorMessage = `${getArabicFieldName(fieldName)} مطلوب`;
-            } else if (errorMessage.includes('pattern')) {
-              if (fieldName === 'clientPhone') {
-                errorMessage = 'رقم الهاتف يجب أن يبدأ بـ 05 ويكون مكون من 10 أرقام';
-              } else if (fieldName === 'clientId') {
-                errorMessage = 'رقم الهوية يجب أن يكون مكون من 9-10 أرقام';
-              } else {
-                errorMessage = `${getArabicFieldName(fieldName)} غير صحيح`;
-              }
-            } else if (errorMessage.includes('min')) {
-              errorMessage = `${getArabicFieldName(fieldName)} قصير جداً`;
-            } else if (errorMessage.includes('max')) {
-              errorMessage = `${getArabicFieldName(fieldName)} طويل جداً`;
-            }
-            
-            setFieldError(fieldName, errorMessage);
-          });
-        } else if (errorData?.message) {
-          // Handle specific error messages
-          if (errorData.message.includes('Sample code already exists')) {
-            setFieldError('sampleCode', 'رمز العينة موجود مسبقاً، يرجى استخدام رمز آخر');
-          } else if (errorData.message.includes('Serial number')) {
-            setFieldError('serialNo', 'الرقم التسلسلي موجود مسبقاً، يرجى استخدام رقم آخر');
-          } else {
-            // Generic error message
-            alert(`خطأ في البيانات: ${errorData.message}`);
-          }
-        }
-        
-        entityToasts.laboratory.error(laboratory ? 'update' : 'create');
-      } else {
-        entityToasts.laboratory.error(laboratory ? 'update' : 'create');
-      }
+      // استخدام نظام الأخطاء المحسن
+      handleFormError(error, setFieldError, clearAllErrors);
     }
   };
 

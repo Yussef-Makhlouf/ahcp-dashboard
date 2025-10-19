@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
+import { format } from "date-fns";
+import { handleFormError, showSuccessToast, showErrorToast, translateFieldName } from "@/lib/utils/error-handler";
 import {
   Dialog,
   DialogBody,
@@ -168,6 +170,25 @@ export function ParasiteControlDialog({
     getFieldError,
   } = useFormValidation(validationRules);
 
+  // دوال حساب الإجماليات
+  const calculateTotals = (herdCounts: any) => {
+    const totals = {
+      totalHerd: 0,
+      totalYoung: 0,
+      totalFemale: 0,
+      totalTreated: 0,
+    };
+
+    Object.values(herdCounts).forEach((animalGroup: any) => {
+      totals.totalHerd += animalGroup.total || 0;
+      totals.totalYoung += animalGroup.young || 0;
+      totals.totalFemale += animalGroup.female || 0;
+      totals.totalTreated += animalGroup.treated || 0;
+    });
+
+    return totals;
+  };
+
   const form = useForm({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -179,7 +200,7 @@ export function ParasiteControlDialog({
         phone: "",
         village: "",
         detailedAddress: "",
-        birthDate: undefined,
+        birthDate: "",
       },
       herdLocation: "",
       coordinates: { latitude: 0, longitude: 0 },
@@ -216,17 +237,28 @@ export function ParasiteControlDialog({
 
   useEffect(() => {
     if (item) {
+      // دالة لتحويل التاريخ من الباك إند بشكل صحيح (تجنب مشكلة المنطقة الزمنية)
+      const formatDateFromBackend = (dateString: string) => {
+        if (!dateString) return '';
+        // تحويل التاريخ من UTC إلى تاريخ محلي بدون تأثير المنطقة الزمنية
+        const date = new Date(dateString);
+        const year = date.getUTCFullYear();
+        const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+        const day = String(date.getUTCDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+      };
+
       // Transform backend data to form format
       const formData = {
         serialNo: item.serialNo || '',
-        date: item.date ? item.date.split('T')[0] : new Date().toISOString().split('T')[0],
+        date: item.date ? formatDateFromBackend(item.date) : new Date().toISOString().split('T')[0],
         client: {
           name: typeof item.client === 'object' ? item.client?.name || '' : '',
           nationalId: typeof item.client === 'object' ? item.client?.nationalId || '' : '',
           phone: typeof item.client === 'object' ? item.client?.phone || '' : '',
           village: typeof item.client === 'object' ? item.client?.village || '' : '',
           detailedAddress: typeof item.client === 'object' ? item.client?.detailedAddress || '' : '',
-          birthDate: typeof item.client === 'object' ? item.client?.birthDate || '' : '',
+          birthDate: typeof item.client === 'object' && item.client?.birthDate ? formatDateFromBackend(item.client.birthDate) : '',
         },        
         herdLocation: item.herdLocation || '',
         coordinates: {
@@ -250,15 +282,25 @@ export function ParasiteControlDialog({
           category: item.insecticide?.category || 'Pour-on',
         },
         animalBarnSizeSqM: item.animalBarnSizeSqM || 0,
-        breedingSites: item.breedingSites || 'Not Available',
+        breedingSites: (item.breedingSites as 'Sprayed' | 'Not Available' | 'Not Applicable') || 'Not Available',
         parasiteControlVolume: item.parasiteControlVolume || 0,
         parasiteControlStatus: item.parasiteControlStatus || 'مكتمل',
         herdHealthStatus: item.herdHealthStatus || 'Healthy',
-        complyingToInstructions: item.complyingToInstructions !== undefined ? item.complyingToInstructions : "Comply" as "Comply" | "Not Comply" | "Partially Comply",
+        complyingToInstructions: (() => {
+          // Handle both boolean and string types for backward compatibility
+          if (typeof item.complyingToInstructions === 'boolean') {
+            return item.complyingToInstructions ? 'Comply' : 'Not Comply';
+          }
+          // Handle string type
+          const validValues: ('Comply' | 'Not Comply' | 'Partially Comply')[] = ['Comply', 'Not Comply', 'Partially Comply'];
+          return validValues.includes(item.complyingToInstructions as any) 
+            ? (item.complyingToInstructions as 'Comply' | 'Not Comply' | 'Partially Comply')
+            : 'Comply';
+        })(),
         request: {
-          date: item.request?.date ? item.request.date.split('T')[0] : new Date().toISOString().split('T')[0],
+          date: item.request?.date ? formatDateFromBackend(item.request.date) : new Date().toISOString().split('T')[0],
           situation: item.request?.situation || 'Open',
-          fulfillingDate: item.request?.fulfillingDate ? item.request.fulfillingDate.split('T')[0] : undefined,
+          fulfillingDate: item.request?.fulfillingDate ? formatDateFromBackend(item.request.fulfillingDate) : undefined,
         },
         remarks: item.remarks || '',
       };
@@ -269,7 +311,7 @@ export function ParasiteControlDialog({
         value: item.breedingSites,
         processed: formData.breedingSites
       });
-      form.reset(formData);
+      form.reset(formData as any);
     } else {
       // Reset to default values for new record
       form.reset({
@@ -294,23 +336,22 @@ export function ParasiteControlDialog({
           cattle: { total: 0, young: 0, female: 0, treated: 0 },
           horse: { total: 0, young: 0, female: 0, treated: 0 },
         },
-      
         insecticide: {
-          type: '',
+          type: 'Ivermectin',
           method: 'Pour on',
-          volumeMl: 100, // قيمة افتراضية أكبر
-          status: 'Not Sprayed',
+          volumeMl: 100,
+          status: 'Not Sprayed' as 'Sprayed' | 'Not Sprayed',
           category: 'Pour-on',
         },
         animalBarnSizeSqM: 0,
-        breedingSites: 'Not Available',
+        breedingSites: 'Not Available' as 'Sprayed' | 'Not Available' | 'Not Applicable',
         parasiteControlVolume: 0,
         parasiteControlStatus: 'مكتمل',
-        herdHealthStatus: 'Healthy',
-        complyingToInstructions: "Comply" as "Comply" | "Not Comply" | "Partially Comply",
+        herdHealthStatus: 'Healthy' as 'Healthy' | 'Sick' | 'Under Treatment',
+        complyingToInstructions: 'Comply' as 'Comply' | 'Not Comply' | 'Partially Comply',
         request: {
           date: new Date().toISOString().split('T')[0],
-          situation: 'Open',
+          situation: 'Open' as 'Open' | 'Closed' | 'Pending',
           fulfillingDate: undefined,
         },
         remarks: '',
@@ -416,16 +457,25 @@ export function ParasiteControlDialog({
         return;
       }
       
+      // دالة لتحويل التاريخ بشكل صحيح (تجنب مشكلة المنطقة الزمنية)
+      const formatDateForBackend = (dateString: string) => {
+        if (!dateString) return new Date().toISOString();
+        // إنشاء تاريخ في المنطقة الزمنية المحلية وتحويله لـ UTC
+        const localDate = new Date(dateString + 'T00:00:00');
+        return localDate.toISOString();
+      };
+
       // إرسال البيانات بالشكل المطلوب تماماً من الباك إند
       const backendData = {
         serialNo: data.serialNo,
-        date: data.date,
+        date: formatDateForBackend(data.date),
         client: {
           name: data.client.name.trim(),
           nationalId: data.client.nationalId.trim(),
           phone: data.client.phone.trim(),
           village: data.client.village || '',
           detailedAddress: data.client.detailedAddress || '',
+          birthDate: data.client.birthDate ? formatDateForBackend(data.client.birthDate) : undefined,
         },
         herdLocation: data.herdLocation,
         coordinates: {
@@ -480,9 +530,9 @@ export function ParasiteControlDialog({
         herdHealthStatus: data.herdHealthStatus,
         complyingToInstructions: data.complyingToInstructions as "Comply" | "Not Comply" | "Partially Comply",
         request: {
-          date: data.request.date || data.date,
+          date: formatDateForBackend(data.request.date || data.date),
           situation: data.request.situation || 'Open',
-          fulfillingDate: data.request.fulfillingDate || undefined,
+          fulfillingDate: data.request.fulfillingDate ? formatDateForBackend(data.request.fulfillingDate) : undefined,
         },
         remarks: data.remarks || '',
       };
@@ -521,8 +571,14 @@ export function ParasiteControlDialog({
       onSuccess();
       onOpenChange(false);
     } catch (error) {
-      console.error('❌ Error submitting form:', error);
-      entityToasts.parasiteControl.error('save');
+      console.error('❌ Create/Update parasite control error:', error);
+      
+      // استخدام نظام الأخطاء المحسن
+      handleFormError(error, (field: string, message: string) => {
+        form.setError(field as any, { message });
+      }, () => {
+        form.clearErrors();
+      });
     }
   };
 
@@ -925,46 +981,124 @@ export function ParasiteControlDialog({
               </TabsContent>
 
               <TabsContent value="herd" className="tabs-content-modern">
-                {["sheep", "goats", "camel", "cattle", "horse"].map((animal) => (
-                  <div key={animal} className="space-y-2">
-                    <h4 className="font-medium">
-                      {animal === "sheep" && "الأغنام"}
-                      {animal === "goats" && "الماعز"}
-                      {animal === "camel" && "الإبل"}
-                      {animal === "cattle" && "الأبقار"}
-                      {animal === "horse" && "الخيول"}
-                    </h4>
-                    <div className="grid grid-cols-4 gap-2">
-                      {["total", "young", "female", "treated"].map((field) => (
-                        <FormField
-                          key={`${animal}.${field}`}
-                          control={form.control as any}
-                          name={`herdCounts.${animal}.${field}` as any}
-                          render={({ field: formField }) => (
-                            <FormItem>
-                              <FormLabel className="text-xs">
-                                {field === "total" && "الإجمالي"}
-                                {field === "young" && "الصغار"}
-                                {field === "female" && "الإناث"}
-                                {field === "treated" && "المعالج"}
-                              </FormLabel>
-                              <FormControl>
-                                <Input
-                                  type="number"
-                                  min="0"
-                                  {...formField}
-                                  onChange={(e) =>
-                                    formField.onChange(parseInt(e.target.value) || 0)
-                                  }
-                                />
-                              </FormControl>
-                            </FormItem>
-                          )}
-                        />
-                      ))}
+                {/* عرض الإجماليات العامة */}
+                <Card className="mb-6">
+                  <CardHeader>
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      <Heart className="h-5 w-5 text-blue-600" />
+                      الإجماليات العامة
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      <div className="text-center p-3 bg-blue-50 rounded-lg">
+                        <div className="text-2xl font-bold text-blue-600">
+                          {calculateTotals(form.watch('herdCounts')).totalHerd}
+                        </div>
+                        <div className="text-sm text-gray-600">إجمالي القطيع</div>
+                      </div>
+                      <div className="text-center p-3 bg-green-50 rounded-lg">
+                        <div className="text-2xl font-bold text-green-600">
+                          {calculateTotals(form.watch('herdCounts')).totalYoung}
+                        </div>
+                        <div className="text-sm text-gray-600">إجمالي الصغار</div>
+                      </div>
+                      <div className="text-center p-3 bg-purple-50 rounded-lg">
+                        <div className="text-2xl font-bold text-purple-600">
+                          {calculateTotals(form.watch('herdCounts')).totalFemale}
+                        </div>
+                        <div className="text-sm text-gray-600">إجمالي الإناث</div>
+                      </div>
+                      <div className="text-center p-3 bg-orange-50 rounded-lg">
+                        <div className="text-2xl font-bold text-orange-600">
+                          {calculateTotals(form.watch('herdCounts')).totalTreated}
+                        </div>
+                        <div className="text-sm text-gray-600">إجمالي المعالج</div>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  </CardContent>
+                </Card>
+
+                {/* تفاصيل كل نوع حيوان */}
+                {["sheep", "goats", "camel", "cattle", "horse"].map((animal) => {
+                  const herdCounts = form.watch('herdCounts') as any;
+                  const currentAnimalData = herdCounts[animal] || { total: 0, young: 0, female: 0, treated: 0 };
+                  const animalTotal = (currentAnimalData?.young || 0) + (currentAnimalData?.female || 0);
+                  
+                  return (
+                    <Card key={animal} className="mb-4">
+                      <CardHeader>
+                        <CardTitle className="text-base flex items-center justify-between">
+                          <span>
+                            {animal === "sheep" && "🐑 الأغنام"}
+                            {animal === "goats" && "🐐 الماعز"}
+                            {animal === "camel" && "🐪 الإبل"}
+                            {animal === "cattle" && "🐄 الأبقار"}
+                            {animal === "horse" && "🐎 الخيول"}
+                          </span>
+                          <Badge variant="secondary" className="text-sm">
+                            المجموع: {currentAnimalData?.total || 0}
+                          </Badge>
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                          {["total", "young", "female", "treated"].map((field) => (
+                            <FormField
+                              key={`${animal}.${field}`}
+                              control={form.control as any}
+                              name={`herdCounts.${animal}.${field}` as any}
+                              render={({ field: formField }) => (
+                                <FormItem>
+                                  <FormLabel className="text-sm font-medium">
+                                    {field === "total" && "الإجمالي"}
+                                    {field === "young" && "الصغار"}
+                                    {field === "female" && "الإناث"}
+                                    {field === "treated" && "المعالج"}
+                                  </FormLabel>
+                                  <FormControl>
+                                    <Input
+                                      type="number"
+                                      min="0"
+                                      {...formField}
+                                      onChange={(e) => {
+                                        const value = parseInt(e.target.value) || 0;
+                                        formField.onChange(value);
+                                        
+                                        // تحديث الإجمالي تلقائياً عند تغيير الصغار أو الإناث
+                                        if (field === 'young' || field === 'female') {
+                                          const allHerdCounts = form.getValues('herdCounts') as any;
+                                          const currentData = allHerdCounts[animal] || { total: 0, young: 0, female: 0, treated: 0 };
+                                          const newTotal = 
+                                            (field === 'young' ? value : currentData.young || 0) +
+                                            (field === 'female' ? value : currentData.female || 0);
+                                          form.setValue(`herdCounts.${animal}.total` as any, newTotal);
+                                        }
+                                      }}
+                                      className={field === 'total' ? 'bg-gray-50 font-semibold' : ''}
+                                    />
+                                  </FormControl>
+                                  {field === 'total' && (
+                                    <FormDescription className="text-xs text-gray-500">
+                                      يتم الحساب تلقائياً
+                                    </FormDescription>
+                                  )}
+                                </FormItem>
+                              )}
+                            />
+                          ))}
+                        </div>
+                        
+                        {/* تحذير إذا كان المعالج أكبر من الإجمالي */}
+                        {(currentAnimalData?.treated || 0) > (currentAnimalData?.total || 0) && (
+                          <div className="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded text-sm text-yellow-800">
+                            ⚠️ تحذير: عدد المعالج أكبر من الإجمالي
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  );
+                })}
               </TabsContent>
 
               <TabsContent value="treatment" className="tabs-content-modern">
@@ -1275,7 +1409,7 @@ export function ParasiteControlDialog({
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            <SelectItem value="Open">Open</SelectItem>
+                            <SelectItem value="Ongoing">Ongoing</SelectItem>
                             <SelectItem value="Closed">Closed</SelectItem>
                             <SelectItem value="Pending">Pending</SelectItem>
                           </SelectContent>

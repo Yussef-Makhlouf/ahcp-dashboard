@@ -235,7 +235,7 @@ export interface ParasiteControl {
   parasiteControlStatus: string;
   herdHealthStatus: "Healthy" | "Sick" | "Under Treatment";
   complying?: "Comply" | "Not Comply"; // Legacy support
-  complyingToInstructions: boolean; // Backend field
+  complyingToInstructions: "Comply" | "Not Comply" | "Partially Comply"; // Updated to match backend enum
   request: Request;
   category?: string;
   remarks?: string;

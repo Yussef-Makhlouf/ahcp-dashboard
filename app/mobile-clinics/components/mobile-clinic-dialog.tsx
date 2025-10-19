@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { format } from "date-fns";
+import { handleFormError, showSuccessToast, showErrorToast, translateFieldName } from "@/lib/utils/error-handler";
 import {
   Dialog,
   DialogContent,
@@ -24,7 +26,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { SimpleDatePicker } from "@/components/ui/simple-date-picker";
 import { SupervisorSelect } from "@/components/ui/supervisor-select";
 import { CalendarIcon, MapPin, Stethoscope, Plus, Trash2, Activity, User, Heart, Shield, FileText } from "lucide-react";
-import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { validateSaudiPhone } from "@/lib/utils";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -53,25 +54,8 @@ interface MobileClinicDialogProps {
 }
 
 // Removed static supervisors array - now using API
-
-const vehicles = [
-  { id: "MC1", name: "عيادة متنقلة 1" },
-  { id: "MC2", name: "عيادة متنقلة 2" },
-  { id: "MC3", name: "عيادة متنقلة 3" },
-];
-
-const diagnoses = [
-  "التهاب رئوي",
-  "طفيليات معوية",
-  "جروح وإصابات",
-  "التهاب الضرع",
-  "حمى قلاعية",
-  "نقص التغذية",
-  "التهاب الأمعاء",
-  "كسور",
-  "التهاب العيون",
-  "أمراض جلدية",
-];
+// Removed vehicles array - now using free text input for vehicle number
+// Removed diagnoses array - now using free text input for diagnosis
 
 const interventionCategories = [
   { value: "Clinical Examination", label: "Clinical Examination" },
@@ -421,8 +405,14 @@ export function MobileClinicDialog({ open, onOpenChange, clinic, onSave }: Mobil
       await onSave(submitData);
       onOpenChange(false);
     } catch (error) {
-      console.error('Error submitting form:', error);
-      entityToasts.mobileClinic.error(clinic ? 'update' : 'create');
+      console.error('❌ Create/Update mobile clinic error:', error);
+      
+      // استخدام نظام الأخطاء المحسن
+      handleFormError(error, (field: string, message: string) => {
+        setFieldError(field, message);
+      }, () => {
+        clearAllErrors();
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -724,24 +714,30 @@ export function MobileClinicDialog({ open, onOpenChange, clinic, onSave }: Mobil
                   )}
                 </div>
 
-                <ValidatedSelect
-                  label="رقم المركبة"
-                  required
-                  value={formData.vehicleNo}
-                  placeholder="اختر المركبة"
-                  options={vehicles.map(vehicle => ({ value: vehicle.id, label: vehicle.name }))}
-                  error={getFieldError('vehicleNo')}
-                  onValueChange={(value) => {
-                    setFormData({ ...formData, vehicleNo: value });
-                    clearFieldError('vehicleNo');
-                  }}
-                  onBlur={() => {
-                    const error = validateField('vehicleNo', formData.vehicleNo);
-                    if (error) {
-                      setFieldError('vehicleNo', error);
-                    }
-                  }}
-                />
+                <div className="space-y-2">
+                  <Label className="after:content-['*'] after:text-red-500 after:ml-1">رقم المركبة</Label>
+                  <Input
+                    value={formData.vehicleNo}
+                    onChange={(e) => {
+                      // Allow letters, numbers, and spaces
+                      const value = e.target.value.replace(/[^a-zA-Z0-9\s\u0600-\u06FF]/g, '');
+                      setFormData({ ...formData, vehicleNo: value });
+                      clearFieldError('vehicleNo');
+                    }}
+                    onBlur={() => {
+                      const error = validateField('vehicleNo', formData.vehicleNo);
+                      if (error) {
+                        setFieldError('vehicleNo', error);
+                      }
+                    }}
+                    placeholder="مثال: Yussef C1 أو أحمد A2"
+                    className={getFieldError('vehicleNo') ? 'border-red-500' : ''}
+                    maxLength={20}
+                  />
+                  {getFieldError('vehicleNo') && (
+                    <p className="text-red-500 text-sm font-medium mt-1">{getFieldError('vehicleNo')}</p>
+                  )}
+                </div>
 
                 <ValidatedInput
                   label="موقع المزرعة"
@@ -930,28 +926,27 @@ export function MobileClinicDialog({ open, onOpenChange, clinic, onSave }: Mobil
             <TabsContent value="diagnosis" className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label>التشخيص *</Label>
-                  <Select
+                  <Label className="after:content-['*'] after:text-red-500 after:ml-1">التشخيص</Label>
+                  <Textarea
                     value={formData.diagnosis}
-                    onValueChange={(value) => {
-                      setFormData({ ...formData, diagnosis: value });
-                      // Clear error when user selects diagnosis
+                    onChange={(e) => {
+                      setFormData({ ...formData, diagnosis: e.target.value });
+                      // Clear error when user starts typing
                       clearFieldError('diagnosis');
                     }}
-                  >
-                    <SelectTrigger className={errors.diagnosis ? 'border-red-500' : ''}>
-                      <SelectValue placeholder="اختر التشخيص" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {diagnoses.map((diagnosis) => (
-                        <SelectItem key={diagnosis} value={diagnosis}>
-                          {diagnosis}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  {errors.diagnosis && (
-                    <p className="text-red-500 text-sm font-medium mt-1">{errors.diagnosis}</p>
+                    onBlur={() => {
+                      const error = validateField('diagnosis', formData.diagnosis);
+                      if (error) {
+                        setFieldError('diagnosis', error);
+                      }
+                    }}
+                    placeholder="أدخل التشخيص (مثال: التهاب رئوي، طفيليات معوية، جروح وإصابات، إلخ)"
+                    rows={3}
+                    className={getFieldError('diagnosis') ? 'border-red-500' : ''}
+                    required
+                  />
+                  {getFieldError('diagnosis') && (
+                    <p className="text-red-500 text-sm font-medium mt-1">{getFieldError('diagnosis')}</p>
                   )}
                 </div>
 

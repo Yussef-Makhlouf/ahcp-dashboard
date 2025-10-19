@@ -36,12 +36,10 @@ const formFields = [
     type: "select" as const,
     required: true,
     options: [
-      { value: "Blood", label: "دم" },
-      { value: "Urine", label: "بول" },
-      { value: "Feces", label: "براز" },
-      { value: "Tissue", label: "نسيج" },
-      { value: "Milk", label: "حليب" },
-      { value: "Swab", label: "مسحة" },
+      { value: "Serum", label: "Serum" },
+      { value: "Whole Blood", label: "Whole Blood" },
+      { value: "Fecal Sample", label: "Fecal Sample" },
+      { value: "Skin Scrape", label: "Skin Scrape" },
     ],
   },
   {

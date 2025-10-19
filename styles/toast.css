@@ -1,0 +1,161 @@
+/* أنماط Toast مخصصة للأخطاء والنجاح */
+
+.error-toast {
+  background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%) !important;
+  border: 1px solid #f87171 !important;
+  border-right: 4px solid #dc2626 !important;
+  color: #7f1d1d !important;
+  box-shadow: 0 10px 25px rgba(220, 38, 38, 0.15) !important;
+}
+
+.error-toast [data-title] {
+  color: #991b1b !important;
+  font-weight: 600 !important;
+  font-size: 14px !important;
+}
+
+.error-toast [data-description] {
+  color: #7f1d1d !important;
+  font-size: 13px !important;
+  line-height: 1.5 !important;
+  white-space: pre-line !important;
+}
+
+.success-toast {
+  background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%) !important;
+  border: 1px solid #34d399 !important;
+  border-right: 4px solid #059669 !important;
+  color: #064e3b !important;
+  box-shadow: 0 10px 25px rgba(5, 150, 105, 0.15) !important;
+}
+
+.success-toast [data-title] {
+  color: #047857 !important;
+  font-weight: 600 !important;
+  font-size: 14px !important;
+}
+
+.success-toast [data-description] {
+  color: #064e3b !important;
+  font-size: 13px !important;
+  line-height: 1.5 !important;
+}
+
+.warning-toast {
+  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%) !important;
+  border: 1px solid #f59e0b !important;
+  border-right: 4px solid #d97706 !important;
+  color: #78350f !important;
+  box-shadow: 0 10px 25px rgba(217, 119, 6, 0.15) !important;
+}
+
+.warning-toast [data-title] {
+  color: #92400e !important;
+  font-weight: 600 !important;
+  font-size: 14px !important;
+}
+
+.warning-toast [data-description] {
+  color: #78350f !important;
+  font-size: 13px !important;
+  line-height: 1.5 !important;
+}
+
+/* تحسينات عامة للـ Toast */
+[data-sonner-toaster] {
+  font-family: 'Cairo', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif !important;
+}
+
+[data-sonner-toast] {
+  border-radius: 12px !important;
+  padding: 16px !important;
+  min-height: 60px !important;
+  max-width: 400px !important;
+  backdrop-filter: blur(10px) !important;
+  animation: slideInRight 0.3s ease-out !important;
+}
+
+[data-sonner-toast][data-y-position="top"] {
+  animation: slideInDown 0.3s ease-out !important;
+}
+
+[data-sonner-toast][data-y-position="bottom"] {
+  animation: slideInUp 0.3s ease-out !important;
+}
+
+/* أنيميشن مخصص */
+@keyframes slideInRight {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideInDown {
+  from {
+    transform: translateY(-100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideInUp {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* تحسينات للأجهزة المحمولة */
+@media (max-width: 640px) {
+  [data-sonner-toast] {
+    max-width: calc(100vw - 32px) !important;
+    margin: 0 16px !important;
+  }
+}
+
+/* أيقونات مخصصة */
+.error-toast::before {
+  content: "⚠️";
+  font-size: 18px;
+  margin-left: 8px;
+  display: inline-block;
+}
+
+.success-toast::before {
+  content: "✅";
+  font-size: 18px;
+  margin-left: 8px;
+  display: inline-block;
+}
+
+.warning-toast::before {
+  content: "⚡";
+  font-size: 18px;
+  margin-left: 8px;
+  display: inline-block;
+}
+
+/* تحسين النص العربي */
+[data-sonner-toast][dir="rtl"] {
+  text-align: right !important;
+}
+
+[data-sonner-toast][dir="rtl"] [data-title] {
+  text-align: right !important;
+}
+
+[data-sonner-toast][dir="rtl"] [data-description] {
+  text-align: right !important;
+}
