@@ -133,14 +133,6 @@ export function getColumns({
         <div className="text-sm">{row.getValue("supervisor")}</div>
       ),
     },
-    // Team
-    {
-      accessorKey: "team",
-      header: "Team",
-      cell: ({ row }) => (
-        <div className="text-sm">{row.getValue("team")}</div>
-      ),
-    },
     // Vehicle No
     {
       accessorKey: "vehicleNo",
@@ -289,28 +281,13 @@ export function getColumns({
         );
       },
     },
-    // Vaccine & Category
+    // Vaccine Type
     {
-      id: "vaccine",
-      header: "Vaccine",
-      cell: ({ row }) => {
-        const vaccineType = row.original.vaccineType;
-        const vaccineCategory = row.original.vaccineCategory;
-        
-        const categoryColors = {
-          "Preventive": "bg-blue-500 text-white",
-          "Emergency": "bg-red-500 text-white",
-        };
-        
-        return (
-          <div className="text-xs space-y-1">
-            <div className="font-medium">{vaccineType || '-'}</div>
-            <Badge className={categoryColors[vaccineCategory as keyof typeof categoryColors] || "bg-gray-500 text-white"}>
-              {vaccineCategory}
-            </Badge>
-          </div>
-        );
-      },
+      accessorKey: "vaccineType",
+      header: "Vaccine Type",
+      cell: ({ row }) => (
+        <div className="text-sm font-medium">{row.getValue("vaccineType") || '-'}</div>
+      ),
     },
     // Remarks
     {

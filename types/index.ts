@@ -280,9 +280,7 @@ export interface Vaccination {
   supervisor: string;
   vehicleNo: string;
   farmLocation: string;
-  team: string;
   vaccineType: string;
-  vaccineCategory: string; // Preventive / Emergency
   herdCounts: {
     sheep: {
       total: number;

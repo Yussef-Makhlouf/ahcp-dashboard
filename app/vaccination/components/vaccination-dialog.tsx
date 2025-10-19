@@ -84,9 +84,7 @@ const formSchema = z.object({
   supervisor: z.string().min(2, { message: "يجب إدخال اسم المشرف (أكثر من حرفين)" }),
   vehicleNo: z.string().min(1, { message: "يجب إدخال رقم المركبة" }),
   farmLocation: z.string().min(1, { message: "يجب إدخال موقع المزرعة" }),
-  team: z.string().min(1, { message: "يجب إدخال اسم الفريق" }),
   vaccineType: z.string().min(1, { message: "يجب اختيار نوع المصل" }),
-  vaccineCategory: z.string().min(1, { message: "يجب اختيار فئة المصل" }),
   herdCounts: z.object({
     sheep: z.object({
       total: z.number().min(0, { message: "يجب أن يكون الرقم أكبر من أو يساوي 0" }),
@@ -202,9 +200,7 @@ export function VaccinationDialog({
       supervisor: "",
       vehicleNo: "",
       farmLocation: "",
-      team: "",
       vaccineType: "",
-      vaccineCategory: "",
       herdCounts: {
         sheep: { total: 0, young: 0, female: 0, vaccinated: 0 },
         goats: { total: 0, young: 0, female: 0, vaccinated: 0 },
@@ -293,9 +289,7 @@ export function VaccinationDialog({
           supervisor: "",
           vehicleNo: "",
           farmLocation: "",
-          team: "",
           vaccineType: "",
-          vaccineCategory: "",
           herdCounts: {
             sheep: { total: 0, young: 0, female: 0, vaccinated: 0 },
             goats: { total: 0, young: 0, female: 0, vaccinated: 0 },
@@ -344,10 +338,8 @@ export function VaccinationDialog({
           longitude: data.coordinates.longitude || 0,
         } : undefined,
         supervisor: data.supervisor,
-        team: data.team,
         vehicleNo: data.vehicleNo,
         vaccineType: data.vaccineType,
-        vaccineCategory: data.vaccineCategory,
         herdCounts: {
           sheep: data.herdCounts.sheep || { total: 0, young: 0, female: 0, vaccinated: 0 },
           goats: data.herdCounts.goats || { total: 0, young: 0, female: 0, vaccinated: 0 },
@@ -434,10 +426,10 @@ export function VaccinationDialog({
           </label>
           <SimpleDatePicker
             placeholder="اختر التاريخ"
-            value={form.watch(name) ? new Date(form.watch(name)) : undefined}
+            value={form.watch(name as any) ? new Date(form.watch(name as any)) : undefined}
             onChange={(date) => {
               const dateString = date ? date.toISOString().split('T')[0] : '';
-              form.setValue(name, dateString);
+              form.setValue(name as any, dateString);
               clearFieldError(name);
             }}
             variant="modern"
@@ -813,25 +805,6 @@ export function VaccinationDialog({
                     )}
                   </div>
 
-                  {/* Team */}
-                  <div className="space-y-2">
-                    <label className="block text-sm font-semibold text-gray-800 mb-2">
-                      اسم الفريق *
-                    </label>
-                    <Input
-                      value={form.watch("team") || ""}
-                      onChange={(e) => {
-                        form.setValue("team", e.target.value);
-                        clearFieldError("team");
-                      }}
-                      placeholder="اسم الفريق"
-                      required
-                      className={getFieldError("team") ? 'border-red-500' : ''}
-                    />
-                    {getFieldError("team") && (
-                      <p className="text-red-500 text-sm font-medium mt-1">{getFieldError("team")}</p>
-                    )}
-                  </div>
 
                   {/* Coordinates */}
                   <div className="space-y-2">
@@ -888,30 +861,6 @@ export function VaccinationDialog({
                     )}
                   </div>
 
-                  {/* Vaccine Category */}
-                  <div className="space-y-2">
-                    <label className="block text-sm font-semibold text-gray-800 mb-2">
-                      فئة المصل *
-                    </label>
-                    <Select
-                      value={form.watch("vaccineCategory") || ""}
-                      onValueChange={(value) => {
-                        form.setValue("vaccineCategory", value);
-                        clearFieldError("vaccineCategory");
-                      }}
-                    >
-                      <SelectTrigger className={getFieldError("vaccineCategory") ? 'border-red-500' : ''}>
-                        <SelectValue placeholder="اختر فئة المصل" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Preventive">وقائي</SelectItem>
-                        <SelectItem value="Emergency">طوارئ</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    {getFieldError("vaccineCategory") && (
-                      <p className="text-red-500 text-sm font-medium mt-1">{getFieldError("vaccineCategory")}</p>
-                    )}
-                  </div>
 
                   {/* Herd Health */}
                   <div className="space-y-2">
