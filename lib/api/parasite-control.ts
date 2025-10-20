@@ -17,7 +17,6 @@ function transformAPIResponse(apiData: any): ParasiteControl {
       nationalId: apiData.client.nationalId || '',
       phone: apiData.client.phone || '',
       village: apiData.client.village || '',
-      detailedAddress: apiData.client.detailedAddress || '',
       birthDate: apiData.client.birthDate || '',
     } : {
       _id: '',
@@ -25,7 +24,6 @@ function transformAPIResponse(apiData: any): ParasiteControl {
       nationalId: '',
       phone: '',
       village: '',
-      detailedAddress: '',
       birthDate: '',
     },
     owner: {
@@ -88,10 +86,7 @@ function transformAPIResponse(apiData: any): ParasiteControl {
     },
     barns: [],
     breedingSites: apiData.breedingSites || '',
-    herdLocation: apiData.herdLocation || '',
     animalBarnSizeSqM: apiData.animalBarnSizeSqM || 0,
-    parasiteControlVolume: apiData.parasiteControlVolume || 0,
-    parasiteControlStatus: apiData.parasiteControlStatus || '',
     herdHealthStatus: apiData.herdHealthStatus || "Healthy",
     complying: apiData.complyingToInstructions ? "Comply" : "Not Comply",
     complyingToInstructions: apiData.complyingToInstructions || false,
@@ -177,13 +172,10 @@ function transformToAPIFormat(appData: any): any {
       status: appData.insecticide?.status,
       category: appData.insecticide?.category,
     },
-    herdLocation: appData.herdLocation,
     animalBarnSizeSqM: appData.animalBarnSizeSqM,
     breedingSites: Array.isArray(appData.breedingSites) 
       ? appData.breedingSites.map((site: any) => site.type).join(', ') 
       : appData.breedingSites || 'Not Available',
-    parasiteControlVolume: appData.parasiteControlVolume,
-    parasiteControlStatus: appData.parasiteControlStatus,
     herdHealthStatus: appData.herdHealthStatus,
     complyingToInstructions: appData.complyingToInstructions || appData.complying === "Comply",
     request: {
@@ -267,7 +259,12 @@ export const parasiteControlApi = {
   create: async (data: Omit<ParasiteControl, 'serialNo'>): Promise<ParasiteControl> => {
     try {
       const apiData = transformToAPIFormat(data);
-      const response = await api.post('/parasite-control/', apiData, {
+      
+      const endpoint = '/parasite-control/';
+      console.log('🌐 Making POST request to endpoint:', endpoint);
+      console.log('🔍 Full URL will be:', `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api'}${endpoint}`);
+      
+      const response = await api.post(endpoint, apiData, {
         timeout: 30000,
       });
       // Handle new response structure: { success: true, data: { records: [...] } }
@@ -287,10 +284,19 @@ export const parasiteControlApi = {
   // Update record (PUT - full update) - Real API only
   update: async (id: string | number, data: Partial<ParasiteControl>): Promise<ParasiteControl> => {
     try {
+      console.log('🔄 Starting parasite control update:', { id, data });
       const apiData = transformToAPIFormat(data);
-      const response = await api.put(`/parasite-control/${id}`, apiData, {
+      console.log('📤 Transformed API data:', apiData);
+      
+      const endpoint = `/parasite-control/${id}`;
+      console.log('🌐 Making PUT request to endpoint:', endpoint);
+      console.log('🔍 Full URL will be:', `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api'}${endpoint}`);
+      
+      const response = await api.put(endpoint, apiData, {
         timeout: 30000,
       });
+      
+      console.log('✅ Update response received:', response);
       // Handle new response structure: { success: true, data: { records: [...] } }
       const responseData = (response as any).data;
       if (responseData && responseData.records && responseData.records.length > 0) {

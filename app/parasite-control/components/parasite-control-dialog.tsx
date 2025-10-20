@@ -47,6 +47,7 @@ import { SupervisorSelect } from "@/components/ui/supervisor-select";
 import { VillageSelect } from "@/components/ui/village-select";
 import { ClientSelector } from "@/components/ui/client-selector";
 import { HoldingCodeSelector } from "@/components/common/HoldingCodeSelector";
+import { DynamicSelect } from "@/components/ui/dynamic-select";
 import { useClientData } from "@/lib/hooks/use-client-data";
 import { entityToasts } from "@/lib/utils/toast-utils";
 import { useFormValidation } from "@/lib/hooks/use-form-validation";
@@ -63,10 +64,8 @@ const formSchema = z.object({
     nationalId: z.string().min(1, "رقم الهوية مطلوب"),
     phone: z.string().min(1, "رقم الهاتف مطلوب"),
     village: z.string().default(""),
-    detailedAddress: z.string().default(""),
     birthDate: z.string().optional(),
   }),
-  herdLocation: z.string().min(1, "موقع القطيع مطلوب"),
   coordinates: z.object({
     latitude: z.number().min(-90).max(90).default(0),
     longitude: z.number().min(-180).max(180).default(0),
@@ -153,7 +152,6 @@ export function ParasiteControlDialog({
     'client.phone': { required: true, phone: true },
     'supervisor': { required: true },
     'vehicleNo': { required: true },
-    'herdLocation': { required: true },
     'insecticide.type': { required: true },
     'insecticide.method': { required: true },
     'insecticide.category': { required: true },
@@ -201,7 +199,6 @@ export function ParasiteControlDialog({
         village: "",
         birthDate: "",
       },
-      herdLocation: "",
       coordinates: { latitude: 0, longitude: 0 },
       supervisor: "أحمد سالم",
       vehicleNo: "",
@@ -237,13 +234,26 @@ export function ParasiteControlDialog({
     if (item) {
       // دالة لتحويل التاريخ من الباك إند بشكل صحيح (تجنب مشكلة المنطقة الزمنية)
       const formatDateFromBackend = (dateString: string) => {
-        if (!dateString) return '';
-        // تحويل التاريخ من UTC إلى تاريخ محلي بدون تأثير المنطقة الزمنية
-        const date = new Date(dateString);
-        const year = date.getUTCFullYear();
-        const month = String(date.getUTCMonth() + 1).padStart(2, '0');
-        const day = String(date.getUTCDate()).padStart(2, '0');
-        return `${year}-${month}-${day}`;
+        if (!dateString || dateString.trim() === '') return '';
+        
+        try {
+          // تحويل التاريخ من UTC إلى تاريخ محلي بدون تأثير المنطقة الزمنية
+          const date = new Date(dateString);
+          
+          // التحقق من صحة التاريخ
+          if (isNaN(date.getTime())) {
+            console.warn('Invalid date from backend:', dateString);
+            return '';
+          }
+          
+          const year = date.getUTCFullYear();
+          const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+          const day = String(date.getUTCDate()).padStart(2, '0');
+          return `${year}-${month}-${day}`;
+        } catch (error) {
+          console.error('Error parsing date from backend:', dateString, error);
+          return '';
+        }
       };
 
       // Transform backend data to form format
@@ -257,7 +267,6 @@ export function ParasiteControlDialog({
           village: typeof item.client === 'object' ? item.client?.village || '' : '',
           birthDate: typeof item.client === 'object' && item.client?.birthDate ? formatDateFromBackend(item.client.birthDate) : '',
         },        
-        herdLocation: item.herdLocation || '',
         coordinates: {
           latitude: item.coordinates?.latitude || 0,
           longitude: item.coordinates?.longitude || 0,
@@ -297,6 +306,7 @@ export function ParasiteControlDialog({
           situation: item.request?.situation || 'Open',
           fulfillingDate: item.request?.fulfillingDate ? formatDateFromBackend(item.request.fulfillingDate) : undefined,
         },
+        holdingCode: typeof item.holdingCode === 'string' ? item.holdingCode : ((item.holdingCode as any)?._id || ''),
         remarks: item.remarks || '',
       };
       
@@ -305,6 +315,12 @@ export function ParasiteControlDialog({
         type: typeof item.breedingSites,
         value: item.breedingSites,
         processed: formData.breedingSites
+      });
+      console.log('🔍 holdingCode loading debug:', {
+        originalHoldingCode: item.holdingCode,
+        originalType: typeof item.holdingCode,
+        processedHoldingCode: formData.holdingCode,
+        hasId: (item.holdingCode as any)?._id
       });
       form.reset(formData as any);
     } else {
@@ -319,7 +335,6 @@ export function ParasiteControlDialog({
           village: '',
           birthDate: undefined,
         },
-        herdLocation: '',
         coordinates: { latitude: 0, longitude: 0 },
         supervisor: 'أحمد سالم',
         vehicleNo: '',
@@ -346,6 +361,7 @@ export function ParasiteControlDialog({
           situation: 'Ongoing' as 'Ongoing' | 'Closed',
           fulfillingDate: undefined,
         },
+        holdingCode: '',
         remarks: '',
       });
     }
@@ -354,6 +370,9 @@ export function ParasiteControlDialog({
   const onSubmit = async (data: FormData) => {
     console.log('🚀 onSubmit function called!');
     console.log('📝 Form data received:', data);
+    console.log('🔍 ALL FORM DATA KEYS:', Object.keys(data));
+    console.log('🔍 holdingCode in form data?', 'holdingCode' in data);
+    console.log('🔍 data.holdingCode direct access:', data.holdingCode);
     
     try {
       console.log('📝 Form data before transformation:', data);
@@ -379,15 +398,6 @@ export function ParasiteControlDialog({
         form.setError('serialNo', { 
           type: 'required', 
           message: 'رقم السجل مطلوب' 
-        });
-        setActiveTab('basic');
-        return;
-      }
-      
-      if (!data.herdLocation?.trim()) {
-        form.setError('herdLocation', { 
-          type: 'required', 
-          message: 'موقع القطيع مطلوب' 
         });
         setActiveTab('basic');
         return;
@@ -451,11 +461,69 @@ export function ParasiteControlDialog({
       
       // دالة لتحويل التاريخ بشكل صحيح (تجنب مشكلة المنطقة الزمنية)
       const formatDateForBackend = (dateString: string) => {
-        if (!dateString) return new Date().toISOString();
-        // إنشاء تاريخ في المنطقة الزمنية المحلية وتحويله لـ UTC
-        const localDate = new Date(dateString + 'T00:00:00');
-        return localDate.toISOString();
+        if (!dateString || dateString.trim() === '') {
+          return new Date().toISOString();
+        }
+        
+        try {
+          // التحقق من صيغة التاريخ أولاً
+          const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+          if (!dateRegex.test(dateString.trim())) {
+            console.warn('Invalid date format:', dateString);
+            return new Date().toISOString();
+          }
+          
+          // إنشاء تاريخ في المنطقة الزمنية المحلية وتحويله لـ UTC
+          const localDate = new Date(dateString.trim() + 'T00:00:00');
+          
+          // التحقق من صحة التاريخ
+          if (isNaN(localDate.getTime())) {
+            console.warn('Invalid date value:', dateString);
+            return new Date().toISOString();
+          }
+          
+          return localDate.toISOString();
+        } catch (error) {
+          console.error('Error formatting date:', dateString, error);
+          return new Date().toISOString();
+        }
       };
+
+      // تسجيل القيم قبل التحويل للتشخيص
+      console.log('🔍 Date values before formatting:', {
+        mainDate: data.date,
+        clientBirthDate: data.client.birthDate,
+        mainDateType: typeof data.date,
+        clientBirthDateType: typeof data.client.birthDate
+      });
+
+      // تسجيل holdingCode للتشخيص
+      console.log('🚨 HOLDING CODE DEBUG - BEFORE PROCESSING:');
+      console.log('Raw data.holdingCode:', data.holdingCode);
+      console.log('Type:', typeof data.holdingCode);
+      console.log('Is string?', typeof data.holdingCode === 'string');
+      console.log('Has _id?', (data.holdingCode as any)?._id);
+      
+      // معالجة خاصة لـ holdingCode - التأكد من عدم إرسال undefined
+      let processedHoldingCode = null; // Default to null
+      
+      // Check if holdingCode exists and is not empty
+      const holdingCodeValue = data.holdingCode || '';
+      console.log('🔍 holdingCodeValue after fallback:', holdingCodeValue);
+      
+      if (holdingCodeValue && holdingCodeValue.trim() !== '') {
+        if (typeof holdingCodeValue === 'string') {
+          processedHoldingCode = holdingCodeValue.trim();
+        } else if ((holdingCodeValue as any)?._id) {
+          processedHoldingCode = (holdingCodeValue as any)._id;
+        }
+      }
+      console.log('🎯 PROCESSED holdingCode:', processedHoldingCode);
+      
+      // إضافة تسجيل إضافي
+      console.log('🔍 FINAL CHECK BEFORE SENDING:');
+      console.log('processedHoldingCode will be sent as:', processedHoldingCode);
+      console.log('Is processedHoldingCode undefined?', processedHoldingCode === undefined);
 
       // إرسال البيانات بالشكل المطلوب تماماً من الباك إند
       const backendData = {
@@ -466,9 +534,8 @@ export function ParasiteControlDialog({
           nationalId: data.client.nationalId.trim(),
           phone: data.client.phone.trim(),
           village: data.client.village || '',
-          birthDate: data.client.birthDate ? formatDateForBackend(data.client.birthDate) : undefined,
+          birthDate: (data.client.birthDate && data.client.birthDate.trim() !== '') ? formatDateForBackend(data.client.birthDate) : undefined,
         },
-        herdLocation: data.herdLocation,
         coordinates: {
           latitude: Number(data.coordinates?.latitude) || 0,
           longitude: Number(data.coordinates?.longitude) || 0,
@@ -521,11 +588,23 @@ export function ParasiteControlDialog({
         request: {
           date: formatDateForBackend(data.request.date || data.date),
           situation: data.request.situation || 'Ongoing',
-          fulfillingDate: data.request.fulfillingDate ? formatDateForBackend(data.request.fulfillingDate) : undefined,
+          fulfillingDate: (data.request.fulfillingDate && data.request.fulfillingDate.trim() !== '') ? formatDateForBackend(data.request.fulfillingDate) : undefined,
         },
-        holdingCode: data.holdingCode || undefined,
+        holdingCode: processedHoldingCode,
         remarks: data.remarks || '',
       };
+
+      // تسجيل البيانات النهائية المُرسلة
+      console.log('📤 Final backend data:', {
+        holdingCode: backendData.holdingCode,
+        holdingCodeType: typeof backendData.holdingCode,
+        fullBackendData: backendData
+      });
+      
+      // فحص إضافي
+      console.log('🔍 BACKEND DATA KEYS:', Object.keys(backendData));
+      console.log('🔍 Does backendData contain holdingCode?', 'holdingCode' in backendData);
+      console.log('🔍 backendData.holdingCode value:', backendData.holdingCode);
       
       // التحقق النهائي من البيانات قبل الإرسال
       if (!backendData.client?.name?.trim()) {
@@ -550,11 +629,16 @@ export function ParasiteControlDialog({
       
 
 
+      console.log('🚀 About to make API call...');
+      console.log('📋 Item details:', { hasItem: !!item, itemId: item?._id, isUpdate: !!(item && item._id) });
+      
       if (item && item._id) {
         // Update existing record
+        console.log('🔄 Making UPDATE call to parasiteControlApi.update with ID:', item._id);
         await parasiteControlApi.update(item._id, backendData);
       } else {
         // Create new record
+        console.log('➕ Making CREATE call to parasiteControlApi.create');
         await parasiteControlApi.create(backendData);
       }
       
@@ -708,8 +792,13 @@ export function ParasiteControlDialog({
                     </label>
                     <SupervisorSelect
                       value={form.watch('supervisor')}
-                      onValueChange={(value) => {
+                      onValueChange={(value, supervisor) => {
                         form.setValue('supervisor', value);
+                        // Auto-fill vehicle number if supervisor has one
+                        if (supervisor?.vehicleNo) {
+                          form.setValue('vehicleNo', supervisor.vehicleNo);
+                          clearFieldError('vehicleNo');
+                        }
                         clearFieldError('supervisor');
                       }}
                       placeholder="اختر المشرف"
@@ -722,7 +811,7 @@ export function ParasiteControlDialog({
                   <ValidatedInput
                     label="رقم المركبة"
                     required
-                    placeholder="P1"
+                    placeholder="سيتم ملؤه تلقائياً عند اختيار المشرف"
                     value={form.watch('vehicleNo')}
                     error={getFieldError('vehicleNo')}
                     onValueChange={(value) => {
@@ -733,23 +822,6 @@ export function ParasiteControlDialog({
                       const error = validateField('vehicleNo', form.watch('vehicleNo'));
                       if (error) {
                         setFieldError('vehicleNo', error);
-                      }
-                    }}
-                  />
-                  <ValidatedInput
-                    label="موقع القطيع"
-                    required
-                    placeholder="موقع القطيع"
-                    value={form.watch('herdLocation')}
-                    error={getFieldError('herdLocation')}
-                    onValueChange={(value) => {
-                      form.setValue('herdLocation', value);
-                      clearFieldError('herdLocation');
-                    }}
-                    onBlur={() => {
-                      const error = validateField('herdLocation', form.watch('herdLocation'));
-                      if (error) {
-                        setFieldError('herdLocation', error);
                       }
                     }}
                   />
@@ -775,7 +847,6 @@ export function ParasiteControlDialog({
                                 form.setValue("client.nationalId", client.nationalId || client.national_id || "");
                                 form.setValue("client.phone", client.phone || "");
                                 form.setValue("client.village", client.village || "");
-                                form.setValue("client.detailedAddress", client.detailedAddress || client.detailed_address || "");
                                 form.setValue("client.birthDate", client.birthDate || client.birth_date || "");
                                 // Clear any existing errors for client fields
                                 clearFieldError('client.name');
@@ -901,7 +972,10 @@ export function ParasiteControlDialog({
                         <FormControl>
                           <HoldingCodeSelector
                             value={field.value || ""}
-                            onValueChange={field.onChange}
+                            onValueChange={(value) => {
+                              console.log('📝 Form: holdingCode changed to:', value);
+                              field.onChange(value);
+                            }}
                             village={form.watch('client.village')}
                             placeholder="اختر رمز الحيازة"
                           />
@@ -1091,22 +1165,16 @@ export function ParasiteControlDialog({
                     name="insecticide.type"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>نوع المبيد</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value}>
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="اختر نوع المبيد" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="Cyperdip 10%">Cyperdip 10%</SelectItem>
-                            <SelectItem value="Ultra-Pour 1%">Ultra-Pour 1%</SelectItem>
-                            <SelectItem value="Deltamethrin 5%">Deltamethrin 5%</SelectItem>
-                            <SelectItem value="Ivermectin">Ivermectin</SelectItem>
-                            <SelectItem value="Fipronil">Fipronil</SelectItem>
-                            <SelectItem value="Permethrin">Permethrin</SelectItem>
-                          </SelectContent>
-                        </Select>
+                        <FormControl>
+                          <DynamicSelect
+                            category="INSECTICIDE_TYPES"
+                            value={field.value || ""}
+                            onValueChange={field.onChange}
+                            label="نوع المبيد"
+                            placeholder="اختر نوع المبيد"
+                            required
+                          />
+                        </FormControl>
                         <FormMessage className="text-red-500 text-sm font-medium" />
                       </FormItem>
                     )}
@@ -1116,19 +1184,16 @@ export function ParasiteControlDialog({
                     name="insecticide.method"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>طريقة الرش</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value}>
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="اختر طريقة الرش" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="Pour on">Pour on</SelectItem>
-                            <SelectItem value="Spray">Spray</SelectItem>
-                            <SelectItem value="Oral Drenching">Oral Drenching</SelectItem>
-                          </SelectContent>
-                        </Select>
+                        <FormControl>
+                          <DynamicSelect
+                            category="SPRAY_METHODS"
+                            value={field.value || ""}
+                            onValueChange={field.onChange}
+                            label="طريقة الرش"
+                            placeholder="اختر طريقة الرش"
+                            required
+                          />
+                        </FormControl>
                         <FormMessage className="text-red-500 text-sm font-medium" />
                       </FormItem>
                     )}
@@ -1157,19 +1222,16 @@ export function ParasiteControlDialog({
                     name="insecticide.category"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>فئة المبيد</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value}>
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="اختر فئة المبيد" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="Pour-on">Pour-on</SelectItem>
-                            <SelectItem value="Spray">Spray</SelectItem>
-                            <SelectItem value="Oral Drenching">Oral Drenching</SelectItem>
-                          </SelectContent>
-                        </Select>
+                        <FormControl>
+                          <DynamicSelect
+                            category="INSECTICIDE_CATEGORIES"
+                            value={field.value || ""}
+                            onValueChange={field.onChange}
+                            label="فئة المبيد"
+                            placeholder="اختر فئة المبيد"
+                            required
+                          />
+                        </FormControl>
                         <FormMessage className="text-red-500 text-sm font-medium" />
                       </FormItem>
                     )}
@@ -1179,18 +1241,16 @@ export function ParasiteControlDialog({
                     name="insecticide.status"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>حالة الرش</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value}>
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="اختر حالة الرش" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="Sprayed">Sprayed</SelectItem>
-                            <SelectItem value="Not Sprayed">Not Sprayed</SelectItem>
-                          </SelectContent>
-                        </Select>
+                        <FormControl>
+                          <DynamicSelect
+                            category="SPRAY_STATUS"
+                            value={field.value || ""}
+                            onValueChange={field.onChange}
+                            label="حالة الرش"
+                            placeholder="اختر حالة الرش"
+                            required
+                          />
+                        </FormControl>
                         <FormMessage className="text-red-500 text-sm font-medium" />
                       </FormItem>
                     )}
@@ -1202,19 +1262,16 @@ export function ParasiteControlDialog({
                     name="herdHealthStatus"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>الحالة الصحية للقطيع</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value}>
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="اختر الحالة الصحية" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="Healthy">Healthy</SelectItem>
-                            <SelectItem value="Sick">Sick</SelectItem>
-                            <SelectItem value="Sporadic Cases">Sporadic Cases</SelectItem>
-                          </SelectContent>
-                        </Select>
+                        <FormControl>
+                          <DynamicSelect
+                            category="HERD_HEALTH"
+                            value={field.value || ""}
+                            onValueChange={field.onChange}
+                            label="الحالة الصحية للقطيع"
+                            placeholder="اختر الحالة الصحية"
+                            required
+                          />
+                        </FormControl>
                         <FormMessage className="text-red-500 text-sm font-medium" />
                       </FormItem>
                     )}
@@ -1224,22 +1281,16 @@ export function ParasiteControlDialog({
                     name="complyingToInstructions"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>الامتثال للتعليمات</FormLabel>
-                        <Select 
-                          onValueChange={(value) => field.onChange(value)} 
-                          value={field.value || ""}
-                        >
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="اختر حالة الامتثال" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="Comply">Comply</SelectItem>
-                            <SelectItem value="Not Comply">Not Comply</SelectItem>
-                            <SelectItem value="Partially Comply">Partially Comply</SelectItem>
-                          </SelectContent>
-                        </Select>
+                        <FormControl>
+                          <DynamicSelect
+                            category="COMPLIANCE_STATUS"
+                            value={field.value || ""}
+                            onValueChange={field.onChange}
+                            label="الامتثال للتعليمات"
+                            placeholder="اختر حالة الامتثال"
+                            required
+                          />
+                        </FormControl>
                         <FormMessage className="text-red-500 text-sm font-medium" />
                       </FormItem>
                     )}
@@ -1271,22 +1322,16 @@ export function ParasiteControlDialog({
                     name="breedingSites"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>مواقع التكاثر</FormLabel>
-                        <Select 
-                          onValueChange={(value) => field.onChange(value)} 
-                          value={field.value || ""}
-                        >
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="اختر حالة مواقع التكاثر" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="Sprayed">Sprayed</SelectItem>
-                            <SelectItem value="Not Available">Not Available</SelectItem>
-                            <SelectItem value="Not Applicable">Not Applicable</SelectItem>
-                          </SelectContent>
-                        </Select>
+                        <FormControl>
+                          <DynamicSelect
+                            category="BREEDING_SITES_STATUS"
+                            value={field.value || ""}
+                            onValueChange={field.onChange}
+                            label="مواقع التكاثر"
+                            placeholder="اختر حالة مواقع التكاثر"
+                            required
+                          />
+                        </FormControl>
                         <FormMessage className="text-red-500 text-sm font-medium" />
                       </FormItem>
                     )}
@@ -1341,18 +1386,16 @@ export function ParasiteControlDialog({
                     name="request.situation"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>حالة الطلب</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value}>
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="اختر حالة الطلب" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="Ongoing">Ongoing</SelectItem>
-                            <SelectItem value="Closed">Closed</SelectItem>
-                          </SelectContent>
-                        </Select>
+                        <FormControl>
+                          <DynamicSelect
+                            category="REQUEST_SITUATION"
+                            value={field.value || ""}
+                            onValueChange={field.onChange}
+                            label="حالة الطلب"
+                            placeholder="اختر حالة الطلب"
+                            required
+                          />
+                        </FormControl>
                         <FormMessage className="text-red-500 text-sm font-medium" />
                       </FormItem>
                     )}

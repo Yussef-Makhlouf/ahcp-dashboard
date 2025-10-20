@@ -6,6 +6,8 @@ export interface Supervisor {
   email: string;
   role: 'super_admin' | 'section_supervisor';
   section?: string;
+  supervisorCode?: string;
+  vehicleNo?: string;
 }
 
 export interface SupervisorResponse {
@@ -20,34 +22,34 @@ export const supervisorsApi = {
   // Get all supervisors for dropdown - optimized
   getAll: async (): Promise<SupervisorResponse> => {
     try {
-      console.log('🔍 Fetching supervisors from API...');
+      console.log('🔍 Fetching all supervisors using supervisors-only endpoint...');
       
-      const response = await api.get('/auth/supervisors', {
-        timeout: 10000, // Reduced timeout for faster response
+      const response = await api.get('/users?hasVehicleNo=true&limit=100', {
+        timeout: 10000,
         headers: {
           'Accept': 'application/json',
           'Content-Type': 'application/json',
         },
-        // Remove cache control to allow server-side caching
       });
       
       const apiResponse = response as any;
       console.log('📊 API Response:', {
         status: apiResponse.status,
-        cached: apiResponse.data?.cached,
-        count: apiResponse.data?.count,
-        timestamp: apiResponse.data?.timestamp
+        success: apiResponse.success,
+        count: apiResponse.data?.users?.length,
+        total: apiResponse.data?.pagination?.total
       });
       
-      // معالجة خاصة لـ API المشرفين - يعيد { success: true, data: [...] }
-      const supervisors = Array.isArray(apiResponse.data) ? apiResponse.data : [];
+      // معالجة API المستخدمين - يعيد { success: true, data: { users: [...], pagination: {...} } }
+      const supervisors = apiResponse.data?.users || [];
       
       console.log(`✅ Successfully fetched ${supervisors.length} supervisors`);
+      
       return {
         data: supervisors,
         fallback: false,
         count: supervisors.length,
-        timestamp: apiResponse.data?.timestamp
+        timestamp: new Date().toISOString()
       };
     } catch (error: any) {
       console.error('❌ Error fetching supervisors:', {
@@ -82,9 +84,9 @@ export const supervisorsApi = {
   // Get supervisors by section
   getBySection: async (section: string): Promise<SupervisorResponse> => {
     try {
-      console.log(`🔍 Fetching supervisors for section: ${section}`);
+      console.log(`🔍 Fetching supervisors for section: ${section} using supervisors-only endpoint`);
       
-      const response = await api.get(`/auth/supervisors/by-section/${encodeURIComponent(section)}`, {
+      const response = await api.get(`/users`, {
         timeout: 10000,
         headers: {
           'Accept': 'application/json',
@@ -95,23 +97,22 @@ export const supervisorsApi = {
       const apiResponse = response as any;
       console.log('📊 API Response:', {
         status: apiResponse.status,
-        section: apiResponse.data?.section,
-        count: apiResponse.data?.count,
-        fallback: apiResponse.data?.fallback,
-        timestamp: apiResponse.data?.timestamp
+        success: apiResponse.success,
+        count: apiResponse.data?.users?.length,
+        total: apiResponse.data?.pagination?.total
       });
       
-      // معالجة خاصة لـ API المشرفين - يعيد { success: true, data: [...], fallback?: boolean }
-      const supervisors = Array.isArray(apiResponse.data) ? apiResponse.data : (apiResponse.data?.data || []);
+      // معالجة API المستخدمين - يعيد { success: true, data: { users: [...], pagination: {...} } }
+      const supervisors = apiResponse.data?.users || [];
       
       console.log(`✅ Successfully fetched ${supervisors.length} supervisors for section: ${section}`);
       
       return {
         data: supervisors,
-        fallback: apiResponse.data?.fallback || false,
-        section: apiResponse.data?.section || section,
-        count: apiResponse.data?.count || supervisors.length,
-        timestamp: apiResponse.data?.timestamp
+        fallback: false,
+        section: section,
+        count: supervisors.length,
+        timestamp: new Date().toISOString()
       };
     } catch (error: any) {
       console.error('❌ Error fetching supervisors by section:', {
@@ -130,4 +131,30 @@ export const supervisorsApi = {
       };
     }
   },
+
+  // Update existing supervisors with codes and vehicle numbers
+  updateExistingSupervisors: async (): Promise<any> => {
+    try {
+      console.log('🔄 Updating existing supervisors...');
+      
+      const response = await api.post('/users/supervisors/update-codes');
+      
+      const apiResponse = response as any;
+      console.log('📊 Update Response:', {
+        success: apiResponse.success,
+        updatedCount: apiResponse.data?.updatedCount,
+        totalSupervisors: apiResponse.data?.totalSupervisors
+      });
+      
+      return apiResponse;
+    } catch (error: any) {
+      console.error('❌ Error updating supervisors:', {
+        message: error.message,
+        status: error.response?.status,
+        data: error.response?.data
+      });
+      
+      throw error;
+    }
+  }
 };

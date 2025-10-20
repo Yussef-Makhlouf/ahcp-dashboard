@@ -158,8 +158,6 @@ interface ParasiteControl {
   breedingSites: BreedingSite[];
   herdLocation: string;
   animalBarnSizeSqM: number;
-  parasiteControlVolume: number;
-  parasiteControlStatus: string;
   herdHealthStatus: "Healthy" | "Sick" | "Under Treatment";
   complying: "Comply" | "Not Comply";
   request: Request;

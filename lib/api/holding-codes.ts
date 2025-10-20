@@ -74,7 +74,7 @@ export const holdingCodesApi = {
   // Get holding codes by village
   getByVillage: async (village: string): Promise<HoldingCodeListResponse> => {
     try {
-      const response = await api.get(`/holding-codes/village/${encodeURIComponent(village)}`);
+      const response = await api.get(`/holding-codes/by-village/${encodeURIComponent(village)}`);
       return response as HoldingCodeListResponse;
     } catch (error) {
       console.error('Error fetching holding codes by village:', error);
@@ -115,16 +115,6 @@ export const holdingCodesApi = {
     }
   },
 
-  // Toggle holding code active status
-  toggleStatus: async (id: string): Promise<HoldingCodeResponse> => {
-    try {
-      const response = await api.put(`/holding-codes/${id}/toggle-status`);
-      return response as HoldingCodeResponse;
-    } catch (error) {
-      console.error('Error toggling holding code status:', error);
-      throw error;
-    }
-  },
 
   // Delete holding code
   delete: async (id: string): Promise<HoldingCodeResponse> => {

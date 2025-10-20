@@ -9,7 +9,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { ArrowUpDown, Edit, Eye, Trash2, User, Calendar, Phone, MapPin, Hash } from "lucide-react";
+import { ArrowUpDown, Edit, Eye, Trash2, User, Calendar, Phone, MapPin, Hash, MoreHorizontal } from "lucide-react";
 import { usePermissions } from "@/lib/hooks/usePermissions";
 import type { Vaccination } from "@/types";
 

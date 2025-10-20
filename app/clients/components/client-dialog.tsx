@@ -107,7 +107,12 @@ export function ClientDialog({ open, onOpenChange, client, onSave }: ClientDialo
     phone: string;
     email?: string;
     village?: string;
-    holdingCode?: string;
+    holdingCode?: string | {
+      _id: string;
+      code: string;
+      village: string;
+      description?: string;
+    };
     detailedAddress?: string;
     status: "نشط" | "غير نشط";
     animals: Animal[];
@@ -146,7 +151,6 @@ export function ClientDialog({ open, onOpenChange, client, onSave }: ClientDialo
         ...client,
         nationalId: client.nationalId || client.national_id || "",
         birthDate: client.birthDate || client.birth_date || "",
-        detailedAddress: client.detailedAddress || client.detailed_address || "",
         holdingCode: typeof client.holdingCode === 'string' ? client.holdingCode : (client.holdingCode?._id || ""),
         availableServices: client.availableServices || client.available_services || [],
       });
@@ -219,13 +223,19 @@ export function ClientDialog({ open, onOpenChange, client, onSave }: ClientDialo
     setLoading(true);
     
     try {
+      // Ensure holdingCode is properly formatted
+      const submitData = {
+        ...formData,
+        holdingCode: typeof formData.holdingCode === 'string' ? formData.holdingCode : (formData.holdingCode?._id || undefined),
+      };
+
       if (client) {
         // Update existing client
-        await clientsApi.update(client._id || client.id || '', formData);
+        await clientsApi.update(client._id || client.id || '', submitData);
         entityToasts.client.update();
       } else {
         // Create new client
-        await clientsApi.create(formData);
+        await clientsApi.create(submitData);
         entityToasts.client.create();
       }
       
@@ -419,7 +429,10 @@ export function ClientDialog({ open, onOpenChange, client, onSave }: ClientDialo
                     <FormLabel htmlFor="village" required>القرية</FormLabel>
                     <VillageSelect
                       value={formData.village}
-                      onValueChange={(value) => setFormData({ ...formData, village: value })}
+                      onValueChange={(value) => {
+                        console.log('🏘️ Village changed in client form:', value);
+                        setFormData({ ...formData, village: value });
+                      }}
                       placeholder="اختر القرية"
                       error={errors.village}
                       required
@@ -429,7 +442,7 @@ export function ClientDialog({ open, onOpenChange, client, onSave }: ClientDialo
                   <FormField>
                     <FormLabel>رمز الحيازة</FormLabel>
                     <HoldingCodeSelector
-                      value={formData.holdingCode || ""}
+                      value={typeof formData.holdingCode === 'string' ? formData.holdingCode : (formData.holdingCode?._id || "")}
                       onValueChange={(value) => {
                         setFormData({ ...formData, holdingCode: value || "" });
                       }}

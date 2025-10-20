@@ -4,7 +4,8 @@ import { useState } from "react";
 import { MainLayout } from "@/components/layout/main-layout";
 import { DataTable } from "@/components/data-table/data-table";
 import { Button } from "@/components/ui/button";
-import { Plus, Upload, Download, Users, UserCheck, MapPin, Phone } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Plus, Upload, Download, Users, UserCheck, MapPin, Phone, Search, X } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import type { Client } from "@/types";
@@ -35,16 +36,18 @@ export default function ClientsPage() {
   const [selectedClient, setSelectedClient] = useState<Client | undefined>(undefined);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize] = useState(30);
+  const [searchTerm, setSearchTerm] = useState("");
 
   const queryClient = useQueryClient();
   const { checkPermission, isAdmin } = usePermissions();
 
-  // استخدام React Query لجلب البيانات من API مع الترقيم
+  // استخدام React Query لجلب البيانات من API مع الترقيم والبحث
   const { data: clientsResponse, isLoading, error, refetch } = useQuery({
-    queryKey: ['clients', currentPage, pageSize],
+    queryKey: ['clients', currentPage, pageSize, searchTerm],
     queryFn: () => clientsApi.getList({
       page: currentPage,
       limit: pageSize,
+      search: searchTerm || undefined,
     }),
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
@@ -363,6 +366,8 @@ export default function ClientsPage() {
     setIsClientDialogOpen(true);
   };
 
+
+
   if (error) {
     return (
       <MainLayout>
@@ -417,6 +422,7 @@ export default function ClientsPage() {
             }}
           />
         </div>
+
 
         {/* Stats Cards */}
         <div className="grid gap-4 md:grid-cols-4">

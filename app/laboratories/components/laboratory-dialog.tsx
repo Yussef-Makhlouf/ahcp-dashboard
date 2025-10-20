@@ -48,6 +48,7 @@ import { useFormValidation } from "@/lib/hooks/use-form-validation";
 import { ValidatedInput } from "@/components/ui/validated-input";
 import { ValidatedSelect } from "@/components/ui/validated-select";
 import { ValidatedTextarea } from "@/components/ui/validated-textarea";
+import { DynamicSelect } from "@/components/ui/dynamic-select";
 
 interface LaboratoryDialogProps {
   open: boolean;
@@ -103,7 +104,6 @@ export function LaboratoryDialog({ open, onOpenChange, laboratory, onSave }: Lab
         return null;
       }
     },
-    'farmLocation': { required: true },
     'sampleCode': { required: true },
     'collector': { required: true },
     'sampleType': { required: true },
@@ -128,7 +128,6 @@ export function LaboratoryDialog({ open, onOpenChange, laboratory, onSave }: Lab
     clientId: "",
     clientBirthDate: undefined as Date | undefined,
     clientPhone: "",
-    farmLocation: "",
     coordinates: {
       latitude: 0,
       longitude: 0,
@@ -147,7 +146,6 @@ export function LaboratoryDialog({ open, onOpenChange, laboratory, onSave }: Lab
     sampleNumber: "",
     positiveCases: 0,
     negativeCases: 0,
-    followUpDate: "",
     holdingCode: "",
     remarks: "",
     testResults: [] as TestResult[],
@@ -201,7 +199,6 @@ export function LaboratoryDialog({ open, onOpenChange, laboratory, onSave }: Lab
         clientBirthDate: laboratory.clientBirthDate ? new Date(laboratory.clientBirthDate) : 
                         laboratory.client?.birthDate ? new Date(laboratory.client.birthDate) : undefined,
         clientPhone: laboratory.clientPhone || laboratory.client?.phone || "",
-        farmLocation: laboratory.farmLocation || "",
         coordinates: laboratory.coordinates || { latitude: 0, longitude: 0 },
         speciesCounts: laboratory.speciesCounts ? {
           sheep: laboratory.speciesCounts.sheep || 0,
@@ -224,7 +221,6 @@ export function LaboratoryDialog({ open, onOpenChange, laboratory, onSave }: Lab
         sampleNumber: laboratory.sampleNumber || "",
         positiveCases: laboratory.positiveCases || 0,
         negativeCases: laboratory.negativeCases || 0,
-        followUpDate: laboratory.followUpDate || "",
         holdingCode: typeof laboratory.holdingCode === 'string' ? laboratory.holdingCode : (laboratory.holdingCode?._id || ""),
         remarks: laboratory.remarks || "",
         testResults: laboratory.testResults || [],
@@ -245,7 +241,6 @@ export function LaboratoryDialog({ open, onOpenChange, laboratory, onSave }: Lab
         clientId: "",
         clientBirthDate: undefined,
         clientPhone: "",
-        farmLocation: "",
         coordinates: { latitude: 0, longitude: 0 },
         speciesCounts: {
           sheep: 0,
@@ -261,6 +256,7 @@ export function LaboratoryDialog({ open, onOpenChange, laboratory, onSave }: Lab
         sampleNumber: "",
         positiveCases: 0,
         negativeCases: 0,
+        holdingCode: "",
         remarks: "",
         testResults: [],
       });
@@ -289,7 +285,6 @@ export function LaboratoryDialog({ open, onOpenChange, laboratory, onSave }: Lab
       'clientName': formData.clientName,
       'clientId': formData.clientId,
       'clientPhone': formData.clientPhone,
-      'farmLocation': formData.farmLocation,
       'collector': formData.collector,
       'sampleType': formData.sampleType,
       'sampleNumber': formData.sampleNumber,
@@ -379,7 +374,6 @@ export function LaboratoryDialog({ open, onOpenChange, laboratory, onSave }: Lab
       clientId: formData.clientId,
       clientBirthDate: formData.clientBirthDate ? format(formData.clientBirthDate, "yyyy-MM-dd") : undefined,
       clientPhone: formData.clientPhone.startsWith('05') ? formData.clientPhone : `05${formData.clientPhone.replace(/^0+/, '')}`, // Ensure phone starts with 05
-      farmLocation: formData.farmLocation,
       coordinates: formData.coordinates,
       speciesCounts: formData.speciesCounts,
       collector: formData.collector,
@@ -467,7 +461,6 @@ export function LaboratoryDialog({ open, onOpenChange, laboratory, onSave }: Lab
       'clientId': 'رقم الهوية',
       'clientPhone': 'رقم الهاتف',
       'clientBirthDate': 'تاريخ الميلاد',
-      'farmLocation': 'موقع المزرعة',
       'collector': 'جامع العينة',
       'sampleType': 'نوع العينة',
       'sampleNumber': 'رمز جامع العينة',
@@ -873,22 +866,6 @@ export function LaboratoryDialog({ open, onOpenChange, laboratory, onSave }: Lab
 
 
                 {/* Location */}
-                <div className="space-y-2">
-                  <Label>الموقع *</Label>
-                  <Input
-                    value={formData.farmLocation}
-                    onChange={(e) => {
-                      setFormData({ ...formData, farmLocation: e.target.value });
-                      clearFieldError('farmLocation');
-                    }}
-                    placeholder="موقع المزرعة"
-                    required
-                    className={getFieldError('farmLocation') ? 'border-red-500' : ''}
-                  />
-                  {getFieldError('farmLocation') && (
-                    <p className="text-red-500 text-sm font-medium mt-1">{getFieldError('farmLocation')}</p>
-                  )}
-                </div>
 
                 {/* Holding Code */}
                 <div className="space-y-2">
@@ -958,28 +935,18 @@ export function LaboratoryDialog({ open, onOpenChange, laboratory, onSave }: Lab
 
                 {/* Sample Type */}
                 <div className="space-y-2">
-                  <Label>نوع العينة *</Label>
-                  <Select
+                  <DynamicSelect
+                    category="SAMPLE_TYPES"
                     value={formData.sampleType}
                     onValueChange={(value) => {
                       setFormData({ ...formData, sampleType: value });
                       clearFieldError('sampleType');
                     }}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="اختر نوع العينة" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {sampleTypes.map((type) => (
-                        <SelectItem key={type.value} value={type.value}>
-                          {type.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  {getFieldError('sampleType') && (
-                    <p className="text-red-500 text-sm font-medium mt-1">{getFieldError('sampleType')}</p>
-                  )}
+                    label="نوع العينة"
+                    required={true}
+                    placeholder="اختر نوع العينة"
+                    error={getFieldError('sampleType') || undefined}
+                  />
                 </div>
 
                 {/* Collector Code */}
@@ -1178,41 +1145,23 @@ export function LaboratoryDialog({ open, onOpenChange, laboratory, onSave }: Lab
                     </div>
 
                     <div className="space-y-2">
-                      <Label>نوع الحيوان</Label>
-                      <Select
+                      <DynamicSelect
+                        category="ANIMAL_TYPES"
                         value={newTestResult.animalType}
                         onValueChange={(value) => setNewTestResult({ ...newTestResult, animalType: value })}
-                      >
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="sheep">أغنام</SelectItem>
-                          <SelectItem value="goats">ماعز</SelectItem>
-                          <SelectItem value="cattle">أبقار</SelectItem>
-                          <SelectItem value="camel">إبل</SelectItem>
-                          <SelectItem value="horse">خيول</SelectItem>
-                        </SelectContent>
-                      </Select>
+                        label="نوع الحيوان"
+                        placeholder="اختر نوع الحيوان"
+                      />
                     </div>
 
                     <div className="space-y-2">
-                      <Label>نوع الفحص</Label>
-                      <Select
+                      <DynamicSelect
+                        category="TEST_TYPES"
                         value={newTestResult.testType}
                         onValueChange={(value) => setNewTestResult({ ...newTestResult, testType: value })}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="اختر نوع الفحص" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {testTypes.map((type) => (
-                            <SelectItem key={type.value} value={type.value}>
-                              {type.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                        label="نوع الفحص"
+                        placeholder="اختر نوع الفحص"
+                      />
                     </div>
 
                     <div className="space-y-2">

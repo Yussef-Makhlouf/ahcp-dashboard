@@ -73,7 +73,6 @@ export const errorTranslations: Record<string, string> = {
   'vaccineType is required': 'نوع اللقاح مطلوب - يرجى اختيار نوع اللقاح',
   'vaccineCategory is required': 'فئة اللقاح مطلوبة - يرجى اختيار فئة اللقاح',
   'insecticide is required': 'المبيد الحشري مطلوب - يرجى إدخال نوع المبيد المستخدم',
-  'parasiteControlVolume is required': 'كمية مكافحة الطفيليات مطلوبة - يرجى إدخال الكمية المستخدمة',
   'medicationsUsed is required': 'الأدوية المستخدمة مطلوبة - يرجى إدخال قائمة الأدوية',
   'followUpRequired is required': 'المتابعة المطلوبة - يرجى تحديد ما إذا كانت المتابعة مطلوبة',
   

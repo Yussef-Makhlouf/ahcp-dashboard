@@ -24,7 +24,6 @@ export interface Client {
   phone: string;
   email?: string;
   village?: string;
-  detailedAddress?: string;
   holdingCode?: string | {
     _id: string;
     code: string;
@@ -69,7 +68,6 @@ export interface Client {
   // Legacy fields for compatibility
   national_id?: string;
   birth_date?: string;
-  detailed_address?: string;
   available_services?: string[];
 }
 
@@ -232,7 +230,6 @@ export interface ParasiteControl {
     nationalId: string;
     phone: string;
     village?: string;
-    detailedAddress?: string;
     birthDate?: string;
   };
   location?: Location; // Legacy support
@@ -261,7 +258,6 @@ export interface ParasiteControl {
   };
   barns?: Barn[]; // Legacy support
   // Backend fields
-  herdLocation: string;
   animalBarnSizeSqM: number;
   breedingSites: string; // Backend expects string
   herdHealthStatus: "Healthy" | "Sick" | "Under Treatment";
@@ -307,7 +303,6 @@ export interface Vaccination {
     nationalId: string;
     phone: string;
     village?: string;
-    detailedAddress?: string;
     birthDate?: string;
   };
   coordinates?: {
@@ -316,7 +311,6 @@ export interface Vaccination {
   };
   supervisor: string;
   vehicleNo: string;
-  farmLocation: string;
   vaccineType: string;
   herdCounts: {
     sheep: {
@@ -388,10 +382,8 @@ export interface MobileClinic {
     nationalId: string;
     phone: string;
     village?: string;
-    detailedAddress?: string;
     birthDate?: string;
   };
-  farmLocation: string;
   coordinates?: {
     latitude: number;
     longitude: number;
@@ -461,9 +453,7 @@ export interface EquineHealth {
     birthDate?: string;
     phone: string;
     village?: string;
-    detailedAddress?: string;
   };
-  farmLocation: string;
   coordinates: {
     latitude?: number;
     longitude?: number;
@@ -530,7 +520,7 @@ export interface Laboratory {
     phone: string; // phone column (10 digits)
   };
   
-  farmLocation: string; // Location column
+ // Location column
   coordinates: {
     latitude: number; // N column (North coordinate)
     longitude: number; // E column (East coordinate)
@@ -592,6 +582,9 @@ export interface Supervisor {
   email: string;
   role: 'super_admin' | 'section_supervisor';
   section?: string;
+  supervisorCode?: string;
+  vehicleNo?: string;
+  isActive?: boolean;
 }
 
 export interface PaginatedResponse<T> {

@@ -75,20 +75,11 @@ export function getColumns({
         
         // Handle both string and object types
         const code = typeof holdingCode === 'object' ? holdingCode.code : holdingCode;
-        const village = typeof holdingCode === 'object' ? holdingCode.village : '';
         
         return (
-          <div className="text-xs space-y-1">
-            <div className="flex items-center gap-1 font-medium">
-              <Hash className="h-3 w-3 text-blue-500" />
-              <span>{code}</span>
-            </div>
-            {village && (
-              <div className="flex items-center gap-1 text-gray-500">
-                <MapPin className="h-3 w-3" />
-                <span>{village}</span>
-              </div>
-            )}
+          <div className="flex items-center gap-1 text-xs font-medium">
+            <Hash className="h-3 w-3 text-blue-500" />
+            <span>{code}</span>
           </div>
         );
       },
@@ -142,21 +133,21 @@ export function getColumns({
       cell: ({ row }) => {
         const category = row.getValue("interventionCategory") as string;
         const categoryColors: Record<string, string> = {
-          "Emergency": "bg-red-500 text-white border-red-600",
-          "Routine": "bg-blue-500 text-white border-blue-600",
-          "Preventive": "bg-green-500 text-white border-green-600",
-          "Follow-up": "bg-yellow-500 text-white border-yellow-600",
-          "Breeding": "bg-purple-500 text-white border-purple-600",
-          "Performance": "bg-orange-500 text-white border-orange-600",
+          "Clinical Examination": "bg-red-500 text-white border-red-600",
+          "Surgical Operation": "bg-blue-500 text-white border-blue-600",
+          "Ultrasonography": "bg-green-500 text-white border-green-600",
+          "Preventive": "bg-yellow-500 text-white border-yellow-600",
+          "Lab Analysis": "bg-purple-500 text-white border-purple-600",
+          "Farriery": "bg-orange-500 text-white border-orange-600",
         };
 
         const categoryLabels: Record<string, string> = {
-          "Emergency": "طوارئ",
-          "Routine": "روتيني",
-          "Preventive": "وقائي",
-          "Follow-up": "متابعة",
-          "Breeding": "تربية",
-          "Performance": "أداء",
+          "Clinical Examination": "طوارئ",
+          "Surgical Operation": "روتيني",
+          "Ultrasonography": "وقائي",
+          "Preventive": "متابعة",
+          "Lab Analysis": "تربية",
+          "Farriery": "أداء",
         };
 
         return (

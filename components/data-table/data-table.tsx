@@ -110,6 +110,7 @@ export function DataTable<TData, TValue>({
   totalCount,
   currentPage = 1,
   totalPages,
+
   onPageChange,
   onPageSizeChange,
   showPagination = true,

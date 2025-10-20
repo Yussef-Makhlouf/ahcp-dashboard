@@ -52,7 +52,6 @@ const fieldLabels: Record<string, string> = {
   // حقول مكافحة الطفيليات
   insecticideType: 'نوع المبيد',
   insecticideVolume: 'كمية المبيد',
-  parasiteControlStatus: 'حالة مكافحة الطفيليات',
   herdHealthStatus: 'الحالة الصحية للقطيع',
   
   // حقول المختبرات

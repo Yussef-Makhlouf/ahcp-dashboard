@@ -120,8 +120,6 @@ const fieldLabels: Record<string, string> = {
   volume: 'الكمية',
   animalBarnSizeSqM: 'مساحة الحظيرة (م²)',
   breedingSites: 'مواقع التكاثر',
-  parasiteControlVolume: 'كمية مكافحة الطفيليات',
-  parasiteControlStatus: 'حالة مكافحة الطفيليات',
   herdHealthStatus: 'الحالة الصحية للقطيع',
   complyingToInstructions: 'الامتثال للتعليمات',
   

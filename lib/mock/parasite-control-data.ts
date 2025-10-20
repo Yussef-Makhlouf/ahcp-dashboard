@@ -34,8 +34,7 @@ export const mockParasiteControlData: ParasiteControl[] = [
     // New fields from database schema
     herdLocation: "منطقة الشمال",
     animalBarnSizeSqM: 250.50,
-    parasiteControlVolume: 75.25,
-    parasiteControlStatus: "مكتمل",
+    holdingCode: "HC001",
     herdHealthStatus: "Healthy",
     complying: "Comply",
     request: {
@@ -78,8 +77,7 @@ export const mockParasiteControlData: ParasiteControl[] = [
     // New fields from database schema
     herdLocation: "منطقة الجنوب",
     animalBarnSizeSqM: 200.00,
-    parasiteControlVolume: 45.00,
-    parasiteControlStatus: "مكتمل",
+    holdingCode: "HC002",
     herdHealthStatus: "Healthy",
     complying: "Comply",
     request: {
@@ -120,13 +118,12 @@ export const mockParasiteControlData: ParasiteControl[] = [
     // New fields from database schema
     herdLocation: "منطقة الشرق",
     animalBarnSizeSqM: 0,
-    parasiteControlVolume: 0,
-    parasiteControlStatus: "معلق",
+    holdingCode: "HC003",
     herdHealthStatus: "Sick",
     complying: "Not Comply",
     request: {
       date: "2025-09-09",
-      situation: "Open"
+      situation: "Ongoing"
     },
     category: "مكافحة الطفيليات",
     remarks: "المربي غير متواجد"
@@ -166,8 +163,7 @@ export const mockParasiteControlData: ParasiteControl[] = [
     // New fields from database schema
     herdLocation: "منطقة الغرب",
     animalBarnSizeSqM: 350.75,
-    parasiteControlVolume: 90.50,
-    parasiteControlStatus: "مكتمل",
+    holdingCode: "HC004",
     herdHealthStatus: "Healthy",
     complying: "Comply",
     request: {
@@ -211,8 +207,7 @@ export const mockParasiteControlData: ParasiteControl[] = [
     // New fields from database schema
     herdLocation: "منطقة الوسط",
     animalBarnSizeSqM: 300.00,
-    parasiteControlVolume: 60.00,
-    parasiteControlStatus: "مكتمل",
+    holdingCode: "HC005",
     herdHealthStatus: "Healthy",
     complying: "Comply",
     request: {

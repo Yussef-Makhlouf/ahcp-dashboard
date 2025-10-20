@@ -2,7 +2,7 @@ import axios, { AxiosInstance, AxiosRequestConfig } from 'axios';
 import { useAuthStore } from '@/lib/store/auth-store';
 
 // Base API configuration - إنتاج
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://ahcp-backend-production.up.railway.app/api';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
 
 // Create axios instance
 const apiClient: AxiosInstance = axios.create({
@@ -22,7 +22,7 @@ apiClient.interceptors.request.use(
     
     // تأكد من أن BASE URL صحيح
     if (!config.baseURL || config.baseURL.includes('undefined')) {
-      config.baseURL = 'https://ahcp-backend-production.up.railway.app/api';
+      config.baseURL = 'http://localhost:3001/api';
       console.log('🔧 Fixed BASE URL to:', config.baseURL);
     }
     
@@ -159,50 +159,24 @@ apiClient.interceptors.request.use(
   }
 );
 
-// Response interceptor
+// Response interceptor - مع معالجة الأخطاء المحسنة
 apiClient.interceptors.response.use(
   (response) => {
-    console.log('📥 API Response:', {
-      status: response.status,
-      url: response.config.url,
-      data: response.data
-    });
+    console.log(`✅ API Response: ${response.status} ${response.config.method?.toUpperCase()} ${response.config.url}`);
     return response;
   },
   (error) => {
-    // Enhanced error handling with better user messages
-    const originalError = error;
-    
-    // Network and connection errors
-    if (error.code === 'ECONNREFUSED' || error.code === 'ERR_NETWORK') {
-      console.error('❌ Connection failed:', error.message);
-      error.userMessage = 'Connection failed. Please check your internet connection and try again.';
-    }
-    
-    // CORS errors
-    if (error.message?.includes('CORS')) {
-      console.error('❌ CORS error:', error.message);
-      error.userMessage = 'CORS configuration error. Please check server settings.';
-    }
-    
-    // Timeout errors
-    if (error.code === 'ECONNABORTED' || error.message?.includes('timeout')) {
-      console.error('❌ Request timeout:', error.message);
-      const url = error.config?.url || '';
-      if (url.includes('/import') || url.includes('/export')) {
-        error.userMessage = 'الاستيراد/التصدير يستغرق وقت طويل. يرجى المحاولة مرة أخرى أو تقليل حجم الملف.';
-      } else {
-        error.userMessage = 'Request timed out. Please try again.';
+    console.error('❌ API Error:', error);
+    console.error('🔍 Error details:', {
+      message: error.message,
+      code: error.code,
+      config: {
+        url: error.config?.url,
+        method: error.config?.method,
+        baseURL: error.config?.baseURL,
+        timeout: error.config?.timeout
       }
-      
-      // إعادة توجيه إلى تسجيل الدخول في حالة timeout مع MISSING_TOKEN
-      if (error.response?.data?.error === 'MISSING_TOKEN') {
-        console.warn('⚠️ Timeout with missing token - redirecting to login');
-        if (typeof window !== 'undefined') {
-          window.location.href = '/login';
-        }
-      }
-    }
+    });
     
     // Handle 401 Unauthorized
     if (error.response?.status === 401) {
@@ -235,7 +209,7 @@ apiClient.interceptors.response.use(
     }
     
     // Handle 403 Forbidden
-    if (error.response?.status === 403) {
+    if (error.response?.status === 403) { 
       error.userMessage = 'You don\'t have permission to perform this action.';
     }
     
@@ -278,7 +252,7 @@ apiClient.interceptors.response.use(
     }
     
     // Add original error for debugging
-    error.originalError = originalError;
+    error.originalError = error;
     
     return Promise.reject(error);
   }

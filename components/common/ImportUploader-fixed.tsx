@@ -177,8 +177,6 @@ export const ImportUploader: React.FC<ImportUploaderProps> = ({
           { label: 'Breeding Sites Type', key: 'breedingSitesType' },
           { label: 'Breeding Sites Area', key: 'breedingSitesArea' },
           { label: 'Breeding Sites Treatment', key: 'breedingSitesTreatment' },
-          { label: 'Parasite Control Volume', key: 'parasiteControlVolume' },
-          { label: 'Parasite Control Status', key: 'parasiteControlStatus' },
           { label: 'Complying', key: 'complying' },
           { label: 'Complying To Instructions', key: 'complyingToInstructions' },
           { label: 'Remarks', key: 'remarks' }
@@ -263,7 +261,7 @@ export const ImportUploader: React.FC<ImportUploaderProps> = ({
       // دالة الحصول على webhook URL
       const getWebhookUrl = (type: string): string => {
         const ngrokUrl = process.env.NEXT_PUBLIC_NGROK_URL;
-        let baseUrl = ngrokUrl || process.env.NEXT_PUBLIC_API_URL || 'https://ahcp-backend-production.up.railway.app';
+        let baseUrl = ngrokUrl || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
         
         if (!baseUrl.startsWith('http')) {
           baseUrl = `https://${baseUrl}`;

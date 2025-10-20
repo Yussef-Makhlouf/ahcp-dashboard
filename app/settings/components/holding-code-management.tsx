@@ -29,9 +29,7 @@ import {
   Edit,
   Trash2,
   MapPin,
-  Eye,
-  ToggleLeft,
-  ToggleRight,
+  
 } from "lucide-react";
 import { toast } from "sonner";
 import { ColumnDef } from "@tanstack/react-table";
@@ -62,7 +60,7 @@ export function HoldingCodeManagement({ onRefresh }: HoldingCodeManagementProps)
   const [pageSize, setPageSize] = useState(10);
 
   // Filter state
-  const [selectedVillage, setSelectedVillage] = useState<string>("");
+  const [selectedVillage, setSelectedVillage] = useState<string>("all");
   const [activeFilter, setActiveFilter] = useState<string>("all");
 
   const [codeForm, setCodeForm] = useState({
@@ -86,7 +84,7 @@ export function HoldingCodeManagement({ onRefresh }: HoldingCodeManagementProps)
         limit: pageSize
       };
       
-      if (selectedVillage) params.village = selectedVillage;
+      if (selectedVillage && selectedVillage !== "all") params.village = selectedVillage;
       if (activeFilter !== "all") params.active = activeFilter === "active";
 
       const response = await holdingCodesApi.getList(params);
@@ -147,8 +145,23 @@ export function HoldingCodeManagement({ onRefresh }: HoldingCodeManagementProps)
       } else {
         toast.error(response.message || "حدث خطأ أثناء حفظ رمز الحيازة");
       }
-    } catch (error) {
-      toast.error("حدث خطأ أثناء حفظ رمز الحيازة");
+    } catch (error: any) {
+      console.error('Holding code error:', error);
+      
+      // Handle specific error messages from backend
+      if (error.response?.data?.message) {
+        const errorMessage = error.response.data.message;
+        
+        if (errorMessage.includes('already has a holding code')) {
+          toast.error(`القرية المحددة لديها رمز حياة مسبقاً. لا يمكن إضافة أكثر من رمز حياة واحد لنفس القرية.`);
+        } else if (errorMessage.includes('already exists')) {
+          toast.error(`رمز الحياة موجود مسبقاً. يرجى استخدام رمز آخر.`);
+        } else {
+          toast.error(errorMessage);
+        }
+      } else {
+        toast.error("حدث خطأ أثناء حفظ رمز الحيازة");
+      }
     } finally {
       setIsLoading(false);
     }
@@ -165,19 +178,7 @@ export function HoldingCodeManagement({ onRefresh }: HoldingCodeManagementProps)
     setDialogOpen(true);
   };
 
-  const handleToggleStatus = async (codeId: string) => {
-    try {
-      const response = await holdingCodesApi.toggleStatus(codeId);
-      if (response.success) {
-        toast.success("تم تغيير حالة رمز الحيازة بنجاح");
-        loadHoldingCodes();
-      } else {
-        toast.error(response.message || "حدث خطأ أثناء تغيير الحالة");
-      }
-    } catch (error) {
-      toast.error("حدث خطأ أثناء تغيير الحالة");
-    }
-  };
+
 
   const handleDeleteCode = async (codeId: string) => {
     if (!confirm("هل أنت متأكد من حذف رمز الحيازة؟ قد يؤثر هذا على السجلات المرتبطة به.")) {
@@ -247,18 +248,8 @@ export function HoldingCodeManagement({ onRefresh }: HoldingCodeManagementProps)
         );
       },
     },
-    {
-      accessorKey: "isActive",
-      header: "الحالة",
-      cell: ({ row }) => {
-        const isActive = row.getValue("isActive") as boolean;
-        return (
-          <Badge variant={isActive ? "default" : "secondary"}>
-            {isActive ? "نشط" : "غير نشط"}
-          </Badge>
-        );
-      },
-    },
+
+
     {
       accessorKey: "createdAt",
       header: "تاريخ الإنشاء",
@@ -282,18 +273,7 @@ export function HoldingCodeManagement({ onRefresh }: HoldingCodeManagementProps)
             >
               <Edit className="h-4 w-4" />
             </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => handleToggleStatus(code._id!)}
-              className="h-8 w-8 p-0"
-            >
-              {code.isActive ? (
-                <ToggleRight className="h-4 w-4 text-green-500" />
-              ) : (
-                <ToggleLeft className="h-4 w-4 text-gray-400" />
-              )}
-            </Button>
+   
             <Button
               variant="ghost"
               size="sm"
@@ -339,7 +319,7 @@ export function HoldingCodeManagement({ onRefresh }: HoldingCodeManagementProps)
                   <SelectValue placeholder="جميع القرى" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">جميع القرى</SelectItem>
+                  <SelectItem value="all">جميع القرى</SelectItem>
                   {villages.map((village) => (
                     <SelectItem key={village._id} value={village.nameArabic}>
                       {village.nameArabic}
@@ -348,19 +328,7 @@ export function HoldingCodeManagement({ onRefresh }: HoldingCodeManagementProps)
                 </SelectContent>
               </Select>
             </div>
-            <div className="flex-1">
-              <Label>تصفية حسب الحالة</Label>
-              <Select value={activeFilter} onValueChange={setActiveFilter}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">جميع الحالات</SelectItem>
-                  <SelectItem value="active">نشط فقط</SelectItem>
-                  <SelectItem value="inactive">غير نشط فقط</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+       
           </div>
 
           {/* Data Table */}
@@ -431,16 +399,7 @@ export function HoldingCodeManagement({ onRefresh }: HoldingCodeManagementProps)
               />
             </div>
 
-            <div className="flex items-center space-x-2">
-              <input
-                type="checkbox"
-                id="isActive"
-                checked={codeForm.isActive}
-                onChange={(e) => setCodeForm({ ...codeForm, isActive: e.target.checked })}
-                className="rounded"
-              />
-              <Label htmlFor="isActive" className="text-right">نشط</Label>
-            </div>
+       
           </div>
 
           <DialogFooter>

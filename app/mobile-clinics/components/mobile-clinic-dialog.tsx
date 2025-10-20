@@ -36,6 +36,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { VillageSelect } from "@/components/ui/village-select";
 import { ClientSelector } from "@/components/ui/client-selector";
 import { HoldingCodeSelector } from "@/components/common/HoldingCodeSelector";
+import { DynamicSelect } from "@/components/ui/dynamic-select";
 
 import { useClientData } from "@/lib/hooks/use-client-data";
 import React, { useCallback } from "react";
@@ -69,9 +70,6 @@ const interventionCategories = [
 interface Treatment {
   id: string;
   medicine: string;
-  dosage: string;
-  duration: string;
-  notes: string;
 }
 
 export function MobileClinicDialog({ open, onOpenChange, clinic, onSave }: MobileClinicDialogProps) {
@@ -85,7 +83,6 @@ export function MobileClinicDialog({ open, onOpenChange, clinic, onSave }: Mobil
     'client.phone': { required: true, phone: true },
     'supervisor': { required: true },
     'vehicleNo': { required: true },
-    'farmLocation': { required: true },
     'date': { required: true },
     'interventionCategory': { required: true },
     'diagnosis': { required: true },
@@ -130,12 +127,6 @@ export function MobileClinicDialog({ open, onOpenChange, clinic, onSave }: Mobil
     diagnosis: "",
     interventionCategory: "",
     treatment: "",
-    medicationsUsed: [] as {
-      name: string;
-      dosage: string;
-      quantity: number;
-      route: string;
-    }[],
     request: {
       date: "",
       situation: "Ongoing" as "Ongoing" | "Closed",
@@ -160,18 +151,13 @@ export function MobileClinicDialog({ open, onOpenChange, clinic, onSave }: Mobil
     horse: 0,
     cattle: 0,
     treatments: [] as Treatment[],
-    prescriptions: [] as string[],
   });
 
   const [newTreatment, setNewTreatment] = useState<Treatment>({
     id: "",
     medicine: "",
-    dosage: "",
-    duration: "",
-    notes: "",
   });
 
-  const [newPrescription, setNewPrescription] = useState("");
 
   useEffect(() => {
     if (clinic) {
@@ -194,7 +180,6 @@ export function MobileClinicDialog({ open, onOpenChange, clinic, onSave }: Mobil
         },
         supervisor: clinic.supervisor || "",
         vehicleNo: clinic.vehicleNo || "",
-        farmLocation: clinic.farmLocation || "",
         animalCounts: {
           sheep: clinic.animalCounts?.sheep || clinic.sheep || 0,
           goats: clinic.animalCounts?.goats || clinic.goats || 0,
@@ -205,7 +190,6 @@ export function MobileClinicDialog({ open, onOpenChange, clinic, onSave }: Mobil
         diagnosis: clinic.diagnosis || "",
         interventionCategory: clinic.interventionCategory || "",
         treatment: clinic.treatment || "",
-        medicationsUsed: clinic.medicationsUsed || [],
         request: {
           date: clinic.request?.date ? format(new Date(clinic.request.date), "yyyy-MM-dd") : format(new Date(), "yyyy-MM-dd"),
           situation: clinic.request?.situation === "Open" || clinic.request?.situation === "Pending" ? "Ongoing" : (clinic.request?.situation || "Ongoing"),
@@ -213,7 +197,7 @@ export function MobileClinicDialog({ open, onOpenChange, clinic, onSave }: Mobil
         },
         followUpRequired: clinic.followUpRequired || false,
         followUpDate: clinic.followUpDate ? new Date(clinic.followUpDate) : undefined,
-        holdingCode: typeof clinic.holdingCode === 'string' ? clinic.holdingCode : (clinic.holdingCode?._id || ""),
+        holdingCode:  typeof clinic.holdingCode === 'string' ? clinic.holdingCode : (clinic.holdingCode?._id || ""),
         remarks: clinic.remarks || "",
         
         // Legacy fields for backward compatibility
@@ -233,7 +217,6 @@ export function MobileClinicDialog({ open, onOpenChange, clinic, onSave }: Mobil
         horse: clinic.animalCounts?.horse || clinic.horse || 0,
         cattle: clinic.animalCounts?.cattle || clinic.cattle || 0,
         treatments: [],
-        prescriptions: [],
       });
     } else {
       // Generate new serial number
@@ -256,7 +239,6 @@ export function MobileClinicDialog({ open, onOpenChange, clinic, onSave }: Mobil
         },
         supervisor: "",
         vehicleNo: "",
-        farmLocation: "",
         animalCounts: {
           sheep: 0,
           goats: 0,
@@ -267,7 +249,6 @@ export function MobileClinicDialog({ open, onOpenChange, clinic, onSave }: Mobil
         diagnosis: "",
         interventionCategory: "",
         treatment: "",
-        medicationsUsed: [],
         request: {
           date: format(new Date(), "yyyy-MM-dd"),
           situation: "Ongoing",
@@ -292,7 +273,6 @@ export function MobileClinicDialog({ open, onOpenChange, clinic, onSave }: Mobil
         horse: 0,
         cattle: 0,
         treatments: [],
-        prescriptions: [],
       });
     }
     
@@ -309,7 +289,6 @@ export function MobileClinicDialog({ open, onOpenChange, clinic, onSave }: Mobil
       'client.phone': formData.client?.phone,
       'supervisor': formData.supervisor,
       'vehicleNo': formData.vehicleNo,
-      'farmLocation': formData.farmLocation,
       'date': formData.date,
       'interventionCategory': formData.interventionCategory,
       'diagnosis': formData.diagnosis,
@@ -346,7 +325,7 @@ export function MobileClinicDialog({ open, onOpenChange, clinic, onSave }: Mobil
     
     try {
       const treatmentText = formData.treatments.length > 0
-        ? formData.treatments.map(t => `${t.medicine} - ${t.dosage}`).join(", ")
+        ? formData.treatments.map(t => t.medicine).join(", ")
         : formData.treatment;
 
       // تحويل البيانات للشكل المطلوب من الباك إند
@@ -362,7 +341,6 @@ export function MobileClinicDialog({ open, onOpenChange, clinic, onSave }: Mobil
           detailedAddress: formData.client.detailedAddress || '',
           birthDate: formData.client.birthDate || '',
         },
-        farmLocation: formData.farmLocation,
         coordinates: {
           latitude: formData.coordinates.latitude || 0,
           longitude: formData.coordinates.longitude || 0,
@@ -379,12 +357,6 @@ export function MobileClinicDialog({ open, onOpenChange, clinic, onSave }: Mobil
         diagnosis: formData.diagnosis,
         interventionCategory: formData.interventionCategory,
         treatment: treatmentText,
-        medicationsUsed: formData.medicationsUsed.map(med => ({
-          name: med.name,
-          dosage: med.dosage,
-          quantity: med.quantity,
-          route: med.route,
-        })),
         request: {
           date: formData.request.date || format(new Date(), "yyyy-MM-dd"),
           situation: formData.request.situation,
@@ -394,6 +366,7 @@ export function MobileClinicDialog({ open, onOpenChange, clinic, onSave }: Mobil
         },
         followUpRequired: formData.followUpRequired,
         followUpDate: formData.followUpDate ? format(formData.followUpDate, "yyyy-MM-dd") : null,
+        holdingCode: typeof formData.holdingCode === 'string' ? formData.holdingCode : (formData.holdingCode?._id || undefined),
         remarks: formData.remarks || '',
       };
       
@@ -424,7 +397,7 @@ export function MobileClinicDialog({ open, onOpenChange, clinic, onSave }: Mobil
   };
 
   const addTreatment = () => {
-    if (newTreatment.medicine && newTreatment.dosage) {
+    if (newTreatment.medicine) {
       setFormData({
         ...formData,
         treatments: [...formData.treatments, { ...newTreatment, id: Date.now().toString() }],
@@ -432,9 +405,6 @@ export function MobileClinicDialog({ open, onOpenChange, clinic, onSave }: Mobil
       setNewTreatment({
         id: "",
         medicine: "",
-        dosage: "",
-        duration: "",
-        notes: "",
       });
     }
   };
@@ -446,22 +416,6 @@ export function MobileClinicDialog({ open, onOpenChange, clinic, onSave }: Mobil
     });
   };
 
-  const addPrescription = () => {
-    if (newPrescription) {
-      setFormData({
-        ...formData,
-        prescriptions: [...formData.prescriptions, newPrescription],
-      });
-      setNewPrescription("");
-    }
-  };
-
-  const removePrescription = (index: number) => {
-    setFormData({
-      ...formData,
-      prescriptions: formData.prescriptions.filter((_, i) => i !== index),
-    });
-  };
 
   const getTotalAnimals = () => {
     return formData.animalCounts.sheep + formData.animalCounts.goats + formData.animalCounts.camel + formData.animalCounts.horse + formData.animalCounts.cattle;
@@ -589,7 +543,6 @@ export function MobileClinicDialog({ open, onOpenChange, clinic, onSave }: Mobil
                             nationalId: client.nationalId || client.national_id || "",
                             phone: client.phone || "",
                             village: client.village || "",
-                            detailedAddress: client.detailedAddress || client.detailed_address || "",
                             birthDate: client.birthDate || client.birth_date || "",
                           },
                           owner: {
@@ -720,12 +673,20 @@ export function MobileClinicDialog({ open, onOpenChange, clinic, onSave }: Mobil
                   <Label className="after:content-['*'] after:text-red-500 after:ml-1">المشرف</Label>
                   <SupervisorSelect
                     value={formData.supervisor}
-                    onValueChange={(value) => {
-                      setFormData({ ...formData, supervisor: value });
+                    onValueChange={(value, supervisor) => {
+                      setFormData({ 
+                        ...formData, 
+                        supervisor: value,
+                        // Auto-fill vehicle number if supervisor has one
+                        vehicleNo: supervisor?.vehicleNo || formData.vehicleNo
+                      });
                       clearFieldError('supervisor');
+                      if (supervisor?.vehicleNo) {
+                        clearFieldError('vehicleNo');
+                      }
                     }}
                     placeholder="اختر المشرف"
-                    section=" mobile-clinics"
+                    section="mobile-clinics"
                   />
                   {getFieldError('supervisor') && (
                     <p className="text-red-500 text-sm font-medium mt-1">{getFieldError('supervisor')}</p>
@@ -748,7 +709,7 @@ export function MobileClinicDialog({ open, onOpenChange, clinic, onSave }: Mobil
                         setFieldError('vehicleNo', error);
                       }
                     }}
-                    placeholder="مثال: Yussef C1 أو أحمد A2"
+                    placeholder="سيتم ملؤه تلقائياً عند اختيار المشرف"
                     className={getFieldError('vehicleNo') ? 'border-red-500' : ''}
                     maxLength={20}
                   />
@@ -757,23 +718,6 @@ export function MobileClinicDialog({ open, onOpenChange, clinic, onSave }: Mobil
                   )}
                 </div>
 
-                <ValidatedInput
-                  label="موقع المزرعة"
-                  required
-                  value={formData.farmLocation}
-                  placeholder="أدخل موقع المزرعة"
-                  error={getFieldError('farmLocation')}
-                  onValueChange={(value) => {
-                    setFormData({ ...formData, farmLocation: value });
-                    clearFieldError('farmLocation');
-                  }}
-                  onBlur={() => {
-                    const error = validateField('farmLocation', formData.farmLocation);
-                    if (error) {
-                      setFieldError('farmLocation', error);
-                    }
-                  }}
-                />
               </div>
 
               <Separator />
@@ -969,29 +913,18 @@ export function MobileClinicDialog({ open, onOpenChange, clinic, onSave }: Mobil
                 </div>
 
                 <div className="space-y-2">
-                  <Label>نوع التدخل *</Label>
-                  <Select
-                    value={formData.interventionCategory}
+                  <DynamicSelect
+                    category="INTERVENTION_CATEGORIES"
+                    value={formData.interventionCategory || ""}
                     onValueChange={(value) => {
                       setFormData({ ...formData, interventionCategory: value });
-                      // Clear error when user selects category
                       clearFieldError('interventionCategory');
                     }}
-                  >
-                    <SelectTrigger className={errors.interventionCategory ? 'border-red-500' : ''}>
-                      <SelectValue placeholder="اختر نوع التدخل" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {interventionCategories.map((category) => (
-                        <SelectItem key={category.value} value={category.value}>
-                          {category.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  {errors.interventionCategory && (
-                    <p className="text-red-500 text-sm font-medium mt-1">{errors.interventionCategory}</p>
-                  )}
+                    label="نوع التدخل"
+                    placeholder="اختر نوع التدخل"
+                    required
+                    error={errors.interventionCategory}
+                  />
                 </div>
               </div>
 
@@ -1001,116 +934,28 @@ export function MobileClinicDialog({ open, onOpenChange, clinic, onSave }: Mobil
                   <CardTitle className="text-lg">الأدوية المستخدمة</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {/* عرض الأدوية الموجودة */}
-                  {formData.medicationsUsed && formData.medicationsUsed.length > 0 && (
-                    <div className="space-y-3">
-                      <Label className="text-sm font-medium text-gray-700">الأدوية المستخدمة ({formData.medicationsUsed.length}):</Label>
-                      <div className="space-y-2">
-                        {formData.medicationsUsed.map((medication, index) => (
-                          <div key={index} className="flex items-center justify-between p-3 border border-gray-200 rounded-md bg-gray-50 hover:bg-gray-100 transition-colors">
-                            <div className="flex-1 grid grid-cols-1 sm:grid-cols-4 gap-2 text-sm">
-                              <div className="font-medium text-gray-900">{medication.name}</div>
-                              <div className="text-gray-600">{medication.dosage}</div>
-                              <div className="text-gray-600">{medication.quantity} وحدة</div>
-                              <div className="text-gray-600">
-                                {medication.route === 'Intramuscular' ? 'عضلي' : 
-                                 medication.route === 'Subcutaneous' ? 'تحت الجلد' :
-                                 medication.route === 'Intravenous' ? 'وريدي' :
-                                 medication.route === 'Oral' ? 'فموي' : medication.route}
-                              </div>
-                            </div>
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => {
-                                const updatedMedications = formData.medicationsUsed.filter((_, i) => i !== index);
-                                setFormData({ ...formData, medicationsUsed: updatedMedications });
-                              }}
-                              className="text-red-500 hover:text-red-700 hover:bg-red-50 h-8 w-8 p-0 ml-2"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
                   
                   <Separator />
                   
                   {/* إضافة دواء جديد */}
                   <div className="space-y-4">
                     <Label className="text-base font-semibold">إضافة دواء جديد:</Label>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label>اسم الدواء</Label>
-                        <Input
-                          value={newTreatment.medicine}
-                          onChange={(e) => setNewTreatment({ ...newTreatment, medicine: e.target.value })}
-                          placeholder="مثال: أموكسيسيلين"
-                        />
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label>الجرعة</Label>
-                        <Input
-                          value={newTreatment.dosage}
-                          onChange={(e) => setNewTreatment({ ...newTreatment, dosage: e.target.value })}
-                          placeholder="مثال: 10 مل مرتين يومياً"
-                        />
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label>الكمية</Label>
-                        <Input
-                          type="number"
-                          value={newTreatment.notes}
-                          onChange={(e) => setNewTreatment({ ...newTreatment, notes: e.target.value })}
-                          placeholder="5"
-                        />
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label>طريقة الإعطاء</Label>
-                        <Select
-                          value={newTreatment.duration}
-                          onValueChange={(value) => setNewTreatment({ ...newTreatment, duration: value })}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="اختر طريقة الإعطاء" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="Intramuscular">عضلي</SelectItem>
-                            <SelectItem value="Subcutaneous">تحت الجلد</SelectItem>
-                            <SelectItem value="Intravenous">وريدي</SelectItem>
-                            <SelectItem value="Oral">فموي</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
+                    <div className="space-y-2">
+                      <Label>اسم الدواء</Label>
+                      <Input
+                        value={newTreatment.medicine}
+                        onChange={(e) => setNewTreatment({ ...newTreatment, medicine: e.target.value })}
+                        placeholder="مثال: أموكسيسيلين"
+                      />
                     </div>
                   </div>
 
                   <Button
                     type="button"
-                    onClick={() => {
-                      if (newTreatment.medicine && newTreatment.dosage && newTreatment.notes && newTreatment.duration) {
-                        const newMedication = {
-                          name: newTreatment.medicine,
-                          dosage: newTreatment.dosage,
-                          quantity: parseInt(newTreatment.notes) || 1,
-                          route: newTreatment.duration
-                        };
-                        setFormData({
-                          ...formData,
-                          medicationsUsed: [...formData.medicationsUsed, newMedication]
-                        });
-                        setNewTreatment({ id: "", medicine: "", dosage: "", duration: "", notes: "" });
-                      }
-                    }}
+                    onClick={addTreatment}
                     variant="secondary"
                     className="w-full"
-                    disabled={!newTreatment.medicine || !newTreatment.dosage || !newTreatment.notes || !newTreatment.duration}
+                    disabled={!newTreatment.medicine}
                   >
                     <Plus className="ml-2 h-4 w-4" />
                     إضافة دواء
@@ -1128,9 +973,6 @@ export function MobileClinicDialog({ open, onOpenChange, clinic, onSave }: Mobil
                           >
                             <div className="flex-1">
                               <div className="font-medium">{treatment.medicine}</div>
-                              <div className="text-sm text-muted-foreground">
-                                {treatment.dosage} {treatment.duration && `- ${treatment.duration}`}
-                              </div>
                             </div>
                             <Button
                               type="button"
@@ -1189,24 +1031,19 @@ export function MobileClinicDialog({ open, onOpenChange, clinic, onSave }: Mobil
                     </div>
 
                     <div className="space-y-2">
-                      <Label>حالة الطلب</Label>
-                      <Select
-                        value={formData.request.situation}
-                        onValueChange={(value: "Ongoing" | "Closed") => 
+                      <DynamicSelect
+                        category="REQUEST_SITUATION"
+                        value={formData.request.situation || ""}
+                        onValueChange={(value) => 
                           setFormData({
                             ...formData,
-                            request: { ...formData.request, situation: value }
+                            request: { ...formData.request, situation: value as "Ongoing" | "Closed" }
                           })
                         }
-                      >
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="Ongoing">جاري</SelectItem>
-                          <SelectItem value="Closed">مغلق</SelectItem>
-                        </SelectContent>
-                      </Select>
+                        label="حالة الطلب"
+                        placeholder="اختر حالة الطلب"
+                        required
+                      />
                     </div>
 
                     <div className="space-y-2">
@@ -1245,58 +1082,6 @@ export function MobileClinicDialog({ open, onOpenChange, clinic, onSave }: Mobil
                 </CardContent>
               </Card>
 
-              {/* الوصفات الطبية */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg">الوصفات والتوصيات</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="flex gap-2">
-                    <Input
-                      value={newPrescription}
-                      onChange={(e) => setNewPrescription(e.target.value)}
-                      placeholder="أدخل وصفة طبية أو توصية"
-                      onKeyPress={(e) => {
-                        if (e.key === 'Enter') {
-                          e.preventDefault();
-                          addPrescription();
-                        }
-                      }}
-                    />
-                    <Button
-                      type="button"
-                      onClick={addPrescription}
-                      variant="secondary"
-                      disabled={!newPrescription.trim()}
-                    >
-                      <Plus className="h-4 w-4" />
-                    </Button>
-                  </div>
-
-                  {formData.prescriptions.length > 0 && (
-                    <div className="space-y-2">
-                      <Label className="text-sm font-medium text-gray-700">الوصفات المضافة ({formData.prescriptions.length}):</Label>
-                      {formData.prescriptions.map((prescription, index) => (
-                        <div
-                          key={index}
-                          className="flex items-center justify-between p-3 border border-gray-200 rounded-md bg-gray-50 hover:bg-gray-100 transition-colors"
-                        >
-                          <span className="text-sm text-gray-900">{prescription}</span>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => removePrescription(index)}
-                            className="text-red-500 hover:text-red-700 hover:bg-red-50 h-8 w-8 p-0 ml-2"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
 
               <div className="space-y-2">
                 <Label>ملاحظات عامة</Label>

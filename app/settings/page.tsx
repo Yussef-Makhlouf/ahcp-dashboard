@@ -27,6 +27,8 @@ import { UserManagement } from "./components/user-management";
 import { SectionManagement } from "./components/section-management";
 import { VillageManagement } from "./components/village-management";
 import { HoldingCodeManagement } from "./components/holding-code-management";
+import { DropdownListManagerV2 } from "@/components/dropdown-management/dropdown-list-manager-v2";
+import { ApiConnectionTest } from "./components/api-connection-test";
 
 export default function SettingsPage() {
   const { theme, setTheme } = useTheme();
@@ -58,11 +60,12 @@ export default function SettingsPage() {
 
         {/* Settings Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-4 ">
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="users">المستخدمين</TabsTrigger>
             <TabsTrigger value="sections">الأقسام</TabsTrigger>
             <TabsTrigger value="villages">القرى</TabsTrigger>
             <TabsTrigger value="holding-codes">رموز الحيازة</TabsTrigger>
+            <TabsTrigger value="dropdown-lists">القوائم المنسدلة</TabsTrigger>
           </TabsList>
 
           {/* Users Management */}
@@ -83,6 +86,11 @@ export default function SettingsPage() {
           {/* Holding Codes Management */}
           <TabsContent value="holding-codes" className="space-y-6">
             <HoldingCodeManagement onRefresh={handleRefresh} />
+          </TabsContent>
+
+          {/* Dropdown Lists Management */}
+          <TabsContent value="dropdown-lists" className="space-y-6">
+            <DropdownListManagerV2 />
           </TabsContent>
 
         </Tabs>

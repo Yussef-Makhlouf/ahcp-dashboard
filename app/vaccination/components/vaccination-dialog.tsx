@@ -47,6 +47,7 @@ import { VillageSelect } from "@/components/ui/village-select";
 import { ClientSelector } from "@/components/ui/client-selector";
 import { useClientData } from "@/lib/hooks/use-client-data";
 import { HoldingCodeSelector } from "@/components/common/HoldingCodeSelector";
+import { DynamicSelect } from "@/components/ui/dynamic-select";
 
 import { CalendarIcon, Loader2, User, Heart, Shield } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -76,7 +77,6 @@ const formSchema = z.object({
       { message: "رقم الهاتف غير صحيح. يجب أن يكون بين 10-15 رقم" }
     ),
     village: z.string().optional(),
-    detailedAddress: z.string().optional(),
     birthDate: z.string().optional(),
   }),
   coordinates: z.object({
@@ -85,7 +85,6 @@ const formSchema = z.object({
   }).optional(),
   supervisor: z.string().min(2, { message: "يجب إدخال اسم المشرف (أكثر من حرفين)" }),
   vehicleNo: z.string().min(1, { message: "يجب إدخال رقم المركبة" }),
-  farmLocation: z.string().min(1, { message: "يجب إدخال موقع المزرعة" }),
   vaccineType: z.string().min(1, { message: "يجب اختيار نوع المصل" }),
   herdCounts: z.object({
     sheep: z.object({
@@ -158,7 +157,6 @@ export function VaccinationDialog({
     'client.phone': { required: true, phone: true },
     'supervisor': { required: true },
     'vehicleNo': { required: true },
-    'farmLocation': { required: true },
     'herdHealth': { required: true },
     'animalsHandling': { required: true },
     'labours': { required: true },
@@ -196,13 +194,11 @@ export function VaccinationDialog({
         nationalId: "",
         phone: "",
         village: "",
-        detailedAddress: "",
         birthDate: "",
       },
       coordinates: { latitude: null, longitude: null },
       supervisor: "",
       vehicleNo: "",
-      farmLocation: "",
       vaccineType: "",
       herdCounts: {
         sheep: { total: 0, young: 0, female: 0, vaccinated: 0 },
@@ -241,14 +237,12 @@ export function VaccinationDialog({
             nationalId: item.client.nationalId || '',
             phone: item.client.phone || '',
             village: item.client.village || '',
-            detailedAddress: item.client.detailedAddress || '',
             birthDate: item.client.birthDate ? item.client.birthDate.split("T")[0] : '',
           } : {
             name: '',
             nationalId: '',
             phone: '',
             village: '',
-            detailedAddress: '',
             birthDate: '',
           },
           coordinates: item.coordinates ? {
@@ -286,13 +280,11 @@ export function VaccinationDialog({
             nationalId: "",
             phone: "",
             village: "",
-            detailedAddress: "",
             birthDate: "",
           },
           coordinates: { latitude: null, longitude: null },
           supervisor: "",
           vehicleNo: "",
-          farmLocation: "",
           vaccineType: "",
           herdCounts: {
             sheep: { total: 0, young: 0, female: 0, vaccinated: 0 },
@@ -333,10 +325,8 @@ export function VaccinationDialog({
           nationalId: data.client.nationalId,
           phone: data.client.phone,
           village: data.client.village || '',
-          detailedAddress: data.client.detailedAddress || '',
           birthDate: data.client.birthDate || '',
         },
-        farmLocation: data.farmLocation,
         coordinates: data.coordinates && (data.coordinates.latitude || data.coordinates.longitude) ? {
           latitude: data.coordinates.latitude || 0,
           longitude: data.coordinates.longitude || 0,
@@ -360,6 +350,7 @@ export function VaccinationDialog({
           situation: data.request.situation,
           fulfillingDate: data.request.fulfillingDate ? new Date(data.request.fulfillingDate).toISOString() : undefined,
         },
+        holdingCode: typeof data.holdingCode === 'string' ? data.holdingCode : (data.holdingCode?._id || undefined),
         remarks: data.remarks || '',
       };
 
@@ -632,7 +623,6 @@ export function VaccinationDialog({
                           form.setValue("client.nationalId", client.nationalId || client.national_id || "");
                           form.setValue("client.phone", client.phone || "");
                           form.setValue("client.village", client.village || "");
-                          form.setValue("client.detailedAddress", client.detailedAddress || client.detailed_address || "");
                           form.setValue("client.birthDate", client.birthDate || client.birth_date || "");
                           // Clear any existing errors for client fields
                           clearFieldError("client.name");
@@ -733,16 +723,6 @@ export function VaccinationDialog({
                   </div>
 
                   {/* Client Detailed Address */}
-                  <div className="space-y-2">
-                    <label className="block text-sm font-semibold text-gray-800 mb-2">
-                      العنوان التفصيلي
-                    </label>
-                    <Input
-                      value={form.watch("client.detailedAddress") || ""}
-                      onChange={(e) => form.setValue("client.detailedAddress", e.target.value)}
-                      placeholder="العنوان التفصيلي"
-                    />
-                  </div>
 
                   {/* Client Birth Date */}
                   <div className="space-y-2">
@@ -770,8 +750,13 @@ export function VaccinationDialog({
                     </label>
                     <SupervisorSelect
                       value={form.watch("supervisor") || ""}
-                      onValueChange={(value) => {
+                      onValueChange={(value, supervisor) => {
                         form.setValue("supervisor", value);
+                        // Auto-fill vehicle number if supervisor has one
+                        if (supervisor?.vehicleNo) {
+                          form.setValue("vehicleNo", supervisor.vehicleNo);
+                          clearFieldError("vehicleNo");
+                        }
                         clearFieldError("supervisor");
                       }}
                       placeholder="اختر المشرف"
@@ -803,24 +788,6 @@ export function VaccinationDialog({
                   </div>
 
                   {/* Farm Location */}
-                  <div className="space-y-2">
-                    <label className="block text-sm font-semibold text-gray-800 mb-2">
-                      موقع المزرعة *
-                    </label>
-                    <Input
-                      value={form.watch("farmLocation") || ""}
-                      onChange={(e) => {
-                        form.setValue("farmLocation", e.target.value);
-                        clearFieldError("farmLocation");
-                      }}
-                      placeholder="موقع المزرعة"
-                      required
-                      className={getFieldError("farmLocation") ? 'border-red-500' : ''}
-                    />
-                    {getFieldError("farmLocation") && (
-                      <p className="text-red-500 text-sm font-medium mt-1">{getFieldError("farmLocation")}</p>
-                    )}
-                  </div>
 
 
                   {/* Coordinates */}
@@ -850,136 +817,88 @@ export function VaccinationDialog({
 
                   {/* Vaccine Type */}
                   <div className="space-y-2">
-                    <label className="block text-sm font-semibold text-gray-800 mb-2">
-                      نوع المصل *
-                    </label>
-                    <Select
+                    <DynamicSelect
+                      category="VACCINE_TYPES"
                       value={form.watch("vaccineType") || ""}
                       onValueChange={(value) => {
                         form.setValue("vaccineType", value);
                         clearFieldError("vaccineType");
                       }}
-                    >
-                      <SelectTrigger className={getFieldError("vaccineType") ? 'border-red-500' : ''}>
-                        <SelectValue placeholder="اختر نوع المصل" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="FMD">FMD</SelectItem>
-                        <SelectItem value="PPR">PPR</SelectItem>
-                        <SelectItem value="HS">HS</SelectItem>
-                        <SelectItem value="CCPP">CCPP</SelectItem>
-                        <SelectItem value="ET">ET</SelectItem>
-                        <SelectItem value="No Vaccination">No Vaccination</SelectItem>
-                        <SelectItem value="SG POX">SG POX</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    {getFieldError("vaccineType") && (
-                      <p className="text-red-500 text-sm font-medium mt-1">{getFieldError("vaccineType")}</p>
-                    )}
+                      label="نوع المصل"
+                      required={true}
+                      placeholder="اختر نوع المصل"
+                      error={getFieldError("vaccineType")}
+                      className={getFieldError("vaccineType") ? 'border-red-500' : ''}
+                    />
                   </div>
 
 
                   {/* Herd Health */}
                   <div className="space-y-2">
-                    <label className="block text-sm font-semibold text-gray-800 mb-2">
-                      حالة القطيع *
-                    </label>
-                    <Select
+                    <DynamicSelect
+                      category="HERD_HEALTH"
                       value={form.watch("herdHealth") || ""}
                       onValueChange={(value) => {
                         form.setValue("herdHealth", value);
                         clearFieldError("herdHealth");
                       }}
-                    >
-                      <SelectTrigger className={getFieldError("herdHealth") ? 'border-red-500' : ''}>
-                        <SelectValue placeholder="اختر حالة القطيع" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Healthy">Healthy</SelectItem>
-                        <SelectItem value="Sick">Sick</SelectItem>
-                        <SelectItem value="Sporadic Cases">Sporadic Cases</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    {getFieldError("herdHealth") && (
-                      <p className="text-red-500 text-sm font-medium mt-1">{getFieldError("herdHealth")}</p>
-                    )}
+                      label="حالة القطيع"
+                      required={true}
+                      placeholder="اختر حالة القطيع"
+                      error={getFieldError("herdHealth")}
+                      className={getFieldError("herdHealth") ? 'border-red-500' : ''}
+                    />
                   </div>
 
                   {/* Animals Handling */}
                   <div className="space-y-2">
-                    <label className="block text-sm font-semibold text-gray-800 mb-2">
-                      معاملة الحيوانات *
-                    </label>
-                    <Select
+                    <DynamicSelect
+                      category="ANIMALS_HANDLING"
                       value={form.watch("animalsHandling") || ""}
                       onValueChange={(value) => {
                         form.setValue("animalsHandling", value as "Easy" | "Difficult");
                         clearFieldError("animalsHandling");
                       }}
-                    >
-                      <SelectTrigger className={getFieldError("animalsHandling") ? 'border-red-500' : ''}>
-                        <SelectValue placeholder="اختر معاملة الحيوانات" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Easy">Easy</SelectItem>
-                        <SelectItem value="Difficult">Difficult</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    {getFieldError("animalsHandling") && (
-                      <p className="text-red-500 text-sm font-medium mt-1">{getFieldError("animalsHandling")}</p>
-                    )}
+                      label="معاملة الحيوانات"
+                      required={true}
+                      placeholder="اختر معاملة الحيوانات"
+                      error={getFieldError("animalsHandling")}
+                      className={getFieldError("animalsHandling") ? 'border-red-500' : ''}
+                    />
                   </div>
 
                   {/* Labours */}
                   <div className="space-y-2">
-                    <label className="block text-sm font-semibold text-gray-800 mb-2">
-                      حالة العمال *
-                    </label>
-                    <Select
+                    <DynamicSelect
+                      category="LABOURS"
                       value={form.watch("labours") || ""}
                       onValueChange={(value) => {
                         form.setValue("labours", value);
                         clearFieldError("labours");
                       }}
-                    >
-                      <SelectTrigger className={getFieldError("labours") ? 'border-red-500' : ''}>
-                        <SelectValue placeholder="اختر حالة العمال" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Available">Available</SelectItem>
-                        <SelectItem value="Not Available">Not Available</SelectItem>
-                        <SelectItem value="Not Helpful">Not Helpful</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    {getFieldError("labours") && (
-                      <p className="text-red-500 text-sm font-medium mt-1">{getFieldError("labours")}</p>
-                    )}
+                      label="حالة العمال"
+                      required={true}
+                      placeholder="اختر حالة العمال"
+                      error={getFieldError("labours")}
+                      className={getFieldError("labours") ? 'border-red-500' : ''}
+                    />
                   </div>
 
                   {/* Reachable Location */}
                   <div className="space-y-2">
-                    <label className="block text-sm font-semibold text-gray-800 mb-2">
-                      سهولة الوصول للموقع *
-                    </label>
-                    <Select
+                    <DynamicSelect
+                      category="REACHABLE_LOCATION"
                       value={form.watch("reachableLocation") || ""}
                       onValueChange={(value) => {
                         form.setValue("reachableLocation", value);
                         clearFieldError("reachableLocation");
                       }}
-                    >
-                      <SelectTrigger className={getFieldError("reachableLocation") ? 'border-red-500' : ''}>
-                        <SelectValue placeholder="اختر سهولة الوصول للموقع" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Easy">Easy</SelectItem>
-                        <SelectItem value="Hard to reach">Difficult</SelectItem>
-                        <SelectItem value="Moderate">Moderate</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    {getFieldError("reachableLocation") && (
-                      <p className="text-red-500 text-sm font-medium mt-1">{getFieldError("reachableLocation")}</p>
-                    )}
+                      label="سهولة الوصول للموقع"
+                      required={true}
+                      placeholder="اختر سهولة الوصول للموقع"
+                      error={getFieldError("reachableLocation")}
+                      className={getFieldError("reachableLocation") ? 'border-red-500' : ''}
+                    />
                   </div>
                 </div>
               </TabsContent>
@@ -1029,27 +948,19 @@ export function VaccinationDialog({
                       </div>
                       
                       <div className="space-y-2">
-                        <label className="block text-sm font-semibold text-gray-800 mb-2">
-                          حالة الطلب *
-                        </label>
-                        <Select
+                        <DynamicSelect
+                          category="REQUEST_SITUATION"
                           value={form.watch("request.situation") || ""}
                           onValueChange={(value) => {
                             form.setValue("request.situation", value);
                             clearFieldError("request.situation");
                           }}
-                        >
-                          <SelectTrigger className={getFieldError("request.situation") ? 'border-red-500' : ''}>
-                            <SelectValue placeholder="اختر حالة الطلب" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="Ongoing">Ongoing</SelectItem>
-                            <SelectItem value="Closed">Closed</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        {getFieldError("request.situation") && (
-                          <p className="text-red-500 text-sm font-medium mt-1">{getFieldError("request.situation")}</p>
-                        )}
+                          label="حالة الطلب"
+                          required={true}
+                          placeholder="اختر حالة الطلب"
+                          error={getFieldError("request.situation")}
+                          className={getFieldError("request.situation") ? 'border-red-500' : ''}
+                        />
                       </div>
                       
                       {form.watch("request.situation") === "Closed" && (

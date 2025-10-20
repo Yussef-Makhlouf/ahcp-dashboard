@@ -46,6 +46,7 @@ import { SupervisorSelect } from "@/components/ui/supervisor-select";
 import { VillageSelect } from "@/components/ui/village-select";
 import { ClientSelector } from "@/components/ui/client-selector";
 import { HoldingCodeSelector } from "@/components/common/HoldingCodeSelector";
+import { DynamicSelect } from "@/components/ui/dynamic-select";
 import { useClientData } from "@/lib/hooks/use-client-data";
 import { entityToasts } from "@/lib/utils/toast-utils";
 import { useFormValidation } from "@/lib/hooks/use-form-validation";
@@ -182,10 +183,10 @@ export function EquineHealthDialog({
           nationalId: item.client?.nationalId || "",
           phone: item.client?.phone || "",
           village: item.client?.village || "",
-          detailedAddress: item.client?.detailedAddress || "",
+   
           birthDate: item.client?.birthDate || undefined,
         },
-        farmLocation: item.farmLocation || "",
+      
         coordinates: {
           latitude: item.coordinates?.latitude || 0,
           longitude: item.coordinates?.longitude || 0,
@@ -221,7 +222,7 @@ export function EquineHealthDialog({
         serialNo: data.serialNo || undefined, // سيتم إنشاؤه تلقائياً إذا لم يوجد
         date: data.date,
         client: data.client,
-        farmLocation: data.farmLocation,
+       
         coordinates: data.coordinates,
         supervisor: data.supervisor,
         vehicleNo: data.vehicleNo,
@@ -381,7 +382,13 @@ export function EquineHealthDialog({
                         <FormControl>
                           <SupervisorSelect
                             value={field.value}
-                            onValueChange={field.onChange}
+                            onValueChange={(value, supervisor) => {
+                              field.onChange(value);
+                              // Auto-fill vehicle number if supervisor has one
+                              if (supervisor?.vehicleNo) {
+                                form.setValue("vehicleNo", supervisor.vehicleNo);
+                              }
+                            }}
                             placeholder="اختر المشرف"
                             section="صحة الخيول"
                           />
@@ -456,13 +463,11 @@ export function EquineHealthDialog({
                                 form.setValue("client.nationalId", client.nationalId || client.national_id || "");
                                 form.setValue("client.phone", client.phone || "");
                                 form.setValue("client.village", client.village || "");
-                                form.setValue("client.detailedAddress", client.detailedAddress || client.detailed_address || "");
                                 form.setValue("client.birthDate", client.birthDate || client.birth_date || "");
                               }
                             }}
                             placeholder="ابحث عن المربي"
                             showDetails
-                            allowCreate
                           />
                         </FormControl>
                         <FormMessage className="text-red-500 text-sm font-medium" />
@@ -551,22 +556,7 @@ export function EquineHealthDialog({
                     )}
                   />
                 </div>
-                <div className="grid grid-cols-1 gap-4">
-                  <FormField
-                    control={form.control as any}
-                    name="client.detailedAddress"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>العنوان التفصيلي</FormLabel>
-                        <FormControl>
-                          <Textarea placeholder="العنوان التفصيلي للمزرعة" {...field} />
-                        </FormControl>
-                        <FormMessage className="text-red-500 text-sm font-medium" />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-                
+     
                 <div className="grid grid-cols-1 gap-4">
                   <FormField
                     control={form.control as any}
@@ -656,21 +646,16 @@ export function EquineHealthDialog({
                     name="interventionCategory"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>فئة التدخل</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="اختر فئة التدخل" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="Clinical Examination">Clinical Examination</SelectItem>
-                            <SelectItem value="Ultrasonography">Ultrasonography</SelectItem>
-                            <SelectItem value="Lab Analysis">Lab Analysis</SelectItem>
-                            <SelectItem value="Surgical Operation">Surgical Operation</SelectItem>
-                            <SelectItem value="Farriery">Farriery</SelectItem>
-                          </SelectContent>
-                        </Select>
+                        <FormControl>
+                          <DynamicSelect
+                            category="INTERVENTION_CATEGORIES"
+                            value={field.value || ""}
+                            onValueChange={field.onChange}
+                            label="فئة التدخل"
+                            placeholder="اختر فئة التدخل"
+                            required
+                          />
+                        </FormControl>
                         <FormMessage className="text-red-500 text-sm font-medium" />
                       </FormItem>
                     )}
@@ -742,18 +727,16 @@ export function EquineHealthDialog({
                     name="request.situation"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>حالة الطلب</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="اختر حالة الطلب" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="Ongoing">Ongoing</SelectItem>
-                            <SelectItem value="Closed">Closed</SelectItem>
-                          </SelectContent>
-                        </Select>
+                        <FormControl>
+                          <DynamicSelect
+                            category="REQUEST_SITUATION"
+                            value={field.value || ""}
+                            onValueChange={field.onChange}
+                            label="حالة الطلب"
+                            placeholder="اختر حالة الطلب"
+                            required
+                          />
+                        </FormControl>
                         <FormMessage className="text-red-500 text-sm font-medium" />
                       </FormItem>
                     )}

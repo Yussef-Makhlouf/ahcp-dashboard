@@ -7,7 +7,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Plus, MapPin, User } from 'lucide-react';
-import { HoldingCode } from '@/types';
+import { HoldingCode } from '@/lib/api/holding-codes';
+import { api } from '@/lib/api/base-api';
 
 interface HoldingCodeSelectorProps {
   value?: string;
@@ -34,7 +35,12 @@ export function HoldingCodeSelector({
 
   // Fetch holding codes based on village
   const fetchHoldingCodes = async () => {
-    if (!village) return;
+    console.log('🔍 HoldingCodeSelector: fetchHoldingCodes called with village:', village);
+    
+    if (!village) {
+      console.log('❌ No village provided, skipping fetch');
+      return;
+    }
     
     setLoading(true);
     try {
@@ -42,21 +48,15 @@ export function HoldingCodeSelector({
       params.append('village', village);
       params.append('active', 'true');
 
-      const response = await fetch(`/api/holding-codes?${params.toString()}`, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setHoldingCodes(data.data || []);
-      } else {
-        console.error('Failed to fetch holding codes');
-        setHoldingCodes([]);
-      }
+      console.log('📡 Fetching holding codes with URL:', `/holding-codes?${params.toString()}`);
+      const data = await api.get<{success: boolean, data: HoldingCode[]}>(`/holding-codes?${params.toString()}`);
+      
+      console.log('✅ Holding codes response:', data);
+      console.log('📋 Number of holding codes found:', data.data?.length || 0);
+      
+      setHoldingCodes(data.data || []);
     } catch (error) {
-      console.error('Error fetching holding codes:', error);
+      console.error('❌ Error fetching holding codes:', error);
       setHoldingCodes([]);
     } finally {
       setLoading(false);
@@ -64,6 +64,7 @@ export function HoldingCodeSelector({
   };
 
   useEffect(() => {
+    console.log('🔄 HoldingCodeSelector useEffect triggered - village prop changed to:', village);
     fetchHoldingCodes();
   }, [village]);
 
@@ -72,38 +73,26 @@ export function HoldingCodeSelector({
     if (!newCode.trim() || !village) return;
 
     try {
-      const response = await fetch('/api/holding-codes', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        },
-        body: JSON.stringify({
-          code: newCode.trim(),
-          village: village,
-          description: newDescription.trim() || undefined
-        })
+      const data = await api.post<{success: boolean, data: HoldingCode, message: string}>('/holding-codes', {
+        code: newCode.trim(),
+        village: village,
+        description: newDescription.trim() || undefined
       });
 
-      if (response.ok) {
-        const data = await response.json();
-        const newHoldingCode = data.data;
-        
-        // Add to list and select it
-        setHoldingCodes(prev => [...prev, newHoldingCode]);
-        onValueChange(newHoldingCode._id);
-        
-        // Reset form and close dialog
-        setNewCode('');
-        setNewDescription('');
-        setIsCreateDialogOpen(false);
-      } else {
-        const errorData = await response.json();
-        alert(errorData.message || 'فشل في إنشاء رمز الحيازة');
-      }
-    } catch (error) {
+      const newHoldingCode = data.data;
+      
+      // Add to list and select it
+      setHoldingCodes(prev => [...prev, newHoldingCode]);
+      onValueChange(newHoldingCode._id);
+      
+      // Reset form and close dialog
+      setNewCode('');
+      setNewDescription('');
+      setIsCreateDialogOpen(false);
+    } catch (error: any) {
       console.error('Error creating holding code:', error);
-      alert('حدث خطأ أثناء إنشاء رمز الحيازة');
+      const errorMessage = error.response?.data?.message || error.userMessage || 'فشل في إنشاء رمز الحيازة';
+      alert(errorMessage);
     }
   };
 
@@ -122,6 +111,7 @@ export function HoldingCodeSelector({
           onValueChange={(val) => {
             // تجنب إرسال القيمة الوهمية
             if (val === "__no_items__") return;
+            console.log('🏠 HoldingCodeSelector: Value changed to:', val);
             onValueChange(val);
           }}
           disabled={disabled || loading}
@@ -136,7 +126,7 @@ export function HoldingCodeSelector({
               </SelectItem>
             ) : (
               holdingCodes.map((holdingCode) => (
-                <SelectItem key={holdingCode._id} value={holdingCode._id}>
+                <SelectItem key={holdingCode._id} value={holdingCode._id || ''}>
                   <div className="flex items-center gap-2">
                     <MapPin className="h-4 w-4 text-gray-500" />
                     <span>{getHoldingCodeDisplay(holdingCode)}</span>

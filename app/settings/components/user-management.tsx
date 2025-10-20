@@ -55,6 +55,8 @@ interface User {
   role: string;
   roleNameAr: string;
   section?: string;
+  supervisorCode?: string;
+  vehicleNo?: string;
   isActive: boolean;
   createdAt: string;
   lastLogin?: string;
@@ -80,7 +82,8 @@ export function UserManagement({ onRefresh }: UserManagementProps) {
     name: "",
     email: "",
     password: "",
-    section: ""
+    section: "",
+    vehicleNo: ""
   });
 
   // Load data
@@ -178,7 +181,8 @@ export function UserManagement({ onRefresh }: UserManagementProps) {
       name: user.name,
       email: user.email,
       password: "",
-      section: user.section || ""
+      section: user.section || "",
+      vehicleNo: user.vehicleNo || ""
     });
     setUserType(user.role === 'super_admin' ? 'admin' : 
                 user.role === 'section_supervisor' ? 'supervisor' : 'worker');
@@ -239,7 +243,8 @@ export function UserManagement({ onRefresh }: UserManagementProps) {
       name: "",
       email: "",
       password: "",
-      section: ""
+      section: "",
+      vehicleNo: ""
     });
     setEditingUser(null);
   };
@@ -290,6 +295,57 @@ export function UserManagement({ onRefresh }: UserManagementProps) {
         return (
           <div className="text-right">
             {section || "غير محدد"}
+          </div>
+        );
+      },
+    },
+    {
+      accessorKey: "supervisorCode",
+      header: "رمز المشرف",
+      cell: ({ row }) => {
+        const supervisorCode = row.original.supervisorCode;
+        const role = row.original.role;
+        
+        if (role !== 'section_supervisor' || !supervisorCode) {
+          return <div className="text-right text-gray-400">-</div>;
+        }
+        
+        // Get color based on code prefix
+        const getCodeColor = (code: string) => {
+          const prefix = code.charAt(0);
+          switch (prefix) {
+            case 'P': return 'bg-green-500 text-white';
+            case 'V': return 'bg-blue-500 text-white';
+            case 'C': return 'bg-purple-500 text-white';
+            case 'L': return 'bg-yellow-500 text-white';
+            case 'E': return 'bg-orange-500 text-white';
+            default: return 'bg-gray-500 text-white';
+          }
+        };
+        
+        return (
+          <div className="text-right">
+            <span className={`inline-flex items-center px-2 py-1 rounded-md text-xs font-bold ${getCodeColor(supervisorCode)}`}>
+              {supervisorCode}
+            </span>
+          </div>
+        );
+      },
+    },
+    {
+      accessorKey: "vehicleNo",
+      header: "رقم المركبة",
+      cell: ({ row }) => {
+        const vehicleNo = row.original.vehicleNo;
+        const role = row.original.role;
+        
+        if (role !== 'section_supervisor' || !vehicleNo) {
+          return <div className="text-right text-gray-400">-</div>;
+        }
+        
+        return (
+          <div className="text-right">
+            <span className="text-blue-600 font-medium">{vehicleNo}</span>
           </div>
         );
       },
@@ -493,6 +549,22 @@ export function UserManagement({ onRefresh }: UserManagementProps) {
                   placeholder="اختر القسم"
                   className="text-right"
                 />
+              </div>
+            )}
+
+            {userType === 'supervisor' && (
+              <div className="space-y-2">
+                <Label htmlFor="vehicleNo" className="text-right">رقم المركبة</Label>
+                <Input
+                  id="vehicleNo"
+                  value={userForm.vehicleNo}
+                  onChange={(e) => setUserForm({ ...userForm, vehicleNo: e.target.value })}
+                  placeholder="مثال: أحمد-P1 أو محمد-C2"
+                  className="text-right"
+                />
+                <p className="text-xs text-gray-500 text-right">
+                  سيتم استخدام هذا الرقم تلقائياً في النماذج عند اختيار هذا المشرف
+                </p>
               </div>
             )}
           </div>
