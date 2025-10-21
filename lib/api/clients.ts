@@ -64,11 +64,41 @@ export const clientsApi = {
       const response = await api.get(`/clients/${id}`, {
         timeout: 30000,
       });
-      // Handle response structure: { success: true, data: {...} }
-      const recordData = (response as any).data || response;
-      return recordData;
+      
+      console.log('🔍 Raw client response:', response);
+      
+      // Handle response structure: { success: true, data: { client } }
+      const responseData = response as any;
+      
+      // Check for the correct backend structure: { success: true, data: { client } }
+      if (responseData.success && responseData.data && responseData.data.client) {
+        console.log('✅ Found client in correct backend structure:', responseData.data.client);
+        return responseData.data.client;
+      }
+      
+      // Check for nested structure (axios wrapper)
+      if (responseData.data && responseData.data.success && responseData.data.data && responseData.data.data.client) {
+        console.log('✅ Found client in nested structure:', responseData.data.data.client);
+        return responseData.data.data.client;
+      }
+      
+      // Check for direct data structure
+      if (responseData.data && responseData.data.client) {
+        console.log('✅ Found client in direct structure:', responseData.data.client);
+        return responseData.data.client;
+      }
+      
+      // Check if response.data is the client directly
+      if (responseData.data && responseData.data._id) {
+        console.log('✅ Found client as direct data:', responseData.data);
+        return responseData.data;
+      }
+      
+      // Fallback
+      console.log('⚠️ Using fallback for client data:', responseData);
+      return responseData.data || responseData;
     } catch (error: any) {
-      console.error('Error fetching client by ID:', error);
+      console.error('❌ Error fetching client by ID:', error);
       throw new Error(error.userMessage || `Failed to fetch client: ${error.message || 'Unknown error'}`);
     }
   },
@@ -210,6 +240,69 @@ export const clientsApi = {
         inactiveClients: 0,
         totalAnimals: 0,
         clientsByVillage: {},
+      };
+    }
+  },
+
+  // Get client visits (all services for a specific client)
+  getClientVisits: async (clientId: string): Promise<{
+    mobileClinic: any[];
+    vaccination: any[];
+    parasiteControl: any[];
+    equineHealth: any[];
+    laboratory: any[];
+  }> => {
+    try {
+      const response = await api.get(`/clients/${clientId}/visits`, {
+        timeout: 30000,
+      });
+      
+      console.log('🔍 Raw visits response:', response);
+      
+      const responseData = response as any;
+      
+      // Check for the correct backend structure: { success: true, data: { mobileClinic: [], ... } }
+      if (responseData.success && responseData.data) {
+        console.log('✅ Found visits in correct backend structure:', responseData.data);
+        return responseData.data;
+      }
+      
+      // Check for nested structure (axios wrapper)
+      if (responseData.data && responseData.data.success && responseData.data.data) {
+        console.log('✅ Found visits in nested structure:', responseData.data.data);
+        return responseData.data.data;
+      }
+      
+      // Check for direct data structure
+      if (responseData.data && (responseData.data.mobileClinic || responseData.data.vaccination)) {
+        console.log('✅ Found visits in direct structure:', responseData.data);
+        return responseData.data;
+      }
+      
+      // Check if response is the data directly
+      if (responseData.mobileClinic || responseData.vaccination) {
+        console.log('✅ Found visits as direct response:', responseData);
+        return responseData;
+      }
+      
+      console.log('⚠️ No visits found, returning empty structure');
+      // Fallback structure
+      return {
+        mobileClinic: [],
+        vaccination: [],
+        parasiteControl: [],
+        equineHealth: [],
+        laboratory: []
+      };
+    } catch (error: any) {
+      console.error('❌ Error fetching client visits:', error);
+      // Return empty arrays if API fails
+      return {
+        mobileClinic: [],
+        vaccination: [],
+        parasiteControl: [],
+        equineHealth: [],
+        laboratory: []
       };
     }
   },

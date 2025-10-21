@@ -134,15 +134,40 @@ export function getColumns({
         <Badge variant="secondary">{row.getValue("vehicleNo")}</Badge>
       ),
     },
-    // Herd Location
+    // Herd Location (Village)
     {
-      accessorKey: "herdLocation",
-      header: "Herd Location",
+      id: "village",
+      header: "القرية",
       cell: ({ row }) => {
-        const location = row.getValue("herdLocation") as string;
+        const parasiteControl = row.original as ParasiteControl;
+        const client = parasiteControl.client;
+        
+        // استخراج اسم القرية من بيانات المربي
+        let village = 'غير محدد';
+        
+        if (client) {
+          // إذا كان client عبارة عن object (populated)
+          if (typeof client === 'object' && client !== null && 'village' in client) {
+            // فحص holdingCode أولاً
+            if (client.holdingCode && typeof client.holdingCode === 'object' && client.holdingCode !== null && 'village' in client.holdingCode) {
+              village = client.holdingCode.village || client.village || 'غير محدد';
+            } else {
+              village = client.village || 'غير محدد';
+            }
+          }
+          // إذا كان client مجرد ID، استخدم herdLocation كـ fallback
+          else {
+            const location = parasiteControl.herdLocation || 'غير محدد';
+            village = location;
+          }
+        }
+        
         return (
-          <div className="max-w-[150px] truncate" title={location}>
-            {location || 'غير محدد'}
+          <div className="max-w-[150px] truncate" title={village}>
+            <div className="flex items-center gap-1">
+              <MapPin className="h-3 w-3 text-muted-foreground" />
+              <span>{village}</span>
+            </div>
           </div>
         );
       },

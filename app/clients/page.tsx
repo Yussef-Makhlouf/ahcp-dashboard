@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { MainLayout } from "@/components/layout/main-layout";
 import { DataTable } from "@/components/data-table/data-table";
 import { Button } from "@/components/ui/button";
@@ -38,6 +39,7 @@ export default function ClientsPage() {
   const [pageSize] = useState(30);
   const [searchTerm, setSearchTerm] = useState("");
 
+  const router = useRouter();
   const queryClient = useQueryClient();
   const { checkPermission, isAdmin } = usePermissions();
 
@@ -314,8 +316,12 @@ export default function ClientsPage() {
             <DropdownMenuContent align="end">
               <DropdownMenuLabel>الإجراءات</DropdownMenuLabel>
               <DropdownMenuItem onClick={() => {
-                setSelectedClient(row.original);
-                setIsClientDialogOpen(true);
+                const clientId = row.original._id || row.original.id || row.original.nationalId;
+                if (clientId) {
+                  router.push(`/clients/${clientId}`);
+                } else {
+                  alert('لا يمكن العثور على معرف العميل');
+                }
               }}>
                 <Eye className="ml-2 h-4 w-4" />
                 عرض التفاصيل

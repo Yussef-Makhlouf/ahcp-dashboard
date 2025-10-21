@@ -128,6 +128,7 @@ export function LaboratoryDialog({ open, onOpenChange, laboratory, onSave }: Lab
     clientId: "",
     clientBirthDate: undefined as Date | undefined,
     clientPhone: "",
+    clientVillage: "", // إضافة حقل القرية
     coordinates: {
       latitude: 0,
       longitude: 0,
@@ -199,6 +200,7 @@ export function LaboratoryDialog({ open, onOpenChange, laboratory, onSave }: Lab
         clientBirthDate: laboratory.clientBirthDate ? new Date(laboratory.clientBirthDate) : 
                         laboratory.client?.birthDate ? new Date(laboratory.client.birthDate) : undefined,
         clientPhone: laboratory.clientPhone || laboratory.client?.phone || "",
+        clientVillage: laboratory.client?.village || "", // إضافة القرية من العميل
         coordinates: laboratory.coordinates || { latitude: 0, longitude: 0 },
         speciesCounts: laboratory.speciesCounts ? {
           sheep: laboratory.speciesCounts.sheep || 0,
@@ -241,6 +243,7 @@ export function LaboratoryDialog({ open, onOpenChange, laboratory, onSave }: Lab
         clientId: "",
         clientBirthDate: undefined,
         clientPhone: "",
+        clientVillage: "", // إضافة القرية للنموذج الجديد
         coordinates: { latitude: 0, longitude: 0 },
         speciesCounts: {
           sheep: 0,
@@ -707,7 +710,8 @@ export function LaboratoryDialog({ open, onOpenChange, laboratory, onSave }: Lab
                               clientName: '',
                               clientId: '',
                               clientPhone: '',
-                              clientBirthDate: undefined
+                              clientBirthDate: undefined,
+                              clientVillage: '' // مسح القرية عند التبديل للإدخال اليدوي
                             });
                           }}
                           className="w-4 h-4 text-blue-600"
@@ -735,7 +739,8 @@ export function LaboratoryDialog({ open, onOpenChange, laboratory, onSave }: Lab
                             clientName: client.name,
                             clientId: client.nationalId || '',
                             clientPhone: client.phone || '',
-                            clientBirthDate: client.birthDate ? new Date(client.birthDate) : undefined
+                            clientBirthDate: client.birthDate ? new Date(client.birthDate) : undefined,
+                            clientVillage: client.village || '' // إضافة القرية
                           });
                           clearFieldError('clientName');
                           clearFieldError('clientId');
@@ -747,7 +752,8 @@ export function LaboratoryDialog({ open, onOpenChange, laboratory, onSave }: Lab
                             clientName: '',
                             clientId: '',
                             clientPhone: '',
-                            clientBirthDate: undefined
+                            clientBirthDate: undefined,
+                            clientVillage: '' // إضافة القرية عند المسح
                           });
                         }
                       }}
@@ -865,7 +871,21 @@ export function LaboratoryDialog({ open, onOpenChange, laboratory, onSave }: Lab
                 )}
 
 
-                {/* Location */}
+                {/* Village Selection */}
+                <div className="space-y-2">
+                  <Label>القرية</Label>
+                  <VillageSelect
+                    value={formData.clientVillage || ""}
+                    onValueChange={(value) => {
+                      setFormData({ ...formData, clientVillage: value || "" });
+                      clearFieldError('clientVillage');
+                    }}
+                    placeholder="اختر القرية"
+                  />
+                  {getFieldError('clientVillage') && (
+                    <p className="text-red-500 text-sm font-medium mt-1">{getFieldError('clientVillage')}</p>
+                  )}
+                </div>
 
                 {/* Holding Code */}
                 <div className="space-y-2">
@@ -876,7 +896,7 @@ export function LaboratoryDialog({ open, onOpenChange, laboratory, onSave }: Lab
                       setFormData({ ...formData, holdingCode: value || "" });
                       clearFieldError('holdingCode');
                     }}
-                    village={selectedClient?.village || ''}
+                    village={formData.clientVillage || ''}
                     placeholder="اختر رمز الحيازة"
                   />
                   {getFieldError('holdingCode') && (

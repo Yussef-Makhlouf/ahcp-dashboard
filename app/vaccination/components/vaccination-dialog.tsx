@@ -318,15 +318,17 @@ export function VaccinationDialog({
       // Transform form data to match backend validation schema exactly
       const transformedData = {
         serialNo: data.serialNo || undefined, // سيتم إنشاؤه تلقائياً إذا لم يوجد
-        date: new Date(data.date).toISOString(),
-        client: {
-          _id: data.client._id || '',
-          name: data.client.name,
-          nationalId: data.client.nationalId,
-          phone: data.client.phone,
-          village: data.client.village || '',
-          birthDate: data.client.birthDate || '',
-        },
+        date: data.date ? new Date(data.date).toISOString() : new Date().toISOString(),
+        client: data.client._id && data.client._id.length === 24 ? 
+          data.client._id : // Send ObjectId if valid
+          {
+            // Send client object for new clients
+            name: data.client.name,
+            nationalId: data.client.nationalId,
+            phone: data.client.phone,
+            village: data.client.village || '',
+            birthDate: data.client.birthDate || '',
+          },
         coordinates: data.coordinates && (data.coordinates.latitude || data.coordinates.longitude) ? {
           latitude: data.coordinates.latitude || 0,
           longitude: data.coordinates.longitude || 0,
@@ -346,9 +348,9 @@ export function VaccinationDialog({
         labours: data.labours,
         reachableLocation: data.reachableLocation,
         request: {
-          date: new Date(data.request.date).toISOString(),
-          situation: data.request.situation,
-          fulfillingDate: data.request.fulfillingDate ? new Date(data.request.fulfillingDate).toISOString() : undefined,
+          date: data.request?.date ? new Date(data.request.date).toISOString() : new Date().toISOString(),
+          situation: data.request?.situation || 'Ongoing',
+          fulfillingDate: data.request?.fulfillingDate ? new Date(data.request.fulfillingDate).toISOString() : undefined,
         },
         holdingCode: typeof data.holdingCode === 'string' ? data.holdingCode : (data.holdingCode?._id || undefined),
         remarks: data.remarks || '',

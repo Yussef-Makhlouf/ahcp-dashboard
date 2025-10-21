@@ -231,6 +231,12 @@ export interface ParasiteControl {
     phone: string;
     village?: string;
     birthDate?: string;
+    holdingCode?: string | {
+      _id: string;
+      code: string;
+      village: string;
+      description?: string;
+    };
   };
   location?: Location; // Legacy support
   coordinates?: {
@@ -239,6 +245,7 @@ export interface ParasiteControl {
   };
   supervisor: string;
   vehicleNo: string;
+  herdLocation?: string; // Location of the herd
   // Support both old and new herd structures
   herd?: Herd; // Legacy support
   herdCounts?: {
