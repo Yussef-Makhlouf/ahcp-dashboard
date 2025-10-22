@@ -36,7 +36,7 @@ export function MainLayout({ children, className }: MainLayoutProps) {
   };
 
   return (
-    <div className="min-h-screen bg-card">
+    <div className="min-h-screen bg-card py-4">
       {/* Sidebar */}
       <Sidebar 
         isOpen={sidebarOpen}
@@ -50,11 +50,11 @@ export function MainLayout({ children, className }: MainLayoutProps) {
         "content-transition transition-all duration-300 ease-in-out",
         sidebarCollapsed ? "lg:pr-16" : "lg:pr-64"
       )}>
-        <Navbar 
+        {/* <Navbar 
           onToggleSidebar={toggleSidebar}
           onToggleCollapse={toggleCollapse}
           isCollapsed={sidebarCollapsed}
-        />
+        /> */}
         <main className={cn("p-6 bg-light", className)}>
           {children}
         </main>

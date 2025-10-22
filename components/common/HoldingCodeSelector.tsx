@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Plus, MapPin, User } from 'lucide-react';
+import { Plus, MapPin, User, Hash } from 'lucide-react';
 import { HoldingCode } from '@/lib/api/holding-codes';
 import { api } from '@/lib/api/base-api';
 
@@ -218,12 +218,7 @@ export function HoldingCodeSelector({
           يرجى تحديد القرية أولاً لعرض رمز الحيازة المتاح
         </p>
       )}
-      
-      {village && holdingCodes.length === 0 && !loading && (
-        <p className="text-sm text-amber-600">
-          لا يوجد رمز حيازة لهذه القرية. يمكنك إنشاء رمز جديد.
-        </p>
-      )}
+
     </div>
   );
 }

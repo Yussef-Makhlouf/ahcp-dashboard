@@ -53,7 +53,11 @@ export function getColumns({
         const name = typeof client === 'object' && client ? client.name || '-' : '-';
         const nationalId = typeof client === 'object' && client ? client.nationalId || '' : '';
         const phone = typeof client === 'object' && client ? client.phone || '' : '';
-        const birthDate = typeof client === 'object' && client?.birthDate ? new Date(client.birthDate).toLocaleDateString("en-US") : '';
+        const birthDate = typeof client === 'object' && client?.birthDate ? new Date(client.birthDate).toLocaleDateString("en-GB", {
+          day: '2-digit',
+          month: '2-digit',
+          year: 'numeric'
+        }) : '';
         
         return (
           <div className="space-y-1 min-w-[200px]">
@@ -89,10 +93,16 @@ export function getColumns({
         const birthDate = typeof client === 'object' && client ? client.birthDate : undefined;
         if (!birthDate) return <span className="text-muted-foreground">غير محدد</span>;
         const date = new Date(birthDate);
+        // Format as dd/mm/yyyy
+        const formattedDate = date.toLocaleDateString("en-GB", {
+          day: '2-digit',
+          month: '2-digit',
+          year: 'numeric'
+        });
         return (
           <div className="text-sm flex items-center gap-1">
             <Calendar className="h-3 w-3" />
-            {date.toLocaleDateString("ar-EG")}
+            {formattedDate}
           </div>
         );
       },
@@ -137,7 +147,7 @@ export function getColumns({
     // Herd Location (Village)
     {
       id: "village",
-      header: "القرية",
+      header: "Village",
       cell: ({ row }) => {
         const parasiteControl = row.original as ParasiteControl;
         const client = parasiteControl.client;
@@ -145,13 +155,30 @@ export function getColumns({
         // استخراج اسم القرية من بيانات المربي
         let village = 'غير محدد';
         
+        // Debug logging (can be removed in production)
+        // console.log('🔍 Village Column Debug:', {
+        //   client,
+        //   clientType: typeof client,
+        //   hasVillage: client?.village,
+        //   villageType: typeof client?.village,
+        //   isVillageObject: client?.village && typeof client.village === 'object',
+        //   villageName: client?.village?.nameArabic || client?.village?.nameEnglish,
+        //   herdLocation: parasiteControl.herdLocation
+        // });
+        
         if (client) {
           // إذا كان client عبارة عن object (populated)
           if (typeof client === 'object' && client !== null && 'village' in client) {
-            // فحص holdingCode أولاً
-            if (client.holdingCode && typeof client.holdingCode === 'object' && client.holdingCode !== null && 'village' in client.holdingCode) {
-              village = client.holdingCode.village || client.village || 'غير محدد';
-            } else {
+            // فحص village object أولاً (populated village)
+            if (client.village && typeof client.village === 'object' && client.village !== null) {
+              village = (client.village as any).nameArabic || (client.village as any).nameEnglish || 'غير محدد';
+            }
+            // فحص holdingCode كـ fallback
+            else if (client.holdingCode && typeof client.holdingCode === 'object' && client.holdingCode !== null && 'village' in client.holdingCode) {
+              village = client.holdingCode.village || 'غير محدد';
+            }
+            // إذا كان village مجرد string (legacy data)
+            else if (typeof client.village === 'string') {
               village = client.village || 'غير محدد';
             }
           }
@@ -296,19 +323,45 @@ export function getColumns({
       cell: ({ row }) => {
         const holdingCode = row.original.holdingCode;
         
-        if (!holdingCode) {
-          return <span className="text-gray-400 text-xs">-</span>;
+        // Debug logging for development
+        console.log('🔍 Holding Code Column Debug:', {
+          recordId: row.original._id,
+          serialNo: row.original.serialNo,
+          holdingCode,
+          type: typeof holdingCode,
+          isObject: typeof holdingCode === 'object' && holdingCode !== null,
+          hasCode: typeof holdingCode === 'object' && holdingCode !== null ? (holdingCode as any).code : holdingCode,
+          hasVillage: typeof holdingCode === 'object' && holdingCode !== null ? (holdingCode as any).village : '',
+        });
+        
+        // Handle null, undefined, or empty holding code
+        if (!holdingCode || holdingCode === null || holdingCode === undefined || holdingCode === '') {
+          return (
+            <div className="text-xs">
+              <div className="flex items-center gap-1 text-amber-600">
+                <Hash className="h-3 w-3" />
+                <span>لا يوجد رمز حيازة</span>
+              </div>
+              <div className="text-xs text-gray-500 mt-1">
+                يرجى إضافة رمز حيازة
+              </div>
+            </div>
+          );
         }
         
         // Handle both string and object types
-        const code = typeof holdingCode === 'object' ? holdingCode.code : holdingCode;
-        const village = typeof holdingCode === 'object' ? holdingCode.village : '';
+        const code = typeof holdingCode === 'object' && holdingCode !== null ? holdingCode.code : holdingCode;
+        const village = typeof holdingCode === 'object' && holdingCode !== null ? holdingCode.village : '';
+        const isActive = typeof holdingCode === 'object' && holdingCode !== null ? (holdingCode as any).isActive !== false : true;
         
         return (
           <div className="text-xs space-y-1">
             <div className="flex items-center gap-1 font-medium">
               <Hash className="h-3 w-3 text-blue-500" />
-              <span>{code}</span>
+              <span className={isActive ? 'text-blue-700' : 'text-gray-500'}>{code}</span>
+              {!isActive && (
+                <span className="text-xs text-red-500">(غير نشط)</span>
+              )}
             </div>
             {village && (
               <div className="flex items-center gap-1 text-gray-500">
@@ -413,12 +466,12 @@ export function getColumns({
     },
     {
       id: "actions",
-      header: "الإجراءات",
+      header: "Actions",
       cell: ({ row }) => {
         const canEdit = checkPermission({ module: 'parasite-control', action: 'edit' });
         const canDelete = checkPermission({ module: 'parasite-control', action: 'delete' });
         
-        // إذا لم يكن لديه صلاحيات التعديل أو الحذف، لا تظهر خانة الإجراءات
+        // إذا لم يكن لديه صلاحيات التعديل أو الحذف، لا تظهر خانة Actions
         if (!canEdit && !canDelete) {
           return null;
         }
@@ -426,12 +479,15 @@ export function getColumns({
         return (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="h-8 w-8 p-0">
+              <Button 
+                variant="outline" 
+                className="h-9 w-9 p-0 border-2 border-gray-400 bg-white hover:bg-gray-50 hover:border-gray-500 transition-all duration-200 shadow-md hover:shadow-lg"
+              >
                 <span className="sr-only">فتح القائمة</span>
-                <MoreHorizontal className="h-4 w-4" />
+                <MoreHorizontal className="h-5 w-5 text-gray-800 font-bold" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
+            <DropdownMenuContent align="end" className="w-48 bg-white border border-gray-200 shadow-lg">
               {onView && (
                 <DropdownMenuItem onClick={() => onView(row.original)}>
                   <Eye className="mr-2 h-4 w-4" />

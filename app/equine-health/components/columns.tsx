@@ -62,24 +62,21 @@ export function getColumns({
         <div className="font-mono text-sm">{row.original.client?.phone || 'غير محدد'}</div>
       ),
     },
-    // Holding Code
+    // Village
     {
-      id: "holdingCode",
-      header: "Holding Code",
+      id: "village",
+      header: "القرية",
       cell: ({ row }) => {
-        const holdingCode = row.original.holdingCode;
+        const village = row.original.client?.village;
         
-        if (!holdingCode) {
-          return <span className="text-gray-400 text-xs">-</span>;
+        if (!village || village === 'N/A') {
+          return <span className="text-gray-400 text-xs">غير محدد</span>;
         }
         
-        // Handle both string and object types
-        const code = typeof holdingCode === 'object' ? holdingCode.code : holdingCode;
-        
         return (
-          <div className="flex items-center gap-1 text-xs font-medium">
-            <Hash className="h-3 w-3 text-blue-500" />
-            <span>{code}</span>
+          <div className="flex items-center gap-1 text-sm font-medium">
+            <MapPin className="h-3 w-3 text-green-500" />
+            <span>{village}</span>
           </div>
         );
       },
@@ -95,15 +92,7 @@ export function getColumns({
       },
       size: 120,
     },
-    {
-      accessorKey: "farmLocation",
-      header: "Location",
-      cell: ({ row }) => (
-        <div className="max-w-[150px] truncate" title={row.getValue("farmLocation")}>
-          {row.getValue("farmLocation") || 'غير محدد'}
-        </div>
-      ),
-    },
+
     {
       accessorKey: "coordinates.latitude",
       header: "N Coordinate",
@@ -178,17 +167,15 @@ export function getColumns({
       accessorKey: "request.situation",
       header: "Request Status",
       cell: ({ row }) => {
-        const status = row.original.request?.situation || 'Open';
+        const status = row.original.request?.situation || 'Ongoing';
         const statusColors = {
-          "Open": "bg-green-500 text-white border-green-600",
+          "Ongoing": "bg-green-500 text-white border-green-600",
           "Closed": "bg-blue-500 text-white border-blue-600",
-          "Pending": "bg-yellow-500 text-white border-yellow-600",
         };
 
         const statusLabels = {
-          "Open": "مفتوح",
+          "Ongoing": "مفتوح",
           "Closed": "مغلق",
-          "Pending": "معلق",
         };
 
         return (
@@ -217,12 +204,12 @@ export function getColumns({
     },
     {
       id: "actions",
-      header: "الإجراءات",
+      header: "Actions",
       cell: ({ row }) => {
         const canEdit = checkPermission({ module: 'equine-health', action: 'edit' });
         const canDelete = checkPermission({ module: 'equine-health', action: 'delete' });
         
-        // إذا لم يكن لديه صلاحيات التعديل أو الحذف، لا تظهر خانة الإجراءات
+        // إذا لم يكن لديه صلاحيات التعديل أو الحذف، لا تظهر خانة Actions
         if (!canEdit && !canDelete) {
           return null;
         }
@@ -230,12 +217,15 @@ export function getColumns({
         return (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="h-8 w-8 p-0">
+              <Button 
+                variant="outline" 
+                className="h-9 w-9 p-0 border-2 border-gray-400 bg-white hover:bg-gray-50 hover:border-gray-500 transition-all duration-200 shadow-md hover:shadow-lg"
+              >
                 <span className="sr-only">فتح القائمة</span>
-                <MoreHorizontal className="h-4 w-4" />
+                <MoreHorizontal className="h-5 w-5 text-gray-800 font-bold" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
+            <DropdownMenuContent align="end" className="w-48 bg-white border border-gray-200 shadow-lg">
               {onView && (
                 <DropdownMenuItem onClick={() => onView(row.original)}>
                   <Eye className="mr-2 h-4 w-4" />

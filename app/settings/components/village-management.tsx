@@ -316,7 +316,7 @@ export function VillageManagement({ onRefresh }: VillageManagementProps) {
 
     {
       id: "actions",
-      header: "الإجراءات",
+      header: "Actions",
       cell: ({ row }) => {
         const village = row.original;
         return (

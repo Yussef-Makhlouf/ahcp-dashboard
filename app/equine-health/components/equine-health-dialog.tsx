@@ -669,7 +669,7 @@ export function EquineHealthDialog({
                       <FormLabel>العلاج المقدم</FormLabel>
                       <FormControl>
                         <Textarea
-                          placeholder="وصف العلاج والإجراءات الطبية..."
+                          placeholder="وصف العلاج وActions الطبية..."
                           className="resize-none"
                           {...field}
                         />

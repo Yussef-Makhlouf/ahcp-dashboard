@@ -62,8 +62,11 @@ export function Navbar({ onToggleSidebar, onToggleCollapse, isCollapsed = false 
           </button>
         )}
 
-        {/* Page title */}
-        <h2 className="text-lg font-semibold text-white">لوحة التحكم</h2>
+        {/* ARTAT Bilingual Branding */}
+        <div className="flex flex-col leading-tight">
+          <h1 className="text-lg font-bold text-gray-800">أرطات لصحة الحيوان</h1>
+          <p className="text-xs text-gray-600 hidden sm:block">Artat Animal Health System (AAHS)</p>
+        </div>
       </div>
 
       <div className="flex items-center gap-4">

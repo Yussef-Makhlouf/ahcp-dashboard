@@ -101,6 +101,8 @@ function transformAPIResponse(apiData: any): ParasiteControl {
     totalHerdCount: apiData.totalHerdCount,
     totalTreated: apiData.totalTreated,
     treatmentEfficiency: apiData.treatmentEfficiency,
+    // Holding Code
+    holdingCode: apiData.holdingCode,
     // Timestamps
     createdAt: apiData.createdAt,
     updatedAt: apiData.updatedAt,
@@ -441,15 +443,25 @@ export const parasiteControlApi = {
   },
 
   // Get statistics - Real API only
-  getStatistics: async (): Promise<{
+  getStatistics: async (params?: { startDate?: string; endDate?: string }): Promise<{
     totalRecords: number;
     healthyRecords: number;
     sickRecords: number;
     complyRecords: number;
     recordsThisMonth: number;
+    totalAnimals: number;
+    totalTreated: number;
+    totalVolumeUsed: number;
+    healthyHerds: number;
+    sickHerds: number;
+    underTreatmentHerds: number;
   }> => {
     try {
-      const response = await api.get('/parasite-control/statistics', {
+      const queryParams = new URLSearchParams();
+      if (params?.startDate) queryParams.append('startDate', params.startDate);
+      if (params?.endDate) queryParams.append('endDate', params.endDate);
+      
+      const response = await api.get(`/parasite-control/statistics?${queryParams.toString()}`, {
         timeout: 30000,
       });
       
@@ -462,6 +474,12 @@ export const parasiteControlApi = {
         sickRecords: data.sickHerds || 0,
         complyRecords: data.complyRecords || 0,
         recordsThisMonth: data.recordsThisMonth || 0,
+        totalAnimals: data.totalAnimals || 0,
+        totalTreated: data.totalTreated || 0,
+        totalVolumeUsed: data.totalVolumeUsed || 0,
+        healthyHerds: data.healthyHerds || 0,
+        sickHerds: data.sickHerds || 0,
+        underTreatmentHerds: data.underTreatmentHerds || 0,
       };
     } catch (error: any) {
       console.error('Error fetching statistics:', error);
@@ -472,6 +490,63 @@ export const parasiteControlApi = {
         sickRecords: 0,
         complyRecords: 0,
         recordsThisMonth: 0,
+        totalAnimals: 0,
+        totalTreated: 0,
+        totalVolumeUsed: 0,
+        healthyHerds: 0,
+        sickHerds: 0,
+        underTreatmentHerds: 0,
+      };
+    }
+  },
+
+  // Get detailed statistics for charts and visualizations
+  getDetailedStatistics: async (params?: { startDate?: string; endDate?: string }): Promise<{
+    sprayedAnimals: number;
+    sprayedBarns: number;
+    pourOnAnimals: number;
+    oralDrenching: number;
+    sheepTreated: number;
+    goatsTreated: number;
+    cattleTreated: number;
+    camelTreated: number;
+    horseTreated: number;
+  }> => {
+    try {
+      const queryParams = new URLSearchParams();
+      if (params?.startDate) queryParams.append('startDate', params.startDate);
+      if (params?.endDate) queryParams.append('endDate', params.endDate);
+      
+      const response = await api.get(`/parasite-control/detailed-statistics?${queryParams.toString()}`, {
+        timeout: 30000,
+      });
+      
+      const data = (response as any).data || response;
+      
+      return {
+        sprayedAnimals: data.sprayedAnimals || 0,
+        sprayedBarns: data.sprayedBarns || 0,
+        pourOnAnimals: data.pourOnAnimals || 0,
+        oralDrenching: data.oralDrenching || 0,
+        sheepTreated: data.sheepTreated || 0,
+        goatsTreated: data.goatsTreated || 0,
+        cattleTreated: data.cattleTreated || 0,
+        camelTreated: data.camelTreated || 0,
+        horseTreated: data.horseTreated || 0,
+      };
+    } catch (error: any) {
+      console.error('Error fetching detailed statistics:', error);
+      // Return default values if API fails
+      return {
+        sprayedAnimals: 0,
+        sprayedBarns: 0,
+        pourOnAnimals: 0,
+        oralDrenching: 0,
+        sheepTreated: 0,
+        goatsTreated: 0,
+        cattleTreated: 0,
+        camelTreated: 0,
+        horseTreated: 0,
       };
     }
   },

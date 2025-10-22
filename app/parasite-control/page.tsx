@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { MainLayout } from "@/components/layout/main-layout";
 import { DataTable } from "@/components/data-table/data-table";
+import { ParasiteControlStats } from "@/components/dashboard/parasite-control-stats";
 
 import { getColumns } from "./components/columns";
 import { Button } from "@/components/ui/button";
@@ -138,7 +139,13 @@ const tableColumns = [
     title: "تاريخ ميلاد المربي",
     render: (value: any, record: ParasiteControl) => {
       const birthDate = record.owner?.birthDate;
-      return birthDate ? formatDate(birthDate) : "-";
+      if (!birthDate) return "-";
+      const date = new Date(birthDate);
+      return date.toLocaleDateString("en-GB", {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric'
+      });
     },
     width: "140px",
   },
@@ -229,12 +236,6 @@ export default function ParasiteControlPage() {
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 
-  // Fetch statistics
-  const { data: stats } = useQuery({
-    queryKey: ['parasite-control-stats'],
-    queryFn: () => parasiteControlApi.getStatistics(),
-    staleTime: 10 * 60 * 1000, // 10 minutes
-  });
 
   const data = parasiteControlData?.data || [];
   const totalCount = parasiteControlData?.total || 0;
@@ -377,74 +378,8 @@ export default function ParasiteControlPage() {
           />
         </div>
 
-        {/* Stats Cards */}
-        <div className="grid gap-4 md:grid-cols-4">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                إجمالي السجلات
-              </CardTitle>
-              <Bug className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats?.totalRecords || 0}</div>
-              <p className="text-xs text-muted-foreground">
-                +20.1% من الشهر الماضي
-              </p>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                القطعان السليمة
-              </CardTitle>
-              <TrendingUp className="h-4 w-4 text-green-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-green-600">
-                {stats?.healthyRecords || 0}
-              </div>
-              <p className="text-xs text-muted-foreground">
-                {stats?.totalRecords ? Math.round((stats.healthyRecords / stats.totalRecords) * 100) : 0}% من الإجمالي
-              </p>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                القطعان المريضة
-              </CardTitle>
-              <TrendingDown className="h-4 w-4 text-red-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-red-600">
-                {stats?.sickRecords || 0}
-              </div>
-              <p className="text-xs text-muted-foreground">
-                {stats?.totalRecords ? Math.round((stats.sickRecords / stats.totalRecords) * 100) : 0}% من الإجمالي
-              </p>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                معدل الامتثال
-              </CardTitle>
-              <Activity className="h-4 w-4 text-blue-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-blue-600">
-                {stats?.totalRecords ? Math.round((stats.complyRecords / stats.totalRecords) * 100) : 0}%
-              </div>
-              <p className="text-xs text-muted-foreground">
-                {stats?.complyRecords || 0} من {stats?.totalRecords || 0} سجل
-              </p>
-            </CardContent>
-          </Card>
-        </div>
+        {/* Department Dashboard - Parasite Control */}
+        <ParasiteControlStats />
 
         {/* Data Table */}
         <DataTable

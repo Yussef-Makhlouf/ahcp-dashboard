@@ -17,7 +17,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { ModernDateRangePicker } from "@/components/ui/modern-date-picker";
+// Removed ModernDateRangePicker import - using simple date inputs instead
 
 export interface DateFilterProps {
   className?: string;
@@ -175,15 +175,33 @@ export function DateFilter({
       
       <div className="flex items-center gap-2">
         {/* مكون اختيار التاريخ */}
-        <ModernDateRangePicker
-          placeholder={placeholder}
-          value={selectedRange}
-          onChange={handleRangeChange}
-          disabled={disabled}
-          size="sm"
-          variant="modern"
-          className="min-w-[200px]"
-        />
+        <div className="flex items-center gap-2 min-w-[200px]">
+          <input
+            type="date"
+            value={selectedRange?.from ? format(selectedRange.from, "yyyy-MM-dd") : ""}
+            onChange={(e) => {
+              const fromDate = e.target.value ? new Date(e.target.value) : null;
+              const toDate = selectedRange?.to || null;
+              handleRangeChange({ from: fromDate, to: toDate });
+            }}
+            disabled={disabled}
+            className="h-8 px-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            placeholder="من"
+          />
+          <span className="text-gray-500">إلى</span>
+          <input
+            type="date"
+            value={selectedRange?.to ? format(selectedRange.to, "yyyy-MM-dd") : ""}
+            onChange={(e) => {
+              const toDate = e.target.value ? new Date(e.target.value) : null;
+              const fromDate = selectedRange?.from || null;
+              handleRangeChange({ from: fromDate, to: toDate });
+            }}
+            disabled={disabled}
+            className="h-8 px-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            placeholder="إلى"
+          />
+        </div>
 
         {/* قائمة الإعدادات المسبقة */}
         {showPresets && (

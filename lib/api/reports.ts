@@ -14,13 +14,87 @@ export interface ReportParams {
 }
 
 export interface DashboardStats {
-  totalClients: number;
-  totalAnimals: number;
-  parasiteControlRecords: number;
-  vaccinationRecords: number;
-  mobileClinicVisits: number;
-  laboratoryTests: number;
-  equineHealthRecords: number;
+  overview: {
+    totalClients: number;
+    activeClients: number;
+    totalAnimals: number;
+    totalRecords: number;
+  };
+  vaccination: {
+    totalRecords: number;
+    totalAnimals: number;
+    totalVaccinated: number;
+    healthyHerds: number;
+    sickHerds: number;
+    servedOwners: number;
+    visitedVillages: number;
+    visitedHerds: number;
+    vaccinatedAnimals: number;
+    uniqueHerds: number;
+  };
+  parasiteControl: {
+    totalRecords: number;
+    totalAnimals: number;
+    totalTreated: number;
+    healthyHerds: number;
+    sickHerds: number;
+    servedOwners: number;
+    visitedVillages: number;
+    visitedHerds: number;
+    treatedAnimals: number;
+    uniqueHerds: number;
+  };
+  mobileClinic: {
+    totalRecords: number;
+    totalAnimals: number;
+    emergencyInterventions: number;
+    routineInterventions: number;
+    preventiveInterventions: number;
+    followUpRequired: number;
+    servedOwners: number;
+    visitedVillages: number;
+    visitedHerds: number;
+    treatedAnimals: number;
+    uniqueHerds: number;
+  };
+  laboratory: {
+    totalRecords: number;
+    totalSamples: number;
+    totalPositive: number;
+    totalNegative: number;
+    pendingTests: number;
+    inProgressTests: number;
+    completedTests: number;
+    failedTests: number;
+    servedOwners: number;
+    visitedVillages: number;
+    sampledHerds: number;
+    testedAnimals: number;
+    uniqueHerds: number;
+  };
+  equineHealth: {
+    totalRecords: number;
+    totalAnimals: number;
+    healthyHerds: number;
+    sickHerds: number;
+  };
+  clients: {
+    totalClients: number;
+    activeClients: number;
+    totalAnimals: number;
+  };
+  comparativeStats: {
+    servedHerds: {
+      vaccinated: number;
+      treated: number;
+      sprayed: number;
+    };
+    servedAnimals: {
+      vaccination: number;
+      treatment: number;
+      parasiteControl: number;
+    };
+  };
   recentActivity: Array<{
     id: string;
     type: string;
@@ -57,62 +131,100 @@ export const reportsApi = {
     endDate: string;
   }): Promise<DashboardStats> => {
     try {
-      // جمع الإحصائيات من مختلف الـ APIs
-      const [
-        clientsStats,
-        parasiteControlStats,
-        vaccinationStats,
-        mobileClinicsStats,
-        laboratoriesStats
-      ] = await Promise.allSettled([
-        api.get('/clients/statistics'),
-        api.get('/parasite-control/statistics'),
-        api.get('/vaccination/statistics'),
-        api.get('/mobile-clinics/statistics'),
-        api.get('/laboratories/statistics')
-      ]);
+      const params = new URLSearchParams();
+      if (dateRange?.startDate) params.append('startDate', dateRange.startDate);
+      if (dateRange?.endDate) params.append('endDate', dateRange.endDate);
 
-      // استخراج البيانات مع معالجة الأخطاء
-      const getStatValue = (result: any, fallback: any = {}) => {
-        if (result.status === 'fulfilled' && result.value?.data) {
-          return result.value.data;
-        }
-        return fallback;
-      };
-
-      const clients = getStatValue(clientsStats, { totalClients: 0 });
-      const parasiteControl = getStatValue(parasiteControlStats, { totalRecords: 0 });
-      const vaccination = getStatValue(vaccinationStats, { totalRecords: 0 });
-      const mobileClinics = getStatValue(mobileClinicsStats, { totalRecords: 0 });
-      const laboratories = getStatValue(laboratoriesStats, { totalSamples: 0 });
-
-      // بناء الإحصائيات المجمعة
-      const dashboardStats: DashboardStats = {
-        totalClients: clients.totalClients || 0,
-        totalAnimals: clients.totalAnimals || 0,
-        parasiteControlRecords: parasiteControl.totalRecords || 0,
-        vaccinationRecords: vaccination.totalRecords || 0,
-        mobileClinicVisits: mobileClinics.totalRecords || 0,
-        laboratoryTests: laboratories.totalSamples || 0,
-        equineHealthRecords: 0,
-        recentActivity: [],
-        monthlyStats: [],
-        animalDistribution: []
-      };
-
-      return dashboardStats;
+      const response = await api.get(`/reports/dashboard?${params.toString()}`);
+      
+      // Return the comprehensive dashboard data directly from the API
+      return response.data;
     } catch (error) {
       console.error('Error getting dashboard stats:', error);
       
-      // إرجاع إحصائيات فارغة في حالة الخطأ
+      // Return empty stats structure in case of error
       return {
-        totalClients: 0,
-        totalAnimals: 0,
-        parasiteControlRecords: 0,
-        vaccinationRecords: 0,
-        mobileClinicVisits: 0,
-        laboratoryTests: 0,
-        equineHealthRecords: 0,
+        overview: {
+          totalClients: 0,
+          activeClients: 0,
+          totalAnimals: 0,
+          totalRecords: 0
+        },
+        vaccination: {
+          totalRecords: 0,
+          totalAnimals: 0,
+          totalVaccinated: 0,
+          healthyHerds: 0,
+          sickHerds: 0,
+          servedOwners: 0,
+          visitedVillages: 0,
+          visitedHerds: 0,
+          vaccinatedAnimals: 0,
+          uniqueHerds: 0
+        },
+        parasiteControl: {
+          totalRecords: 0,
+          totalAnimals: 0,
+          totalTreated: 0,
+          healthyHerds: 0,
+          sickHerds: 0,
+          servedOwners: 0,
+          visitedVillages: 0,
+          visitedHerds: 0,
+          treatedAnimals: 0,
+          uniqueHerds: 0
+        },
+        mobileClinic: {
+          totalRecords: 0,
+          totalAnimals: 0,
+          emergencyInterventions: 0,
+          routineInterventions: 0,
+          preventiveInterventions: 0,
+          followUpRequired: 0,
+          servedOwners: 0,
+          visitedVillages: 0,
+          visitedHerds: 0,
+          treatedAnimals: 0,
+          uniqueHerds: 0
+        },
+        laboratory: {
+          totalRecords: 0,
+          totalSamples: 0,
+          totalPositive: 0,
+          totalNegative: 0,
+          pendingTests: 0,
+          inProgressTests: 0,
+          completedTests: 0,
+          failedTests: 0,
+          servedOwners: 0,
+          visitedVillages: 0,
+          sampledHerds: 0,
+          testedAnimals: 0,
+          uniqueHerds: 0
+        },
+        equineHealth: {
+          totalRecords: 0,
+          totalAnimals: 0,
+          healthyHerds: 0,
+          sickHerds: 0
+        },
+        clients: {
+          totalClients: 0,
+          activeClients: 0,
+          totalAnimals: 0
+        },
+        comparativeStats: {
+          servedHerds: {
+            vaccinated: 0,
+            treated: 0,
+            sprayed: 0
+          },
+          servedAnimals: {
+            vaccination: 0,
+            treatment: 0,
+            parasiteControl: 0
+          }
+        },
         recentActivity: [],
         monthlyStats: [],
         animalDistribution: []

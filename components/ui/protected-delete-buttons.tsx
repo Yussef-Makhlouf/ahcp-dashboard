@@ -65,6 +65,7 @@ export const ProtectedDeleteButtons: React.FC<ProtectedDeleteButtonsProps> = ({
           size="sm"
           onClick={handleDeleteSelected}
           disabled={isDeleting}
+          className="bg-red-600 hover:bg-red-700"
         >
           <Trash2 className="ml-2 h-4 w-4" />
           حذف المحدد ({selectedRowsCount})
@@ -78,6 +79,7 @@ export const ProtectedDeleteButtons: React.FC<ProtectedDeleteButtonsProps> = ({
           size="sm"
           onClick={handleDeleteAll}
           disabled={isDeleting}
+          className="bg-red-600 hover:bg-red-700"
         >
           <AlertTriangle className="ml-2 h-4 w-4" />
           حذف الكل
@@ -132,6 +134,7 @@ export const ProtectedDeleteSelectedButton: React.FC<ProtectedDeleteSelectedButt
       size="sm"
       onClick={handleDeleteSelected}
       disabled={isDeleting}
+      className="bg-red-600 hover:bg-red-700"
     >
       <Trash2 className="ml-2 h-4 w-4" />
       حذف المحدد ({selectedRowsCount})
@@ -182,6 +185,7 @@ export const ProtectedDeleteAllButton: React.FC<ProtectedDeleteAllButtonProps> =
       size="sm"
       onClick={handleDeleteAll}
       disabled={isDeleting}
+      className="bg-red-600 hover:bg-red-700"
     >
       <AlertTriangle className="ml-2 h-4 w-4" />
       حذف الكل

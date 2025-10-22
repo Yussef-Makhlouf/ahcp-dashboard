@@ -332,7 +332,7 @@ export function DataTable<TData, TValue>({
 
   // Skeleton loading component
   const SkeletonRow = () => (
-    <TableRow>
+    <TableRow className="">
       {columns.map((_, index) => (
         <TableCell key={index} className="px-6 py-4 min-w-[120px]">
           <div className="animate-pulse">
@@ -346,8 +346,8 @@ export function DataTable<TData, TValue>({
   return (
     <div className="space-y-4 w-full max-w-none" dir="rtl">
       {/* Enhanced Toolbar */}
-      <div className="">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+      <div className="bg-secondary">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between bg-secondary">
           <div className="flex flex-1 items-center gap-3">
             <div className="relative flex-1 max-w-md border rounded-md shadow-sm">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
@@ -413,10 +413,7 @@ export function DataTable<TData, TValue>({
                     onClick={() => onExport("pdf", selectedRows.length > 0 ? selectedRows : undefined)}
                     className="cursor-pointer"
                   >
-                    <div className="flex items-center gap-2">
-                      <div className="w-2 h-2 bg-red-500 rounded-full"></div>
-                      تصدير PDF {selectedRows.length > 0 && `(${selectedRows.length} محدد)`}
-                    </div>
+           
                   </DropdownMenuCheckboxItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -426,14 +423,15 @@ export function DataTable<TData, TValue>({
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button 
-                  variant="secondary" 
+                  variant="outline" 
                   size="sm"
+                  className="bg-secondary hover:bg-secondary "
                 >
                   <Settings2 className="ml-2 h-4 w-4" />
                   الأعمدة
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-48">
+              <DropdownMenuContent align="end" className="w-48 bg-secondary">
                 {table
                   .getAllColumns()
                   .filter((column) => column.getCanHide())
@@ -458,20 +456,20 @@ export function DataTable<TData, TValue>({
       {/* Enhanced Table */}
       <div className="table-container">
         <div className="overflow-x-auto overflow-y-auto min-h-[400px] max-h-[600px] scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100 mobile-table-container">
-          <table className="table min-w-full mobile-table" style={{ minWidth: '1200px', direction: 'rtl' }}>
-            <thead>
+          <table className="table min-w-full mobile-table" style={{ minWidth: '1300px', direction: 'rtl' }}>
+            <thead className="bg-secondary">
               {table.getHeaderGroups().map((headerGroup) => (
-                <tr key={headerGroup.id}>
+                <TableRow key={headerGroup.id}>
                   {headerGroup.headers.map((header) => {
                     return (
-                      <th key={header.id} className="text-right">
+                      <TableHead key={header.id} className="text-right bg-secondary">
                         {header.isPlaceholder
                           ? null
                           : flexRender(header.column.columnDef.header, header.getContext())}
-                      </th>
+                      </TableHead>
                     );
                   })}
-                </tr>
+                </TableRow>
               ))}
             </thead>
             <tbody>

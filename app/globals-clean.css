@@ -1,82 +1,120 @@
-@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@200;300;400;500;600;700;800;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@200;300;400;500;600;700;800;900&family=Cairo:wght@300;400;500;600;700&family=Poppins:wght@300;400;500;600;700&family=Montserrat:wght@400;500;600;700&display=swap');
 @import "tailwindcss";
 
 /* ========================================
-   AHCP Professional Design System
-   Clean, Static, Professional Dashboard UI
+   ARTAT ANIMAL HEALTH SYSTEM (AAHS)
+   أرطات لصحة الحيوان
+   Modern, Nature-Inspired, Flat Design
    ======================================== */
 
 :root {
-  /* Primary Color Palette */
-  --ahcp-primary: #2C3E50;
-  --ahcp-primary-light: #34495E;
-  --ahcp-primary-dark: #1A252F;
+  /* ========================================
+     ARTAT BRAND COLORS
+     ======================================== */
   
-  /* Status Colors */
-  --ahcp-success: #27AE60;
-  --ahcp-success-light: #2ECC71;
-  --ahcp-warning: #F39C12;
-  --ahcp-warning-light: #F1C40F;
-  --ahcp-info: #3498DB;
-  --ahcp-info-light: #5DADE2;
+  /* Primary Brand Colors - Nature & Technology */
+  --artat-orange: #D97A1A;           /* Main brand - vitality & energy */
+  --artat-orange-light: #E69647;
+  --artat-orange-dark: #C86B10;
+  
+  --artat-sky-blue: #6ECFF6;         /* Trust & clarity */
+  --artat-sky-blue-light: #9AE0F9;
+  --artat-sky-blue-dark: #4ABEEF;
+  
+  --artat-green: #6CA75E;            /* Nature & animal health */
+  --artat-green-light: #8FBF84;
+  --artat-green-dark: #578A4B;
+  
+  --artat-sand: #E4C46C;             /* Highlights & desert tone */
+  --artat-sand-light: #EDD594;
+  --artat-sand-dark: #D4AD49;
+  
+  /* Background Colors - Clean & Neutral */
+  --artat-bg-main: #F7F7F7;          /* Neutral gray canvas */
+  --artat-bg-card: #FFFFFF;          /* Pure white cards */
+  --artat-bg-light: #FDFBF8;         /* Light beige accent */
+  --artat-bg-hover: rgba(228, 196, 108, 0.15); /* Sand hover */
+  
+  /* Text Colors - Clear Hierarchy */
+  --artat-text-primary: #2A2A2A;
+  --artat-text-secondary: #6C6C6C;
+  --artat-text-muted: #9E9E9E;
+  --artat-text-link: #6ECFF6;
+  
+  /* Border Colors - Subtle Separation */
+  --artat-border: #EAEAEA;
+  --artat-border-light: #F5F5F5;
+  --artat-border-dark: #D1D1D1;
+  
+  /* ========================================
+     TYPOGRAPHY - Bilingual Harmony
+     ======================================== */
+  --font-arabic: 'Tajawal', 'Cairo', system-ui, sans-serif;
+  --font-latin: 'Poppins', 'Montserrat', system-ui, sans-serif;
+  --font-primary: var(--font-arabic);
+  
+  --text-h1: 1.875rem;    /* 30px */
+  --text-h2: 1.5rem;      /* 24px */
+  --text-h3: 1.25rem;     /* 20px */
+  --text-body: 0.9375rem; /* 15px - readable body text */
+  --text-small: 0.875rem; /* 14px */
+  
+  /* ========================================
+     SPACING SYSTEM - Consistent & Ample
+     ======================================== */
+  --space-xs: 0.5rem;   /* 8px */
+  --space-sm: 0.75rem;  /* 12px */
+  --space-md: 1rem;     /* 16px */
+  --space-lg: 1.5rem;   /* 24px - minimum section padding */
+  --space-xl: 2rem;     /* 32px */
+  --space-2xl: 2.5rem;  /* 40px */
+  --space-3xl: 3rem;    /* 48px */
+  --space-4xl: 4rem;    /* 64px */
+  
+  /* ========================================
+     BORDER RADIUS - Rounded & Modern (12-16px)
+     ======================================== */
+  --radius-sm: 0.5rem;   /* 8px */
+  --radius-md: 0.75rem;  /* 12px - standard */
+  --radius-lg: 1rem;     /* 16px - cards & buttons */
+  --radius-xl: 1.25rem;  /* 20px */
+  --radius-2xl: 1.5rem;  /* 24px */
+  
+  /* ========================================
+     PURE FLAT DESIGN - NO SHADOWS AT ALL
+     ======================================== */
+  --shadow-none: none;
+  --shadow-sm: none;
+  --shadow-md: none;
+  --shadow-card: none;
+  --shadow-lg: none;
+  --shadow-xl: none;
+  
+  /* ========================================
+     LEGACY COMPATIBILITY (Map to ARTAT)
+     ======================================== */
+  --ahcp-primary: var(--artat-orange);
+  --ahcp-primary-light: var(--artat-orange-light);
+  --ahcp-primary-dark: var(--artat-orange-dark);
+  --ahcp-success: var(--artat-green);
+  --ahcp-info: var(--artat-sky-blue);
+  --ahcp-warning: var(--artat-sand);
   --ahcp-danger: #E74C3C;
-  --ahcp-danger-light: #EC7063;
-  
-  /* Background Colors */
-  --ahcp-bg-main: #F8F9FA;
-  --ahcp-bg-card: #FFFFFF;
-  --ahcp-bg-secondary: #F1F3F4;
-  --ahcp-bg-light: #FAFBFC;
-  --ahcp-bg-hover: #E8F4FD;
-  --ahcp-bg-active: #D1ECF1;
-  
-  /* Text Colors */
-  --ahcp-text: #495057;
-  --ahcp-text-primary: #2C3E50;
-  --ahcp-text-secondary: #6C757D;
-  --ahcp-text-muted: #ADB5BD;
-  --ahcp-text-link: #3498DB;
-  --ahcp-disabled: #CED4DA;
-  
-  /* Border Colors */
-  --ahcp-border: #E5E7EB;
-  --ahcp-border-light: #F1F3F4;
-  --ahcp-border-dark: #D1D5DB;
-  
-  /* Typography */
-  --font-primary: 'Cairo', system-ui, sans-serif;
-  --text-h1: 1.875rem; /* 30px */
-  --text-h2: 1.5rem;   /* 24px */
-  --text-h3: 1.25rem;  /* 20px */
-  --text-body: 0.875rem; /* 14px */
-  --text-small: 0.75rem; /* 12px */
-  
-  /* Spacing System */
-  --space-xs: 0.25rem;  /* 4px */
-  --space-sm: 0.5rem;   /* 8px */
-  --space-md: 0.75rem;  /* 12px */
-  --space-lg: 1rem;     /* 16px */
-  --space-xl: 1.25rem;  /* 20px */
-  --space-2xl: 1.5rem;  /* 24px */
-  --space-3xl: 2rem;    /* 32px */
-  --space-4xl: 2.5rem;  /* 40px */
-  
-  /* Border Radius */
-  --radius-sm: 0.375rem;  /* 6px */
-  --radius-md: 0.5rem;    /* 8px */
-  --radius-lg: 0.75rem;   /* 12px */
-  --radius-xl: 1rem;      /* 16px */
-  --radius-2xl: 1.5rem;   /* 24px */
-  
-  /* Shadows */
-  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-  --shadow-md: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
-  --shadow-lg: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-  --shadow-xl: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  --ahcp-bg-main: var(--artat-bg-main);
+  --ahcp-bg-card: var(--artat-bg-card);
+  --ahcp-bg-secondary: var(--artat-bg-light);
+  --ahcp-bg-hover: var(--artat-bg-hover);
+  --ahcp-text-primary: var(--artat-text-primary);
+  --ahcp-text-secondary: var(--artat-text-secondary);
+  --ahcp-text-muted: var(--artat-text-muted);
+  --ahcp-text-link: var(--artat-text-link);
+  --ahcp-border: var(--artat-border);
+  --ahcp-border-light: var(--artat-border-light);
+  --ahcp-border-dark: var(--artat-border-dark);
   
   /* Component Variables */
-  --background: var(--ahcp-bg-main);
-  --foreground: var(--ahcp-text-primary);
+  --background: var(--artat-bg-main);
+  --foreground: var(--artat-text-primary);
   --card: var(--ahcp-bg-card);
   --card-foreground: var(--ahcp-text-primary);
   --popover: var(--ahcp-bg-card);
@@ -217,25 +255,47 @@
      BUTTONS - Professional Button System
      ======================================== */
   
+  /* ========================================
+     PROFESSIONAL BUTTONS - Smooth Interactions
+     ======================================== */
+  
   .btn {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    border-radius: var(--radius-md);
-    font-size: var(--text-body);
+    white-space: nowrap;
+    font-size: 0.875rem;
     font-weight: 500;
-    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     border: 1px solid transparent;
-    outline: none;
-    min-height: 2.5rem;
-    padding: var(--space-md) var(--space-lg);
-    text-decoration: none;
+    cursor: pointer;
+    user-select: none;
     position: relative;
+    overflow: hidden;
+  }
+  
+  .btn::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.2);
+    transform: translate(-50%, -50%);
+    transition: width 0.3s, height 0.3s;
+  }
+  
+  .btn:active::before {
+    width: 300px;
+    height: 300px;
   }
 
   .btn:focus-visible {
-    outline: 2px solid var(--ahcp-primary);
+    outline: 2px solid var(--artat-orange);
     outline-offset: 2px;
+    box-shadow: 0 0 0 4px rgba(217, 122, 26, 0.1);
   }
 
   .btn:disabled {
@@ -243,27 +303,37 @@
     cursor: not-allowed;
   }
 
-  /* Button Variants */
+  /* ========================================
+     ARTAT FLAT BUTTONS - No Gradients
+     ======================================== */
+  
+  /* Primary Button - Orange */
   .btn-primary {
-    background: var(--ahcp-primary);
+    background: var(--artat-orange);
     color: #ffffff;
-    border-color: var(--ahcp-primary);
+    border: none;
+    border-radius: var(--radius-lg); /* 16px */
+    padding: 10px 20px;
+    box-shadow: none;
   }
 
   .btn-primary:hover:not(:disabled) {
-    background: var(--ahcp-primary-light);
-    border-color: var(--ahcp-primary-light);
+    background: var(--artat-orange-dark); /* Slightly darker */
   }
 
+  /* Secondary Button - Sky Blue */
   .btn-secondary {
-    background: var(--ahcp-bg-secondary);
-    color: var(--ahcp-text-primary);
-    border-color: var(--ahcp-border);
+    background: transparent;
+    color: var(--artat-sky-blue);
+    border: 1px solid var(--artat-sky-blue);
+    border-radius: var(--radius-lg); /* 16px */
+    padding: 10px 20px;
+    box-shadow: none;
   }
 
   .btn-secondary:hover:not(:disabled) {
-    background: var(--ahcp-border);
-    border-color: var(--ahcp-border-dark);
+    background: var(--artat-sky-blue);
+    color: #ffffff;
   }
 
   .btn-success {
@@ -346,36 +416,63 @@
   }
 
   /* ========================================
-     CARDS - Professional Card System
+     ARTAT CARDS - Colored Top Bar Design
      ======================================== */
   
   .card {
-    background-color: var(--ahcp-bg-card);
-    border-radius: var(--radius-lg);
-    border: 1px solid var(--ahcp-border);
-    box-shadow: var(--shadow-md);
+    background-color: var(--artat-bg-card);
+    border-radius: var(--radius-lg); /* 16px */
+    border: 1px solid var(--artat-border);
+    box-shadow: none; /* Pure flat design */
     overflow: hidden;
     position: relative;
   }
 
+  /* Colored top bar (optional - can be added via class) */
+  .card-accent-green::before,
+  .card-accent-blue::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+  }
+
+  .card-accent-green::before {
+    background: var(--artat-green);
+  }
+
+  .card-accent-blue::before {
+    background: var(--artat-sky-blue);
+  }
+
   .card-header {
-    padding: var(--space-2xl);
-    padding-bottom: var(--space-lg);
-    border-bottom: 1px solid var(--ahcp-border-light);
+    padding: var(--space-lg); /* 24px */
+    padding-bottom: var(--space-md);
+    border-bottom: 1px solid var(--artat-border-light);
   }
 
   .card-title {
     font-size: 1.125rem;
     font-weight: 600;
-    line-height: 1;
-    letter-spacing: -0.025em;
-    color: var(--ahcp-text-primary);
+    line-height: 1.4;
+    color: var(--artat-text-primary);
     margin: 0;
   }
 
   .card-content {
-    padding: var(--space-2xl);
-    padding-top: var(--space-lg);
+    padding: var(--space-lg);
+  }
+  
+  /* Card variants - Flat hover */
+  .card-elevated {
+    box-shadow: none;
+    transition: border-color 0.2s;
+  }
+  
+  .card-elevated:hover {
+    border-color: var(--artat-border-dark);
   }
 
   .card-footer {
@@ -448,30 +545,34 @@
     font-size: var(--text-small);
   }
 
+  /* ========================================
+     ARTAT TABLES - Green Header Style
+     ======================================== */
+  
   /* Sticky Header for Scrolling */
   .table thead th {
     position: sticky;
     top: 0;
     z-index: 10;
-    background: var(--ahcp-bg-secondary);
+    background: var(--artat-green);
   }
 
   .table thead {
-    background: var(--ahcp-bg-secondary);
-    border-bottom: 2px solid var(--ahcp-primary);
+    background: var(--artat-green);
+    border-bottom: 2px solid var(--artat-green-dark);
   }
 
   .table th {
     height: 3rem;
-    padding: var(--space-lg) var(--space-lg);
+    padding: 12px 16px;
     text-align: right;
     vertical-align: middle;
     font-weight: 600;
-    color: var(--ahcp-text-primary);
-    font-size: var(--text-small);
+    color: #FFFFFF; /* White text on green */
+    font-size: 14px;
     text-transform: uppercase;
     letter-spacing: 0.025em;
-    border-bottom: 1px solid var(--ahcp-border);
+    border-bottom: 1px solid var(--artat-green-dark);
     position: relative;
     white-space: nowrap;
     overflow: hidden;
@@ -514,15 +615,15 @@
   }
 
   .table tbody tr:hover {
-    background-color: var(--ahcp-bg-hover);
+    background-color: var(--artat-bg-hover); /* rgba(228, 196, 108, 0.15) - sand highlight */
   }
 
   .table tbody tr:nth-child(even) {
-    background-color: var(--ahcp-bg-light);
+    background-color: var(--artat-bg-main); /* #F7F7F7 alternate rows */
   }
 
   .table tbody tr:nth-child(even):hover {
-    background-color: var(--ahcp-bg-hover);
+    background-color: var(--artat-bg-hover); /* Sand highlight on hover */
   }
 
   .table tbody tr:last-child td:first-child {
@@ -666,26 +767,104 @@
     color: #ffffff;
   }
 
-  /* Enhanced Sidebar Styles */
+  /* ========================================
+     ARTAT SIDEBAR - Flat & Responsive
+     ======================================== */
   .sidebar {
     height: 100%;
-    border-right: 1px solid var(--ahcp-border);
-    background: linear-gradient(135deg, var(--ahcp-primary) 0%, var(--ahcp-primary-light) 100%);
-    box-shadow: 2px 0 8px rgba(0, 0, 0, 0.1);
-    position: relative;
+    border-left: 2px solid var(--artat-green-dark); /* Flat border */
+    background: var(--artat-green); /* Solid green */
+    box-shadow: none; /* Pure flat */
+    position: fixed;
+    top: 0;
+    right: 0;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    z-index: 45;
+  }
+  
+  /* Sidebar widths - responsive */
+  .sidebar {
+    width: 260px; /* Desktop default */
+  }
+  
+  .sidebar.collapsed {
+    width: 70px; /* Collapsed state */
+  }
+  
+  /* Mobile sidebar */
+  @media (max-width: 1023px) {
+    .sidebar {
+      width: 280px;
+      transform: translateX(100%); /* Hidden by default */
+    }
+    
+    .sidebar.open {
+      transform: translateX(0); /* Shown when open */
+    }
+  }
+  
+  /* Tablet */
+  @media (min-width: 768px) and (max-width: 1023px) {
+    .sidebar {
+      width: 300px;
+    }
+  }
+  
+  /* Large desktop */
+  @media (min-width: 1440px) {
+    .sidebar {
+      width: 280px;
+    }
+    
+    .sidebar.collapsed {
+      width: 80px;
+    }
   }
 
   .sidebar-header {
-    background: rgba(255, 255, 255, 0.1);
+    background: transparent; /* Pure flat */
     color: #ffffff;
-    padding: var(--space-2xl) var(--space-lg);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    backdrop-filter: blur(10px);
+    padding: 24px 20px;
+    border-bottom: 2px solid rgba(255, 255, 255, 0.15);
+    min-height: 70px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  /* Responsive sidebar header */
+  @media (min-width: 640px) {
+    .sidebar-header {
+      min-height: 75px;
+      padding: 24px;
+    }
+  }
+  
+  @media (min-width: 1024px) {
+    .sidebar-header {
+      min-height: 80px;
+      padding: 28px 24px;
+    }
   }
 
   .sidebar-nav {
-    padding: var(--space-lg);
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 16px 12px;
+  }
+  
+  /* Responsive nav padding */
+  @media (min-width: 640px) {
+    .sidebar-nav {
+      padding: 20px 16px;
+    }
+  }
+  
+  @media (min-width: 1024px) {
+    .sidebar-nav {
+      padding: 24px 16px;
+    }
   }
 
   .sidebar-nav ul {
@@ -696,67 +875,59 @@
     margin-bottom: var(--space-xs);
   }
 
-  /* Enhanced Sidebar Navigation Links */
+  /* ========================================
+     FLAT SIDEBAR NAVIGATION - No Effects
+     ======================================== */
   .sidebar .nav-link {
     color: rgba(255, 255, 255, 0.9);
     background: transparent;
-    border-radius: var(--radius-lg);
-    margin-bottom: var(--space-xs);
-    position: relative;
-    overflow: hidden;
-  }
-
-  .sidebar .nav-link::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    right: 0;
-    width: 0;
-    height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1));
-    transition: width 0.3s ease;
-  }
-
-  .sidebar .nav-link:hover::before {
-    width: 100%;
+    border-radius: 10px;
+    margin-bottom: 6px;
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 15px;
+    font-weight: 400;
+    border: 2px solid transparent;
+    transition: all 0.2s ease;
   }
 
   .sidebar .nav-link:hover {
-    background: rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.15);
     color: #ffffff;
-    transform: translateX(-4px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    border-color: rgba(255, 255, 255, 0.2);
   }
 
   .sidebar .nav-link.active {
-    background: rgba(255, 255, 255, 0.2);
-    color: #ffffff;
+    background: var(--artat-sand); /* Sand yellow for active */
+    color: var(--artat-text-primary); /* Dark text */
     font-weight: 600;
-    border-left: 4px solid #3B82F6;
-    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+    border-left: 4px solid var(--artat-orange);
   }
 
   .sidebar .nav-link.active:hover {
-    background: rgba(255, 255, 255, 0.25);
+    background: var(--artat-sand-light);
     color: #ffffff;
   }
 
-  /* Sidebar Icons */
+  /* Sidebar Icons - Flat Design */
   .sidebar .nav-link svg {
+    width: 20px;
+    height: 20px;
     color: rgba(255, 255, 255, 0.9) !important;
-    transition: all 0.2s ease;
+    transition: color 0.2s ease;
   }
 
   .sidebar .nav-link:hover svg {
     color: #ffffff !important;
-    transform: scale(1.1);
   }
 
   .sidebar .nav-link.active svg {
-    color: #ffffff !important;
+    color: var(--artat-text-primary) !important;
   }
 
-  /* Sidebar Text */
+  /* Sidebar Text Colors */
   .sidebar .nav-link {
     color: rgba(255, 255, 255, 0.9) !important;
   }
@@ -766,7 +937,7 @@
   }
 
   .sidebar .nav-link.active {
-    color: #ffffff !important;
+    color: var(--artat-text-primary) !important;
   }
 
   /* Sidebar Header Text */
@@ -849,6 +1020,74 @@
     .sidebar.open {
       border: 2px solid green !important; /* Debug border when open */
     }
+  }
+
+  /* ========================================
+     ARTAT FORMS - Professional Input Styling
+     ======================================== */
+  
+  .form-input,
+  .form-select,
+  .form-textarea {
+    width: 100%;
+    padding: 12px 16px;
+    font-size: 15px;
+    line-height: 1.5;
+    color: var(--artat-text-primary);
+    background: var(--artat-bg-card);
+    border: 1px solid var(--artat-border);
+    border-radius: 12px; /* 12px */
+    transition: all 0.2s ease;
+    outline: none;
+  }
+  
+  .form-input:hover,
+  .form-select:hover,
+  .form-textarea:hover {
+    border-color: var(--artat-border-dark);
+  }
+  
+  .form-input:focus,
+  .form-select:focus,
+  .form-textarea:focus {
+    border-color: var(--artat-orange);
+    box-shadow: 0 0 0 3px rgba(217, 122, 26, 0.1);
+  }
+  
+  .form-input:disabled,
+  .form-select:disabled,
+  .form-textarea:disabled {
+    background: var(--artat-bg-main);
+    color: var(--artat-text-muted);
+    cursor: not-allowed;
+  }
+  
+  .form-label {
+    display: block;
+    margin-bottom: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--artat-text-primary);
+  }
+  
+  .form-label.required::after {
+    content: ' *';
+    color: var(--artat-orange);
+  }
+  
+  .form-error {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 6px;
+    font-size: 13px;
+    color: #E74C3C;
+  }
+  
+  .form-help {
+    margin-top: 6px;
+    font-size: 13px;
+    color: var(--artat-text-secondary);
   }
 
   /* ========================================
@@ -1472,18 +1711,37 @@
   }
 
   /* ========================================
-     ENHANCED NAVBAR STYLES
+     ARTAT NAVBAR - Flat & Responsive
      ======================================== */
   
   .navbar {
-    background: linear-gradient(135deg, var(--ahcp-primary) 0%, var(--ahcp-primary-light) 100%);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-    backdrop-filter: blur(10px);
+    background: var(--artat-bg-card);
+    border-bottom: 3px solid var(--artat-orange); /* Prominent accent */
+    box-shadow: none; /* Pure flat */
+    height: 70px;
+    padding: 0 16px;
     position: sticky;
     top: 0;
     z-index: 40;
     width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  
+  /* Responsive navbar heights */
+  @media (min-width: 640px) {
+    .navbar {
+      height: 75px;
+      padding: 0 24px;
+    }
+  }
+  
+  @media (min-width: 1024px) {
+    .navbar {
+      height: 80px;
+      padding: 0 32px;
+    }
   }
 
   /* Mobile navbar enhancements */

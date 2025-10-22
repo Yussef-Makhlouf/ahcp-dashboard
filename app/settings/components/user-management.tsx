@@ -352,7 +352,7 @@ export function UserManagement({ onRefresh }: UserManagementProps) {
     },
     {
       id: "actions",
-      header: "الإجراءات",
+      header: "Actions",
       cell: ({ row }) => {
         const user = row.original;
         const canEdit = canEditUser(user);

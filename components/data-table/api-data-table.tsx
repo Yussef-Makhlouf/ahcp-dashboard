@@ -329,7 +329,7 @@ export function ApiDataTable<T extends { id?: string | number; _id?: string }>({
                       {column.title}
                     </TableHead>
                   ))}
-                  <TableHead className="w-32">الإجراءات</TableHead>
+                  <TableHead className="w-32">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>

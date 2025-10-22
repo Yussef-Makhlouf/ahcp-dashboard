@@ -97,14 +97,7 @@ export function getColumns({
       },
       size: 120,
     },
-    // Location
-    {
-      accessorKey: "farmLocation",
-      header: "Location",
-      cell: ({ row }) => (
-        <div className="text-sm">{row.getValue("farmLocation") || 'غير محدد'}</div>
-      ),
-    },
+
     // N Coordinate, E Coordinate
     {
       id: "coordinates",
@@ -289,23 +282,37 @@ export function getColumns({
         const holdingCode = row.original.holdingCode;
         
         if (!holdingCode) {
-          return <span className="text-gray-400 text-xs">-</span>;
+          return (
+            <div className="text-xs">
+              <div className="flex items-center gap-2 text-amber-600">
+                <Hash className="h-4 w-4 text-amber-500" />
+                <span className="font-medium">لا يوجد رمز حيازة</span>
+              </div>
+              <div className="text-xs text-gray-500 mt-1 ml-6">
+                يرجى إضافة رمز حيازة
+              </div>
+            </div>
+          );
         }
         
         // Handle both string and object types
         const code = typeof holdingCode === 'object' ? holdingCode.code : holdingCode;
         const village = typeof holdingCode === 'object' ? holdingCode.village : '';
+        const isActive = typeof holdingCode === 'object' ? (holdingCode as any).isActive !== false : true;
         
         return (
           <div className="text-xs space-y-1">
-            <div className="flex items-center gap-1 font-medium">
-              <Hash className="h-3 w-3 text-blue-500" />
-              <span>{code}</span>
+            <div className="flex items-center gap-2 font-medium">
+              <Hash className="h-4 w-4 text-blue-600" />
+              <span className={isActive ? 'text-blue-800 font-semibold' : 'text-gray-500'}>{code}</span>
+              {!isActive && (
+                <span className="text-xs text-red-500 font-medium">(غير نشط)</span>
+              )}
             </div>
             {village && (
-              <div className="flex items-center gap-1 text-gray-500">
-                <MapPin className="h-3 w-3" />
-                <span>{village}</span>
+              <div className="flex items-center gap-2 text-gray-600">
+                <MapPin className="h-3 w-3 text-green-600" />
+                <span className="text-xs">{village}</span>
               </div>
             )}
           </div>
@@ -336,12 +343,12 @@ export function getColumns({
     },
     {
       id: "actions",
-      header: "الإجراءات",
+      header: "Actions",
       cell: ({ row }) => {
         const canEdit = checkPermission({ module: 'vaccination', action: 'edit' });
         const canDelete = checkPermission({ module: 'vaccination', action: 'delete' });
         
-        // إذا لم يكن لديه صلاحيات التعديل أو الحذف، لا تظهر خانة الإجراءات
+        // إذا لم يكن لديه صلاحيات التعديل أو الحذف، لا تظهر خانة Actions
         if (!canEdit && !canDelete) {
           return null;
         }
@@ -349,18 +356,16 @@ export function getColumns({
         return (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="h-8 w-8 p-0">
+              <Button 
+                variant="outline" 
+                className="h-9 w-9 p-0 border-2 border-gray-400 bg-white hover:bg-gray-50 hover:border-gray-500 transition-all duration-200 shadow-md hover:shadow-lg"
+              >
                 <span className="sr-only">فتح القائمة</span>
-                <MoreHorizontal className="h-4 w-4" />
+                <MoreHorizontal className="h-5 w-5 text-gray-800 font-bold" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              {onView && (
-                <DropdownMenuItem onClick={() => onView(row.original)}>
-                  <Eye className="mr-2 h-4 w-4" />
-                  عرض
-                </DropdownMenuItem>
-              )}
+            <DropdownMenuContent align="end" className="w-48 bg-white border border-gray-200 shadow-lg">
+            
               {canEdit && (
                 <DropdownMenuItem onClick={() => onEdit(row.original)}>
                   <Edit className="mr-2 h-4 w-4" />

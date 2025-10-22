@@ -260,7 +260,7 @@ export function HoldingCodeManagement({ onRefresh }: HoldingCodeManagementProps)
     },
     {
       id: "actions",
-      header: "الإجراءات",
+      header: "Actions",
       cell: ({ row }) => {
         const code = row.original;
         return (

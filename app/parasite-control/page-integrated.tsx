@@ -47,6 +47,12 @@ const formFields = [
     placeholder: "+966501234567",
   },
   {
+    name: "owner.birthDate",
+    label: "تاريخ ميلاد المربي",
+    type: "date" as const,
+    required: false,
+  },
+  {
     name: "supervisor",
     label: "المشرف",
     type: "text" as const,
@@ -126,6 +132,21 @@ const tableColumns = [
     key: "owner.name",
     title: "اسم المربي",
     render: (value: any, record: ParasiteControl) => record.owner?.name || "-",
+  },
+  {
+    key: "owner.birthDate",
+    title: "تاريخ ميلاد المربي",
+    render: (value: any, record: ParasiteControl) => {
+      const birthDate = record.owner?.birthDate;
+      if (!birthDate) return "-";
+      const date = new Date(birthDate);
+      return date.toLocaleDateString("en-GB", {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric'
+      });
+    },
+    width: "140px",
   },
   {
     key: "owner.phone",

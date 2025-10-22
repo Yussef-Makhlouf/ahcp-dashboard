@@ -127,15 +127,49 @@ export function getColumns({
       size: 120,
     },
     // Location
+
+    // Village
     {
-      accessorKey: "farmLocation",
-      header: "Location",
-      cell: ({ row }) => (
-        <div className="max-w-[120px] truncate" title={row.getValue("farmLocation")}>
-          {row.getValue("farmLocation")}
-        </div>
-      ),
-      size: 120,
+      id: "village",
+      header: "village",
+      cell: ({ row }) => {
+        const laboratory = row.original as Laboratory;
+        const client = laboratory.client;
+        
+        // استخراج اسم القرية من بيانات المربي
+        let village = 'غير محدد';
+        
+        if (client) {
+          // إذا كان client عبارة عن object (populated)
+          if (typeof client === 'object' && client !== null && 'village' in client) {
+            // إذا كان village مجرد string
+            if (typeof client.village === 'string') {
+              village = client.village || 'غير محدد';
+            }
+            // إذا كان village object مع خصائص
+            else if (client.village && typeof client.village === 'object' && client.village !== null) {
+              const villageObj = client.village as any;
+              village = villageObj.nameArabic || villageObj.nameEnglish || villageObj.name || 'غير محدد';
+            }
+          }
+        }
+        
+        // إذا لم نجد القرية، استخدم farmLocation كـ fallback
+        if (village === 'غير محدد') {
+          const farmLocation = row.original.farmLocation;
+          village = farmLocation || 'غير محدد';
+        }
+        
+        return (
+          <div className="max-w-[150px] truncate" title={village}>
+            <div className="flex items-center gap-1">
+              <MapPin className="h-3 w-3 text-muted-foreground" />
+              <span>{village}</span>
+            </div>
+          </div>
+        );
+      },
+      size: 150,
     },
     // N (North Coordinate)
     {
@@ -258,37 +292,6 @@ export function getColumns({
       ),
       size: 140,
     },
-    // Holding Code
-    {
-      id: "holdingCode",
-      header: "Holding Code",
-      cell: ({ row }) => {
-        const holdingCode = row.original.holdingCode;
-        
-        if (!holdingCode) {
-          return <span className="text-gray-400 text-xs">-</span>;
-        }
-        
-        // Handle both string and object types
-        const code = typeof holdingCode === 'object' ? holdingCode.code : holdingCode;
-        const village = typeof holdingCode === 'object' ? holdingCode.village : '';
-        
-        return (
-          <div className="text-xs space-y-1">
-            <div className="flex items-center gap-1 font-medium">
-              <Hash className="h-3 w-3 text-blue-500" />
-              <span>{code}</span>
-            </div>
-            {village && (
-              <div className="flex items-center gap-1 text-gray-500">
-                <MapPin className="h-3 w-3" />
-                <span>{village}</span>
-              </div>
-            )}
-          </div>
-        );
-      },
-    },
     // Sample Type
     {
       accessorKey: "sampleType",
@@ -367,7 +370,7 @@ export function getColumns({
     },
     {
       id: "actions",
-      header: "الإجراءات",
+      header: "Actions",
       cell: ({ row }) => {
         const canEdit = checkPermission({ module: 'laboratories', action: 'edit' });
         const canDelete = checkPermission({ module: 'laboratories', action: 'delete' });
@@ -379,12 +382,15 @@ export function getColumns({
             {(canEdit || canDelete) && (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="h-8 w-8 p-0">
+                  <Button 
+                    variant="outline" 
+                    className="h-9 w-9 p-0 border-2 border-gray-400 bg-white hover:bg-gray-50 hover:border-gray-500 transition-all duration-200 shadow-md hover:shadow-lg"
+                  >
                     <span className="sr-only">فتح القائمة</span>
-                    <MoreHorizontal className="h-4 w-4" />
+                    <MoreHorizontal className="h-5 w-5 text-gray-800 font-bold" />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
+                <DropdownMenuContent align="end" className="w-48 bg-white border border-gray-200 shadow-lg">
                   {canEdit && (
                     <DropdownMenuItem onClick={() => onEdit(row.original)}>
                       <Edit className="mr-2 h-4 w-4" />

@@ -253,7 +253,7 @@ export function DropdownListManagerV2({
     },
     {
       id: 'actions',
-      header: 'الإجراءات',
+      header: 'Actions',
       cell: ({ row }: any) => {
         const option = row.original;
         return (

@@ -1,0 +1,494 @@
+/* ========================================
+   ARTAT RESPONSIVE LAYOUT SYSTEM
+   Optimized for All Screen Sizes
+   ======================================== */
+
+/* ========================================
+   MAIN CONTENT AREA - Responsive Padding
+   ======================================== */
+
+.main-content {
+  padding: 16px;
+  width: 100%;
+  min-height: calc(100vh - 70px);
+  margin-right: 0;
+}
+
+/* Small Mobile: 320px - 480px */
+@media (min-width: 320px) {
+  .main-content {
+    padding: 16px 12px;
+  }
+}
+
+/* Mobile: 480px - 640px */
+@media (min-width: 480px) {
+  .main-content {
+    padding: 20px 16px;
+  }
+}
+
+/* Tablet: 640px - 768px */
+@media (min-width: 640px) {
+  .main-content {
+    padding: 24px 20px;
+    min-height: calc(100vh - 75px);
+  }
+}
+
+/* Large Tablet: 768px - 1024px */
+@media (min-width: 768px) {
+  .main-content {
+    padding: 28px 24px;
+  }
+}
+
+/* Desktop: 1024px+ with sidebar */
+@media (min-width: 1024px) {
+  .main-content {
+    padding: 32px;
+    margin-right: 260px; /* Sidebar width */
+    min-height: calc(100vh - 80px);
+  }
+  
+  .main-content.sidebar-collapsed {
+    margin-right: 70px; /* Collapsed sidebar width */
+  }
+}
+
+/* Large Desktop: 1440px+ */
+@media (min-width: 1440px) {
+  .main-content {
+    padding: 40px;
+    max-width: 1600px;
+    margin-right: auto;
+    margin-left: auto;
+  }
+}
+
+/* Ultra Wide: 1920px+ */
+@media (min-width: 1920px) {
+  .main-content {
+    padding: 48px;
+    max-width: 1800px;
+  }
+}
+
+/* ========================================
+   PAGE CONTAINERS - Responsive Spacing
+   ======================================== */
+
+.page-container {
+  width: 100%;
+  max-width: 100%;
+}
+
+/* Mobile spacing */
+@media (max-width: 639px) {
+  .page-container {
+    padding: 0;
+  }
+  
+  .page-header {
+    margin-bottom: 16px;
+  }
+  
+  .page-title {
+    font-size: 20px;
+  }
+}
+
+/* Tablet spacing */
+@media (min-width: 640px) and (max-width: 1023px) {
+  .page-container {
+    padding: 0;
+  }
+  
+  .page-header {
+    margin-bottom: 20px;
+  }
+  
+  .page-title {
+    font-size: 24px;
+  }
+}
+
+/* Desktop spacing */
+@media (min-width: 1024px) {
+  .page-container {
+    padding: 0;
+  }
+  
+  .page-header {
+    margin-bottom: 24px;
+  }
+  
+  .page-title {
+    font-size: 28px;
+  }
+}
+
+/* ========================================
+   CARDS - Responsive Sizing
+   ======================================== */
+
+.card {
+  margin-bottom: 16px;
+}
+
+/* Mobile cards */
+@media (max-width: 639px) {
+  .card {
+    border-radius: 12px;
+    margin-bottom: 12px;
+  }
+  
+  .card-header {
+    padding: 16px;
+  }
+  
+  .card-content {
+    padding: 16px;
+  }
+}
+
+/* Tablet cards */
+@media (min-width: 640px) and (max-width: 1023px) {
+  .card {
+    border-radius: 14px;
+    margin-bottom: 16px;
+  }
+  
+  .card-header {
+    padding: 20px;
+  }
+  
+  .card-content {
+    padding: 20px;
+  }
+}
+
+/* Desktop cards */
+@media (min-width: 1024px) {
+  .card {
+    border-radius: 16px;
+    margin-bottom: 20px;
+  }
+  
+  .card-header {
+    padding: 24px;
+  }
+  
+  .card-content {
+    padding: 24px;
+  }
+}
+
+/* ========================================
+   BUTTONS - Responsive Sizing
+   ======================================== */
+
+/* Mobile buttons */
+@media (max-width: 639px) {
+  .btn {
+    padding: 10px 16px;
+    font-size: 14px;
+    border-radius: 12px;
+  }
+  
+  .btn-sm {
+    padding: 8px 12px;
+    font-size: 13px;
+  }
+  
+  .btn-lg {
+    padding: 12px 20px;
+    font-size: 15px;
+  }
+}
+
+/* Tablet buttons */
+@media (min-width: 640px) and (max-width: 1023px) {
+  .btn {
+    padding: 10px 18px;
+    font-size: 14px;
+    border-radius: 14px;
+  }
+}
+
+/* Desktop buttons */
+@media (min-width: 1024px) {
+  .btn {
+    padding: 10px 20px;
+    font-size: 15px;
+    border-radius: 16px;
+  }
+}
+
+/* ========================================
+   TABLES - Responsive Behavior
+   ======================================== */
+
+.table-container {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  border-radius: 12px;
+  border: 1px solid var(--artat-border);
+}
+
+/* Mobile tables - scrollable */
+@media (max-width: 767px) {
+  .table-container {
+    border-radius: 10px;
+  }
+  
+  .table {
+    min-width: 800px; /* Force horizontal scroll */
+  }
+  
+  .table th,
+  .table td {
+    padding: 10px 12px;
+    font-size: 13px;
+  }
+  
+  .table th {
+    font-size: 12px;
+  }
+}
+
+/* Tablet tables */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .table-container {
+    border-radius: 12px;
+  }
+  
+  .table th,
+  .table td {
+    padding: 12px 14px;
+    font-size: 14px;
+  }
+}
+
+/* Desktop tables */
+@media (min-width: 1024px) {
+  .table-container {
+    border-radius: 14px;
+  }
+  
+  .table th,
+  .table td {
+    padding: 12px 16px;
+    font-size: 15px;
+  }
+}
+
+/* ========================================
+   FORMS - Responsive Input Sizing
+   ======================================== */
+
+/* Mobile forms */
+@media (max-width: 639px) {
+  .form-input,
+  .form-select,
+  .form-textarea {
+    padding: 10px 14px;
+    font-size: 14px;
+    border-radius: 10px;
+  }
+  
+  .form-label {
+    font-size: 13px;
+    margin-bottom: 6px;
+  }
+}
+
+/* Tablet forms */
+@media (min-width: 640px) and (max-width: 1023px) {
+  .form-input,
+  .form-select,
+  .form-textarea {
+    padding: 11px 15px;
+    font-size: 14px;
+    border-radius: 11px;
+  }
+}
+
+/* Desktop forms */
+@media (min-width: 1024px) {
+  .form-input,
+  .form-select,
+  .form-textarea {
+    padding: 12px 16px;
+    font-size: 15px;
+    border-radius: 12px;
+  }
+}
+
+/* ========================================
+   GRID LAYOUTS - Responsive Columns
+   ======================================== */
+
+.grid-responsive {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: 1fr;
+}
+
+/* Mobile: 1 column */
+@media (max-width: 639px) {
+  .grid-responsive {
+    gap: 12px;
+  }
+}
+
+/* Tablet: 2 columns */
+@media (min-width: 640px) and (max-width: 1023px) {
+  .grid-responsive {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+  }
+}
+
+/* Desktop: 3 columns */
+@media (min-width: 1024px) {
+  .grid-responsive {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+  }
+}
+
+/* Large Desktop: 4 columns */
+@media (min-width: 1440px) {
+  .grid-responsive {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 24px;
+  }
+}
+
+/* ========================================
+   MODAL/DIALOG - Responsive Sizing
+   ======================================== */
+
+.dialog-content,
+.modal-content {
+  width: 90%;
+  max-width: 500px;
+  border-radius: 16px;
+  padding: 24px;
+}
+
+/* Mobile modals */
+@media (max-width: 639px) {
+  .dialog-content,
+  .modal-content {
+    width: 95%;
+    max-width: 100%;
+    padding: 20px;
+    border-radius: 12px;
+    margin: 16px;
+  }
+}
+
+/* Tablet modals */
+@media (min-width: 640px) and (max-width: 1023px) {
+  .dialog-content,
+  .modal-content {
+    width: 85%;
+    max-width: 600px;
+    padding: 24px;
+    border-radius: 14px;
+  }
+}
+
+/* Desktop modals */
+@media (min-width: 1024px) {
+  .dialog-content,
+  .modal-content {
+    width: auto;
+    max-width: 700px;
+    padding: 28px;
+    border-radius: 16px;
+  }
+}
+
+/* Large Desktop modals */
+@media (min-width: 1440px) {
+  .dialog-content,
+  .modal-content {
+    max-width: 800px;
+    padding: 32px;
+  }
+}
+
+/* ========================================
+   SPACING UTILITIES - Responsive Gaps
+   ======================================== */
+
+.space-y-responsive > * + * {
+  margin-top: 12px;
+}
+
+@media (min-width: 640px) {
+  .space-y-responsive > * + * {
+    margin-top: 16px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .space-y-responsive > * + * {
+    margin-top: 20px;
+  }
+}
+
+/* ========================================
+   PRINT STYLES - Clean Print Layout
+   ======================================== */
+
+@media print {
+  .sidebar,
+  .navbar,
+  .btn,
+  .mobile-overlay {
+    display: none !important;
+  }
+  
+  .main-content {
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+  }
+  
+  .card {
+    box-shadow: none !important;
+    border: 1px solid #ddd !important;
+    page-break-inside: avoid;
+  }
+  
+  .table {
+    font-size: 10pt;
+  }
+}
+
+/* ========================================
+   ACCESSIBILITY - Focus Indicators
+   ======================================== */
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* High contrast focus for accessibility */
+@media (prefers-contrast: high) {
+  .btn:focus-visible,
+  .form-input:focus,
+  .nav-link:focus-visible {
+    outline: 3px solid var(--artat-orange);
+    outline-offset: 3px;
+  }
+}

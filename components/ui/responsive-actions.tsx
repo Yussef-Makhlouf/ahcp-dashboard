@@ -142,7 +142,7 @@ export function ResponsiveActions({
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-48">
-              <DropdownMenuLabel>الإجراءات</DropdownMenuLabel>
+              <DropdownMenuLabel>Actions</DropdownMenuLabel>
               {sortedActions.filter(action => action.key !== 'import-dromo').map((action) => (
                 <DropdownMenuItem
                   key={action.key}

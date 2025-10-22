@@ -4,9 +4,7 @@ import { useState } from "react";
 import { MainLayout } from "@/components/layout/main-layout";
 import { DataTable } from "@/components/data-table/data-table";
 import { Button } from "@/components/ui/button";
-import { Plus, Syringe, Shield, TrendingUp, Activity, Clock, AlertTriangle, FileSpreadsheet } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { Plus } from "lucide-react";
 import type { Vaccination } from "@/types";
 import { formatDate, formatPhoneNumber } from "@/lib/utils";
 import { VaccinationDialog } from "./components/vaccination-dialog";
@@ -19,6 +17,7 @@ import { ImportExportManager } from "@/components/import-export";
 import { ImportDialog } from "@/components/common/ImportDialog";
 import { ResponsiveActions, createActions } from "@/components/ui/responsive-actions";
 import { apiConfig } from "@/lib/api-config";
+import { VaccinationStats } from "@/components/dashboard/vaccination-stats";
 
 
 export default function VaccinationPage() {
@@ -40,12 +39,6 @@ export default function VaccinationPage() {
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 
-  // Fetch statistics
-  const { data: stats } = useQuery({
-    queryKey: ['vaccination-stats'],
-    queryFn: () => vaccinationApi.getStatistics(),
-    staleTime: 10 * 60 * 1000, // 10 minutes
-  });
 
   const data = vaccinationData?.data || [];
   const totalCount = vaccinationData?.total || 0;
@@ -172,74 +165,8 @@ export default function VaccinationPage() {
           />
         </div>
 
-        {/* Stats Cards */}
-        <div className="stats-grid grid gap-4 md:grid-cols-4">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                إجمالي السجلات
-              </CardTitle>
-              <Syringe className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats?.totalRecords || 0}</div>
-              <p className="text-xs text-muted-foreground">
-                +20.1% من الشهر الماضي
-              </p>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                التطعيمات الوقائية
-              </CardTitle>
-              <Shield className="h-4 w-4 text-green-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-green-600">
-                {stats?.preventiveVaccinations || 0}
-              </div>
-              <p className="text-xs text-muted-foreground">
-                {stats?.totalRecords ? Math.round((stats.preventiveVaccinations / stats.totalRecords) * 100) : 0}% من الإجمالي
-              </p>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                تطعيمات الطوارئ
-              </CardTitle>
-              <AlertTriangle className="h-4 w-4 text-yellow-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-yellow-600">
-                {stats?.emergencyVaccinations || 0}
-              </div>
-              <p className="text-xs text-muted-foreground">
-                {stats?.totalRecords ? Math.round((stats.emergencyVaccinations / stats.totalRecords) * 100) : 0}% من الإجمالي
-              </p>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                الحيوانات المطعمة
-              </CardTitle>
-              <Activity className="h-4 w-4 text-blue-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-blue-600">
-                {stats?.totalAnimalsVaccinated || 0}
-              </div>
-              <p className="text-xs text-muted-foreground">
-                حيوان مطعم
-              </p>
-            </CardContent>
-          </Card>
-        </div>
+        {/* Department Dashboard - Vaccination */}
+        <VaccinationStats />
 
 
         {/* Data Table */}

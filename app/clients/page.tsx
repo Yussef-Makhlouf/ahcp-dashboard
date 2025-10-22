@@ -178,12 +178,30 @@ export default function ClientsPage() {
     {
       accessorKey: "village",
       header: "القرية",
-      cell: ({ row }) => (
-        <div className="flex items-center gap-2">
-          <MapPin className="h-3 w-3 text-muted-foreground" />
-          <span>{row.getValue("village")}</span>
-        </div>
-      ),
+      cell: ({ row }) => {
+        const village = row.getValue("village");
+        
+        // Handle both populated village object and string village name
+        const villageName = village && typeof village === 'object' 
+          ? (village as any).nameArabic || (village as any).nameEnglish || (village as any).name
+          : village || "غير محدد";
+        
+        const villageCode = village && typeof village === 'object' 
+          ? (village as any).serialNumber 
+          : null;
+        
+        return (
+          <div className="flex items-center gap-2">
+            <MapPin className="h-3 w-3 text-muted-foreground" />
+            <div className="flex flex-col">
+              <span className="font-medium">{villageName}</span>
+              {villageCode && (
+                <span className="text-xs text-muted-foreground">رمز: {villageCode}</span>
+              )}
+            </div>
+          </div>
+        );
+      },
     },
     {
       accessorKey: "birthDate",
@@ -300,7 +318,7 @@ export default function ClientsPage() {
     },
     {
       id: "actions",
-      header: "الإجراءات",
+      header: "Actions",
       cell: ({ row }) => {
         const canEdit = checkPermission({ module: 'clients', action: 'edit' });
         const canDelete = checkPermission({ module: 'clients', action: 'delete' });
@@ -314,7 +332,7 @@ export default function ClientsPage() {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuLabel>الإجراءات</DropdownMenuLabel>
+              <DropdownMenuLabel>Actions</DropdownMenuLabel>
               <DropdownMenuItem onClick={() => {
                 const clientId = row.original._id || row.original.id || row.original.nationalId;
                 if (clientId) {

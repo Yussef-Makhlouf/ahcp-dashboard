@@ -90,13 +90,51 @@ export function getColumns({
       },
       size: 120,
     },
-    // Location
+
+    // Village
     {
-      accessorKey: "farmLocation",
-      header: "Location",
-      cell: ({ row }) => (
-        <div className="text-sm">{row.getValue("farmLocation") || 'غير محدد'}</div>
-      ),
+      id: "village",
+      header: "Village",
+      cell: ({ row }) => {
+        const mobileClinic = row.original as MobileClinic;
+        const client = mobileClinic.client;
+        
+        // استخراج اسم القرية من بيانات المربي
+        let village = 'غير محدد';
+        
+        if (client) {
+          // إذا كان client عبارة عن object (populated)
+          if (typeof client === 'object' && client !== null && 'village' in client) {
+            // فحص village object أولاً (populated village)
+            if (client.village && typeof client.village === 'object' && client.village !== null) {
+              village = (client.village as any).nameArabic || (client.village as any).nameEnglish || 'غير محدد';
+            }
+            // فحص holdingCode كـ fallback
+            else if ((client as any).holdingCode && typeof (client as any).holdingCode === 'object' && (client as any).holdingCode !== null && 'village' in (client as any).holdingCode) {
+              village = ((client as any).holdingCode as any).village || 'غير محدد';
+            }
+            // إذا كان village مجرد string (legacy data)
+            else if (typeof client.village === 'string') {
+              village = client.village || 'غير محدد';
+            }
+          }
+          // إذا كان client مجرد ID، استخدم location كـ fallback
+          else {
+            const location = (mobileClinic as any).farmLocation || (mobileClinic as any).location || 'غير محدد';
+            village = location;
+          }
+        }
+        
+        return (
+          <div className="max-w-[150px] truncate" title={village}>
+            <div className="flex items-center gap-1">
+              <MapPin className="h-3 w-3 text-muted-foreground" />
+              <span>{village}</span>
+            </div>
+          </div>
+        );
+      },
+      size: 150,
     },
     // N Coordinate, E Coordinate
     {
@@ -142,18 +180,32 @@ export function getColumns({
         const holdingCode = row.original.holdingCode;
         
         if (!holdingCode) {
-          return <span className="text-gray-400 text-xs">-</span>;
+          return (
+            <div className="text-xs">
+              <div className="flex items-center gap-1 text-amber-600">
+                <Hash className="h-3 w-3" />
+                <span>لا يوجد رمز حيازة</span>
+              </div>
+              <div className="text-xs text-gray-500 mt-1">
+                يرجى إضافة رمز حيازة
+              </div>
+            </div>
+          );
         }
         
         // Handle both string and object types
         const code = typeof holdingCode === 'object' ? holdingCode.code : holdingCode;
         const village = typeof holdingCode === 'object' ? holdingCode.village : '';
+        const isActive = typeof holdingCode === 'object' ? (holdingCode as any).isActive !== false : true;
         
         return (
           <div className="text-xs space-y-1">
             <div className="flex items-center gap-1 font-medium">
               <Hash className="h-3 w-3 text-blue-500" />
-              <span>{code}</span>
+              <span className={isActive ? 'text-blue-700' : 'text-gray-500'}>{code}</span>
+              {!isActive && (
+                <span className="text-xs text-red-500">(غير نشط)</span>
+              )}
             </div>
             {village && (
               <div className="flex items-center gap-1 text-gray-500">
@@ -278,12 +330,12 @@ export function getColumns({
     // Actions
     {
       id: "actions",
-      header: "الإجراءات",
+      header: "Actions",
       cell: ({ row }) => {
         const canEdit = checkPermission({ module: 'mobile-clinics', action: 'edit' });
         const canDelete = checkPermission({ module: 'mobile-clinics', action: 'delete' });
         
-        // إذا لم يكن لديه صلاحيات التعديل أو الحذف، لا تظهر خانة الإجراءات
+        // إذا لم يكن لديه صلاحيات التعديل أو الحذف، لا تظهر خانة Actions
         if (!canEdit && !canDelete) {
           return null;
         }
@@ -291,12 +343,15 @@ export function getColumns({
         return (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="h-8 w-8 p-0">
+              <Button 
+                variant="outline" 
+                className="h-9 w-9 p-0 border-2 border-gray-400 bg-white hover:bg-gray-50 hover:border-gray-500 transition-all duration-200 shadow-md hover:shadow-lg"
+              >
                 <span className="sr-only">فتح القائمة</span>
-                <MoreHorizontal className="h-4 w-4" />
+                <MoreHorizontal className="h-5 w-5 text-gray-800 font-bold" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
+            <DropdownMenuContent align="end" className="w-48 bg-white border border-gray-200 shadow-lg">
               {onView && (
                 <DropdownMenuItem onClick={() => onView(row.original)}>
                   <Eye className="mr-2 h-4 w-4" />

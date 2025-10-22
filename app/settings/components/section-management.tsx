@@ -228,7 +228,7 @@ export function SectionManagement({ onRefresh }: SectionManagementProps) {
     },
     {
       id: "actions",
-      header: "الإجراءات",
+      header: "Actions",
       cell: ({ row }) => {
         const section = row.original;
         return (

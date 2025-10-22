@@ -24,12 +24,6 @@ export interface Client {
   phone: string;
   email?: string;
   village?: string;
-  holdingCode?: string | {
-    _id: string;
-    code: string;
-    village: string;
-    description?: string;
-  }; // Holding code - can be string ID or populated object
   status: "نشط" | "غير نشط";
   animals: Animal[];
   availableServices: string[]; // Backend primary field
@@ -506,12 +500,7 @@ export interface Laboratory {
   serialNo: number; // Serial number from table
   date: string; // Date column
   sampleCode: string; // Sample Code column
-  holdingCode?: string | {
-    _id: string;
-    code: string;
-    village: string;
-    description?: string;
-  }; // Holding code reference - مرتبط بالقرية
+  farmLocation?: string; // Farm location field
   
   // Support both flat client fields (current backend) and nested client object (future compatibility)
   clientName?: string; // Flat client name field (backend primary)
@@ -519,16 +508,22 @@ export interface Laboratory {
   clientBirthDate?: string; // Flat client birth date field (backend primary)
   clientPhone?: string; // Flat client phone field (backend primary)
   
-  client?: {
+  client?: string | {
     _id?: string;
     name: string; // Name column (client name)
     nationalId: string; // ID column (client ID - 10 digits)
     birthDate?: string; // Birth Date column
     phone: string; // phone column (10 digits)
+    village?: string | {
+      _id?: string;
+      name?: string;
+      nameArabic?: string;
+      nameEnglish?: string;
+    };
   };
   
  // Location column
-  coordinates: {
+  coordinates?: {
     latitude: number; // N column (North coordinate)
     longitude: number; // E column (East coordinate)
   };

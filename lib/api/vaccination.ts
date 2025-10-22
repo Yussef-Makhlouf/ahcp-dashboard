@@ -156,4 +156,42 @@ export const vaccinationApi = {
       };
     }
   },
+
+  // Get detailed statistics for dashboard
+  getDetailedStatistics: async (params?: {
+    startDate?: string;
+    endDate?: string;
+  }): Promise<{
+    pprVaccinated: number;
+    fmdVaccinated: number;
+    etVaccinated: number;
+    hsVaccinated: number;
+    sgPoxVaccinated: number;
+    sheepVaccinated: number;
+    goatsVaccinated: number;
+    cattleVaccinated: number;
+    camelVaccinated: number;
+  }> => {
+    try {
+      const response = await api.get('/vaccination/detailed-statistics', {
+        params,
+        timeout: 30000,
+      });
+      return response.data?.data || response.data || {};
+    } catch (error: any) {
+      console.error('Error fetching detailed statistics:', error);
+      // Return default values if API fails
+      return {
+        pprVaccinated: 0,
+        fmdVaccinated: 0,
+        etVaccinated: 0,
+        hsVaccinated: 0,
+        sgPoxVaccinated: 0,
+        sheepVaccinated: 0,
+        goatsVaccinated: 0,
+        cattleVaccinated: 0,
+        camelVaccinated: 0,
+      };
+    }
+  },
 };

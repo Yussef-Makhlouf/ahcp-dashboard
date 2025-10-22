@@ -507,8 +507,11 @@
 /* Enhanced Sidebar Styles */
 .sidebar-enhanced {
   transition: var(--sidebar-transition);
-  backdrop-filter: var(--sidebar-backdrop-blur);
-  -webkit-backdrop-filter: var(--sidebar-backdrop-blur);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  background: rgba(231, 164, 0, 0.9);
+  border-left: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
 }
 
 .sidebar-enhanced .nav-item {
@@ -606,6 +609,91 @@
 .sidebar-collapsed .nav-item:hover .nav-text {
   opacity: 1;
   transform: translateX(0);
+}
+
+/* Enhanced Logo Styles */
+.sidebar-logo {
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.sidebar-logo:hover {
+  transform: scale(1.05);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+}
+
+/* Enhanced Navigation Hover Effects */
+.sidebar-enhanced .nav-item {
+  position: relative;
+  overflow: hidden;
+}
+
+.sidebar-enhanced .nav-item::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 0;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1));
+  transition: width 0.3s ease;
+  z-index: 1;
+}
+
+.sidebar-enhanced .nav-item:hover::before {
+  width: 100%;
+}
+
+.sidebar-enhanced .nav-item:hover {
+  transform: translateX(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* Active State Enhancement */
+.sidebar-enhanced .nav-item.active {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(59, 130, 246, 0.1));
+  border-right: 4px solid #3B82F6;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+/* Smooth Icon Transitions */
+.sidebar-enhanced .nav-icon {
+  transition: all 0.2s ease;
+  position: relative;
+  z-index: 2;
+}
+
+.sidebar-enhanced .nav-item:hover .nav-icon {
+  transform: scale(1.1) rotate(2deg);
+}
+
+/* Collapse Button Enhancement */
+.sidebar-collapse-btn {
+  transition: all 0.3s ease;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.sidebar-collapse-btn:hover {
+  transform: scale(1.1);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+}
+
+/* Responsive Enhancements */
+@media (max-width: 1023px) {
+  .sidebar-enhanced {
+    box-shadow: -10px 0 30px rgba(0, 0, 0, 0.3);
+  }
+}
+
+@media (min-width: 1024px) {
+  .sidebar-enhanced {
+    box-shadow: -5px 0 20px rgba(0, 0, 0, 0.1);
+  }
+  
+  .sidebar-enhanced.collapsed {
+    box-shadow: -3px 0 15px rgba(0, 0, 0, 0.1);
+  }
 }
 
 
