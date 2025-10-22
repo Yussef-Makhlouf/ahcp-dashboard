@@ -389,10 +389,7 @@ export default function LoginPage() {
                     <span className="text-slate-800 font-mono text-xs">laboratory@ahcp.gov.sa</span>
                   </div>
                 </div>
-                <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
-                  <p className="text-xs text-blue-700 font-medium">💡 كلمة المرور: admin123! (للمدير) أو اسم القسم + 123!</p>
-                  <p className="text-xs text-blue-600 mt-1">مثال: parasite123! أو vaccination123!</p>
-                </div>
+        
               </div>
             </div>
           </CardContent>
@@ -400,7 +397,7 @@ export default function LoginPage() {
 
         {/* حقوق النشر */}
         <div className="text-center mt-10 text-sm text-slate-500">
-          <p>© 2024 AHCP - جميع الحقوق محفوظة</p>
+          <p>© 2025 ARTAT System - جميع الحقوق محفوظة</p>
         </div>
       </div>
     </div>

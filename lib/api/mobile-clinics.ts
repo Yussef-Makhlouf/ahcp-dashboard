@@ -146,12 +146,6 @@ export const mobileClinicsApi = {
     recordsThisMonth: number;
     totalAnimalsExamined: number;
     emergencyCases: number;
-    interventionBreakdown: Array<{
-      category: string;
-      count: number;
-      totalAnimals: number;
-      percentage: number;
-    }>;
   }> => {
     try {
       const response = await api.get('/mobile-clinics/statistics', {

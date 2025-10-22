@@ -2,9 +2,10 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/lib/auth-provider";
 import {
   Home,
   Bug,
@@ -22,6 +23,7 @@ import {
   ChevronRight,
   PanelLeftClose,
   PanelLeftOpen,
+  LogOut,
 } from "lucide-react";
 
 const menuItems = [
@@ -86,11 +88,22 @@ interface SidebarProps {
 
 export function Sidebar({ isOpen, onToggle, isCollapsed = false, onCollapse }: SidebarProps) {
   const pathname = usePathname();
+  const router = useRouter();
+  const { logout } = useAuth();
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+      router.push('/login');
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
+  };
 
   return (
     <>
@@ -200,6 +213,28 @@ export function Sidebar({ isOpen, onToggle, isCollapsed = false, onCollapse }: S
               })}
             </ul>
           </nav>
+
+          {/* Logout Button */}
+          <div className="sidebar-footer px-3 py-4 border-t border-white/20">
+            <button
+              onClick={handleLogout}
+              className={cn(
+                "logout-btn w-full group flex items-center px-3 py-2.5 rounded-xl transition-all duration-200 hover:bg-red-500/20 hover:shadow-lg hover:scale-105 backdrop-blur-sm border border-red-400/30",
+                isCollapsed && "justify-center px-2"
+              )}
+              title={isCollapsed ? "تسجيل الخروج" : undefined}
+            >
+              <LogOut className={cn(
+                "h-5 w-5 flex-shrink-0 transition-all duration-200 group-hover:scale-110 text-red-300 group-hover:text-red-200",
+                !isCollapsed && "ml-3"
+              )} />
+              {!isCollapsed && (
+                <span className="truncate font-medium transition-all duration-200 text-white group-hover:text-white">
+                  تسجيل الخروج
+                </span>
+              )}
+            </button>
+          </div>
 
       
           

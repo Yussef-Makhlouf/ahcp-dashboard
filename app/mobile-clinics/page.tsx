@@ -21,7 +21,6 @@ import { apiConfig } from "@/lib/api-config";
 import { ImportExportManager } from "@/components/import-export";
 import { ImportDialog } from "@/components/common/ImportDialog";
 import { ResponsiveActions, createActions } from "@/components/ui/responsive-actions";
-import { MobileClinicStats } from "@/components/dashboard/mobile-clinic-stats";
 
 // تعريف حقول النموذج
 const formFields = [
@@ -480,9 +479,6 @@ export default function MobileClinicsPage() {
             </CardContent>
           </Card>
         </div>
-
-        {/* Mobile Clinic Statistics Chart */}
-        <MobileClinicStats />
 
         {/* Data Table */}
         <DataTable
