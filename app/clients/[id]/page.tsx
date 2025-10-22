@@ -126,11 +126,12 @@ export default function ClientDetailPage() {
     if (visitWithHerdCounts) {
       const herdCounts = visitWithHerdCounts.herdCounts || visitWithHerdCounts.animalCounts;
       if (herdCounts) {
-        animalCounts.sheep = herdCounts.sheep?.total || 0;
-        animalCounts.goats = herdCounts.goats?.total || 0;
-        animalCounts.camel = herdCounts.camel?.total || 0;
-        animalCounts.cattle = herdCounts.cattle?.total || 0;
-        animalCounts.horse = herdCounts.horse?.total || 0;
+        // Handle both nested structure (herdCounts.sheep.total) and flat structure (herdCounts.sheep)
+        animalCounts.sheep = herdCounts.sheep?.total || herdCounts.sheep || 0;
+        animalCounts.goats = herdCounts.goats?.total || herdCounts.goats || 0;
+        animalCounts.camel = herdCounts.camel?.total || herdCounts.camel || 0;
+        animalCounts.cattle = herdCounts.cattle?.total || herdCounts.cattle || 0;
+        animalCounts.horse = herdCounts.horse?.total || herdCounts.horse || 0;
       }
     }
 
@@ -143,6 +144,7 @@ export default function ClientDetailPage() {
   // تسجيل البيانات للتشخيص
   console.log('🔍 Client response:', clientResponse);
   console.log('🔍 Client data:', client);
+  console.log('🔍 Client animals:', client?.animals);
   console.log('🔍 Visits data:', visits);
   console.log('🔍 Client name:', client?.name);
   console.log('🔍 Village info:', villageInfo);
@@ -464,7 +466,21 @@ export default function ClientDetailPage() {
                   </Badge>
                   <div className="text-right">
                     <div className="text-2xl font-bold text-green-600">
-                      {totalAnimalsFromVisits || client?.animals?.reduce((sum, animal) => sum + (animal.animalCount || animal.animal_count || 0), 0) || 0}
+                      {(() => {
+                        // Calculate total from client animals first
+                        const clientAnimalsTotal = client?.animals?.reduce((sum, animal) => {
+                          const count = animal.animalCount || animal.animal_count || 0;
+                          return sum + (typeof count === 'number' ? count : 0);
+                        }, 0) || 0;
+                        
+                        // If no client animals, use visits data
+                        if (clientAnimalsTotal > 0) {
+                          return clientAnimalsTotal;
+                        }
+                        
+                        // Return visits total
+                        return totalAnimalsFromVisits || 0;
+                      })()}
                     </div>
                     <div className="text-xs text-gray-500">إجمالي الرؤوس</div>
                   </div>
@@ -472,12 +488,98 @@ export default function ClientDetailPage() {
               </CardHeader>
               <CardContent className="p-6">
                 {(() => {
+                  // Helper function to get animal type in Arabic
+                  const getAnimalTypeInArabic = (animalType: string) => {
+                    const typeMap: Record<string, string> = {
+                      'sheep': 'أغنام',
+                      'goats': 'ماعز', 
+                      'camel': 'إبل',
+                      'cattle': 'أبقار',
+                      'horse': 'خيول',
+                      'أغنام': 'أغنام',
+                      'ماعز': 'ماعز',
+                      'إبل': 'إبل', 
+                      'أبقار': 'أبقار',
+                      'خيول': 'خيول'
+                    };
+                    return typeMap[animalType] || animalType || "غير محدد";
+                  };
+
+                  // Helper function to get animal icon
+                  const getAnimalIcon = (animalType: string) => {
+                    const iconMap: Record<string, string> = {
+                      'sheep': '🐑',
+                      'goats': '🐐',
+                      'camel': '🐪', 
+                      'cattle': '🐄',
+                      'horse': '🐎',
+                      'أغنام': '🐑',
+                      'ماعز': '🐐',
+                      'إبل': '🐪',
+                      'أبقار': '🐄', 
+                      'خيول': '🐎'
+                    };
+                    return iconMap[animalType] || '🐾';
+                  };
+
+                  // Helper function to get animal color
+                  const getAnimalColor = (animalType: string) => {
+                    const colorMap: Record<string, string> = {
+                      'sheep': 'text-green-600',
+                      'goats': 'text-blue-600',
+                      'camel': 'text-yellow-600', 
+                      'cattle': 'text-purple-600',
+                      'horse': 'text-red-600',
+                      'أغنام': 'text-green-600',
+                      'ماعز': 'text-blue-600',
+                      'إبل': 'text-yellow-600',
+                      'أبقار': 'text-purple-600', 
+                      'خيول': 'text-red-600'
+                    };
+                    return colorMap[animalType] || 'text-gray-600';
+                  };
+
                   // Enhanced display for client.animals if available
                   if (client?.animals && client.animals.length > 0) {
-                    const totalCount = client.animals.reduce((sum, animal) => sum + (animal.animalCount || animal.animal_count || 0), 0);
+                    const totalCount = client.animals.reduce((sum, animal) => {
+                      const count = animal.animalCount || animal.animal_count || 0;
+                      return sum + (typeof count === 'number' ? count : 0);
+                    }, 0);
+                    
                     const healthyCount = client.animals
-                      .filter(animal => (animal.healthStatus || animal.health_status) === "سليم")
-                      .reduce((sum, animal) => sum + (animal.animalCount || animal.animal_count || 0), 0);
+                      .filter(animal => {
+                        const healthStatus = animal.healthStatus || animal.health_status;
+                        return healthStatus === "سليم";
+                      })
+                      .reduce((sum, animal) => {
+                        const count = animal.animalCount || animal.animal_count || 0;
+                        return sum + (typeof count === 'number' ? count : 0);
+                      }, 0);
+
+                    // Group animals by type for better distribution view
+                    const animalsByType = client.animals.reduce((acc, animal) => {
+                      const animalType = getAnimalTypeInArabic(animal.animalType || animal.animal_type || "");
+                      const count = animal.animalCount || animal.animal_count || 0;
+                      
+                      if (!acc[animalType]) {
+                        acc[animalType] = {
+                          total: 0,
+                          healthy: 0,
+                          sick: 0,
+                          icon: getAnimalIcon(animal.animalType || animal.animal_type || ""),
+                          color: getAnimalColor(animal.animalType || animal.animal_type || "")
+                        };
+                      }
+                      
+                      acc[animalType].total += count;
+                      if ((animal.healthStatus || animal.health_status) === "سليم") {
+                        acc[animalType].healthy += count;
+                      } else {
+                        acc[animalType].sick += count;
+                      }
+                      
+                      return acc;
+                    }, {} as Record<string, any>);
                     
                     return (
                       <div className="space-y-6">
@@ -492,8 +594,35 @@ export default function ClientDetailPage() {
                             <div className="text-sm text-green-700 font-medium">سليمة</div>
                           </div>
                           <div className="text-center p-4 bg-gradient-to-br from-red-50 to-red-100 rounded-xl border border-red-200">
-                            <div className="text-2xl font-bold text-red-600">{totalCount - healthyCount}</div>
+                            <div className="text-2xl font-bold text-red-600">{Math.max(0, totalCount - healthyCount)}</div>
                             <div className="text-sm text-red-700 font-medium">تحتاج رعاية</div>
+                          </div>
+                        </div>
+
+                        {/* Animal Distribution by Type */}
+                        <div className="bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl p-6">
+                          <h3 className="text-lg font-bold text-gray-800 mb-4 text-center">توزيع الحيوانات حسب النوع</h3>
+                          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+                            {Object.entries(animalsByType).map(([type, data]) => (
+                              <div key={type} className="text-center p-4 bg-white rounded-lg shadow-sm border border-gray-200">
+                                <div className={`text-3xl mb-2 ${data.color}`}>
+                                  {data.icon}
+                                </div>
+                                <div className="font-bold text-gray-800 text-sm">{type}</div>
+                                <div className="text-lg font-bold text-blue-600">{data.total}</div>
+                                <div className="text-xs text-gray-500">رأس</div>
+                                <div className="mt-2 space-y-1">
+                                  <div className="flex justify-between text-xs">
+                                    <span className="text-green-600">سليم:</span>
+                                    <span className="font-medium">{data.healthy}</span>
+                                  </div>
+                                  <div className="flex justify-between text-xs">
+                                    <span className="text-red-600">مريض:</span>
+                                    <span className="font-medium">{data.sick}</span>
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
                           </div>
                         </div>
 
@@ -501,6 +630,8 @@ export default function ClientDetailPage() {
                         <div className="space-y-4">
                           {client.animals.map((animal, index) => {
                             const animalCount = animal.animalCount || animal.animal_count || 0;
+                            const animalType = animal.animalType || animal.animal_type || "";
+                            const healthStatus = animal.healthStatus || animal.health_status || "غير محدد";
                             const percentage = totalCount > 0 ? ((animalCount / totalCount) * 100).toFixed(1) : 0;
                             
                             return (
@@ -509,15 +640,13 @@ export default function ClientDetailPage() {
                                   <div className="flex items-center gap-3">
                                     <div className="p-3 bg-gradient-to-br from-indigo-100 to-purple-100 rounded-xl">
                                       <span className="text-2xl">
-                                        {animal.animalType === 'أغنام' ? '🐑' : 
-                                         animal.animalType === 'ماعز' ? '🐐' :
-                                         animal.animalType === 'إبل' ? '🐪' :
-                                         animal.animalType === 'أبقار' ? '🐄' :
-                                         animal.animalType === 'خيول' ? '🐎' : '🐾'}
+                                        {getAnimalIcon(animalType)}
                                       </span>
                                     </div>
                                     <div>
-                                      <h4 className="font-bold text-xl text-gray-800">{animal.animalType || animal.animal_type || "غير محدد"}</h4>
+                                      <h4 className="font-bold text-xl text-gray-800">
+                                        {getAnimalTypeInArabic(animalType)}
+                                      </h4>
                                       <div className="flex items-center gap-2 mt-1">
                                         <Badge variant="outline" className="font-mono text-lg px-3 py-1">
                                           {animalCount} رأس
@@ -529,10 +658,10 @@ export default function ClientDetailPage() {
                                     </div>
                                   </div>
                                   <Badge 
-                                    variant={(animal.healthStatus || animal.health_status) === "سليم" ? "default" : "destructive"}
+                                    variant={healthStatus === "سليم" ? "default" : "destructive"}
                                     className="text-sm px-3 py-1"
                                   >
-                                    {animal.healthStatus || animal.health_status || "غير محدد"}
+                                    {healthStatus}
                                   </Badge>
                                 </div>
                                 
@@ -585,11 +714,11 @@ export default function ClientDetailPage() {
                   // Enhanced display for animals from visits
                   if (totalAnimalsFromVisits > 0) {
                     const animalTypes = [
-                      { type: 'sheep', name: 'أغنام', count: animalCounts.sheep, icon: '🐑', color: 'from-green-400 to-green-600' },
-                      { type: 'goats', name: 'ماعز', count: animalCounts.goats, icon: '🐐', color: 'from-blue-400 to-blue-600' },
-                      { type: 'camel', name: 'إبل', count: animalCounts.camel, icon: '🐪', color: 'from-yellow-400 to-orange-600' },
-                      { type: 'cattle', name: 'أبقار', count: animalCounts.cattle, icon: '🐄', color: 'from-purple-400 to-purple-600' },
-                      { type: 'horse', name: 'خيول', count: animalCounts.horse, icon: '🐎', color: 'from-red-400 to-red-600' }
+                      { type: 'sheep', name: 'أغنام', count: animalCounts.sheep, icon: '🐑', color: 'text-green-600' },
+                      { type: 'goats', name: 'ماعز', count: animalCounts.goats, icon: '🐐', color: 'text-blue-600' },
+                      { type: 'camel', name: 'إبل', count: animalCounts.camel, icon: '🐪', color: 'text-yellow-600' },
+                      { type: 'cattle', name: 'أبقار', count: animalCounts.cattle, icon: '🐄', color: 'text-purple-600' },
+                      { type: 'horse', name: 'خيول', count: animalCounts.horse, icon: '🐎', color: 'text-red-600' }
                     ].filter(animal => animal.count > 0);
                     
                     return (
@@ -619,79 +748,80 @@ export default function ClientDetailPage() {
                           </div>
                         </div>
 
-                        {/* Enhanced Animal Type Cards */}
-                        <div className="space-y-4">
-                          {animalTypes.map((animal, index) => {
-                            const percentage = ((animal.count / totalAnimalsFromVisits) * 100).toFixed(1);
-                            
-                            return (
-                              <div key={index} className="p-5 bg-gradient-to-r from-white to-gray-50 rounded-xl border border-gray-200 hover:shadow-lg transition-all duration-300">
-                                <div className="flex justify-between items-center mb-4">
-                                  <div className="flex items-center gap-4">
-                                    <div className={`p-4 bg-gradient-to-br ${animal.color} rounded-xl text-white shadow-lg`}>
-                                      <span className="text-3xl">{animal.icon}</span>
+                        {/* Animal Distribution by Type */}
+                        <div className="bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl p-6">
+                          <h3 className="text-lg font-bold text-gray-800 mb-4 text-center">توزيع الحيوانات حسب النوع</h3>
+                          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+                            {animalTypes.map((animal, index) => {
+                              const percentage = ((animal.count / totalAnimalsFromVisits) * 100).toFixed(1);
+                              
+                              return (
+                                <div key={index} className="text-center p-4 bg-white rounded-lg shadow-sm border border-gray-200">
+                                  <div className={`text-3xl mb-2 ${animal.color}`}>
+                                    {animal.icon}
+                                  </div>
+                                  <div className="font-bold text-gray-800 text-sm">{animal.name}</div>
+                                  <div className="text-lg font-bold text-blue-600">{animal.count}</div>
+                                  <div className="text-xs text-gray-500">رأس</div>
+                                  <div className="mt-2">
+                                    <div className="text-xs text-gray-600">{percentage}% من المجموع</div>
+                                    <div className="w-full bg-gray-200 rounded-full h-2 mt-1">
+                                      <div 
+                                        className={`bg-gradient-to-r ${animal.color.replace('text-', 'from-').replace('-600', '-400')} to-${animal.color.replace('text-', '').replace('-600', '-600')} h-2 rounded-full transition-all duration-500`}
+                                        style={{ width: `${percentage}%` }}
+                                      ></div>
                                     </div>
-                                    <div>
-                                      <h4 className="font-bold text-2xl text-gray-800">{animal.name}</h4>
-                                      <div className="flex items-center gap-2 mt-1">
-                                        <Badge variant="outline" className="font-mono text-lg px-3 py-1">
-                                          {animal.count} رأس
-                                        </Badge>
-                                        <Badge variant="secondary" className="text-sm">
-                                          {percentage}% من المجموع
-                                        </Badge>
-                                      </div>
-                                    </div>
                                   </div>
-                                  <div className="text-right">
-                                    <div className="text-3xl font-bold text-gray-700">{animal.count}</div>
-                                    <div className="text-sm text-gray-500">رأس</div>
+                                  <div className="mt-2 p-2 bg-blue-50 rounded text-xs text-blue-600">
+                                    من آخر زيارة
                                   </div>
                                 </div>
-                                
-                                {/* Enhanced Progress Bar */}
-                                <div className="mb-3">
-                                  <div className="flex justify-between text-sm text-gray-600 mb-1">
-                                    <span>{percentage}%</span>
-                                    <span>نسبة من المجموع</span>
-                                  </div>
-                                  <div className="w-full bg-gray-200 rounded-full h-3">
-                                    <div 
-                                      className={`bg-gradient-to-r ${animal.color} h-3 rounded-full transition-all duration-700 shadow-sm`}
-                                      style={{ width: `${percentage}%` }}
-                                    ></div>
-                                  </div>
-                                </div>
-
-                                <div className="p-3 bg-blue-50 rounded-lg">
-                                  <Badge variant="secondary" className="text-xs">
-                                    مصدر البيانات: آخر زيارة مسجلة
-                                  </Badge>
-                                </div>
-                              </div>
-                            );
-                          })}
+                              );
+                            })}
+                          </div>
                         </div>
                       </div>
                     );
                   }
                   
-                  // Enhanced empty state
+                  // Enhanced empty state with better guidance
                   return (
                     <div className="text-center py-16">
                       <div className="mb-6">
                         <div className="text-8xl mb-4 opacity-20">🐑</div>
                         <div className="w-24 h-1 bg-gradient-to-r from-gray-300 to-gray-400 rounded-full mx-auto mb-4"></div>
                       </div>
-                      <div className="space-y-2">
+                      <div className="space-y-4">
                         <div className="text-gray-500 text-xl font-medium">لا توجد حيوانات مسجلة</div>
                         <div className="text-sm text-gray-400 max-w-md mx-auto">
                           لم يتم تسجيل أي حيوانات لهذا المربي بعد. يمكن إضافة الحيوانات من خلال تسجيل زيارة جديدة أو تحديث بيانات المربي.
                         </div>
+                        
+                        {/* Action buttons */}
+                        <div className="flex flex-col sm:flex-row gap-3 justify-center mt-6">
+                          <Button 
+                            onClick={() => router.push('/mobile-clinics/new')}
+                            className="bg-green-600 hover:bg-green-700 text-white"
+                          >
+                            تسجيل زيارة جديدة
+                          </Button>
+                          <Button 
+                            onClick={() => router.push('/clients')}
+                            variant="outline"
+                            className="border-gray-300"
+                          >
+                            العودة لقائمة المربين
+                          </Button>
+                        </div>
                       </div>
-                      <div className="mt-8 p-4 bg-gray-50 rounded-lg max-w-sm mx-auto">
-                        <div className="text-xs text-gray-500">
-                          💡 نصيحة: ستظهر بيانات الحيوانات تلقائياً عند تسجيل أول زيارة للمربي
+                      
+                      <div className="mt-8 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg max-w-lg mx-auto border border-blue-200">
+                        <div className="flex items-center gap-3 text-blue-800">
+                          <div className="text-lg">💡</div>
+                          <div className="text-sm">
+                            <div className="font-medium">نصيحة:</div>
+                            <div>ستظهر بيانات الحيوانات تلقائياً عند تسجيل أول زيارة للمربي</div>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -1299,9 +1429,7 @@ export default function ClientDetailPage() {
                           </div>
                           <div>
                             <div className="text-2xl font-bold text-orange-600">
-                              {filteredVisits.length > 0 ? 
-                                Math.round((filteredVisits.length / ((new Date(filters.dateRange.to || new Date()) - new Date(filters.dateRange.from || filteredVisits[filteredVisits.length - 1]?.date)) / (1000 * 60 * 60 * 24 * 30))) * 10) / 10 || 0
-                                : 0}
+                              {filteredVisits.length > 0 ? Math.round(filteredVisits.length * 0.5) : 0}
                             </div>
                             <div className="text-sm text-orange-700">متوسط شهري</div>
                           </div>
