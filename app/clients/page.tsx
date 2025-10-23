@@ -326,36 +326,47 @@ export default function ClientsPage() {
         return (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="h-8 w-8 p-0">
+              <Button 
+                variant="outline" 
+                className="h-10 w-10 p-0 border-2 border-blue-300 bg-blue-50 hover:bg-blue-100 hover:border-blue-400 transition-all duration-200 shadow-lg hover:shadow-xl rounded-full"
+              >
                 <span className="sr-only">فتح القائمة</span>
-                <MoreHorizontal className="h-4 w-4" />
+                <MoreHorizontal className="h-5 w-5 text-blue-700 font-bold" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuLabel>Actions</DropdownMenuLabel>
-              <DropdownMenuItem onClick={() => {
-                const clientId = row.original._id || row.original.id || row.original.nationalId;
-                if (clientId) {
-                  router.push(`/clients/${clientId}`);
-                } else {
-                  alert('لا يمكن العثور على معرف العميل');
-                }
-              }}>
-                <Eye className="ml-2 h-4 w-4" />
-                عرض التفاصيل
+            <DropdownMenuContent align="end" className="w-56 bg-white border-2 border-blue-200 shadow-xl rounded-lg">
+              <div className="px-3 py-2 border-b border-blue-100">
+                <span className="text-sm font-semibold text-blue-800">الإجراءات</span>
+              </div>
+              <DropdownMenuItem 
+                onClick={() => {
+                  const clientId = row.original._id || row.original.id || row.original.nationalId;
+                  if (clientId) {
+                    router.push(`/clients/${clientId}`);
+                  } else {
+                    alert('لا يمكن العثور على معرف العميل');
+                  }
+                }}
+                className="hover:bg-blue-50 focus:bg-blue-50 cursor-pointer"
+              >
+                <Eye className="mr-3 h-4 w-4 text-blue-600" />
+                <span className="font-medium text-blue-800">عرض التفاصيل</span>
               </DropdownMenuItem>
               {canEdit && (
-                <DropdownMenuItem onClick={() => {
-                  setSelectedClient(row.original);
-                  setIsClientDialogOpen(true);
-                }}>
-                  <Edit className="ml-2 h-4 w-4" />
-                  تعديل
+                <DropdownMenuItem 
+                  onClick={() => {
+                    setSelectedClient(row.original);
+                    setIsClientDialogOpen(true);
+                  }}
+                  className="hover:bg-blue-50 focus:bg-blue-50 cursor-pointer"
+                >
+                  <Edit className="mr-3 h-4 w-4 text-blue-600" />
+                  <span className="font-medium text-blue-800">تعديل</span>
                 </DropdownMenuItem>
               )}
               {canDelete && (
                 <DropdownMenuItem 
-                  className="text-red-600"
+                  className="text-red-600 hover:bg-red-50 focus:bg-red-50 cursor-pointer"
                   onClick={() => {
                     if (confirm('هل أنت متأكد من حذف هذا المربي؟')) {
                       const clientId = row.original._id || row.original.id || row.original.nationalId || row.original.national_id;
@@ -365,8 +376,8 @@ export default function ClientsPage() {
                     }
                   }}
                 >
-                  <Trash className="ml-2 h-4 w-4" />
-                  حذف
+                  <Trash className="mr-3 h-4 w-4 text-red-600" />
+                  <span className="font-medium text-red-800">حذف</span>
                 </DropdownMenuItem>
               )}
             </DropdownMenuContent>

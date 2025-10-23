@@ -219,32 +219,41 @@ export function getColumns({
             <DropdownMenuTrigger asChild>
               <Button 
                 variant="outline" 
-                className="h-9 w-9 p-0 border-2 border-gray-400 bg-white hover:bg-gray-50 hover:border-gray-500 transition-all duration-200 shadow-md hover:shadow-lg"
+                className="h-10 w-10 p-0 border-2 border-blue-300 bg-blue-50 hover:bg-blue-100 hover:border-blue-400 transition-all duration-200 shadow-lg hover:shadow-xl rounded-full"
               >
                 <span className="sr-only">فتح القائمة</span>
-                <MoreHorizontal className="h-5 w-5 text-gray-800 font-bold" />
+                <MoreHorizontal className="h-5 w-5 text-blue-700 font-bold" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-48 bg-white border border-gray-200 shadow-lg">
+            <DropdownMenuContent align="end" className="w-56 bg-white border-2 border-blue-200 shadow-xl rounded-lg">
+              <div className="px-3 py-2 border-b border-blue-100">
+                <span className="text-sm font-semibold text-blue-800">الإجراءات</span>
+              </div>
               {onView && (
-                <DropdownMenuItem onClick={() => onView(row.original)}>
-                  <Eye className="mr-2 h-4 w-4" />
-                  عرض
+                <DropdownMenuItem 
+                  onClick={() => onView(row.original)}
+                  className="hover:bg-blue-50 focus:bg-blue-50 cursor-pointer"
+                >
+                  <Eye className="mr-3 h-4 w-4 text-blue-600" />
+                  <span className="font-medium text-blue-800">عرض</span>
                 </DropdownMenuItem>
               )}
               {canEdit && (
-                <DropdownMenuItem onClick={() => onEdit(row.original)}>
-                  <Edit className="mr-2 h-4 w-4" />
-                  تعديل
+                <DropdownMenuItem 
+                  onClick={() => onEdit(row.original)}
+                  className="hover:bg-blue-50 focus:bg-blue-50 cursor-pointer"
+                >
+                  <Edit className="mr-3 h-4 w-4 text-blue-600" />
+                  <span className="font-medium text-blue-800">تعديل</span>
                 </DropdownMenuItem>
               )}
               {canDelete && (
                 <DropdownMenuItem
                   onClick={() => onDelete(row.original._id || row.original.serialNo)}
-                  className="text-red-600"
+                  className="text-red-600 hover:bg-red-50 focus:bg-red-50 cursor-pointer"
                 >
-                  <Trash2 className="mr-2 h-4 w-4" />
-                  حذف
+                  <Trash2 className="mr-3 h-4 w-4 text-red-600" />
+                  <span className="font-medium text-red-800">حذف</span>
                 </DropdownMenuItem>
               )}
             </DropdownMenuContent>
