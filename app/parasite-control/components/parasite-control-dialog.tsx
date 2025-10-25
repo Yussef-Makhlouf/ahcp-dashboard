@@ -264,7 +264,17 @@ export function ParasiteControlDialog({
           name: typeof item.client === 'object' ? item.client?.name || '' : '',
           nationalId: typeof item.client === 'object' ? item.client?.nationalId || '' : '',
           phone: typeof item.client === 'object' ? item.client?.phone || '' : '',
-          village: typeof item.client === 'object' ? item.client?.village || '' : '',
+          // معالجة village - قد يكون object (populated) أو string
+          village: (() => {
+            if (typeof item.client === 'object' && item.client?.village) {
+              const village = item.client.village;
+              if (typeof village === 'object' && village !== null) {
+                return (village as any).nameArabic || (village as any).nameEnglish || '';
+              }
+              return village || '';
+            }
+            return '';
+          })(),
           birthDate: typeof item.client === 'object' && item.client?.birthDate ? formatDateFromBackend(item.client.birthDate) : '',
         },        
         coordinates: {
@@ -846,7 +856,11 @@ export function ParasiteControlDialog({
                                 form.setValue("client.name", client.name);
                                 form.setValue("client.nationalId", client.nationalId || client.national_id || "");
                                 form.setValue("client.phone", client.phone || "");
-                                form.setValue("client.village", client.village || "");
+                                // معالجة village - قد يكون object أو string
+                                const villageValue = typeof client.village === 'object' && client.village !== null
+                                  ? (client.village as any).nameArabic || (client.village as any).nameEnglish || ""
+                                  : client.village || "";
+                                form.setValue("client.village", villageValue);
                                 form.setValue("client.birthDate", client.birthDate || client.birth_date || "");
                                 // Clear any existing errors for client fields
                                 clearFieldError('client.name');
@@ -966,23 +980,43 @@ export function ParasiteControlDialog({
                   <FormField
                     control={form.control as any}
                     name="holdingCode"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>رمز الحيازة</FormLabel>
-                        <FormControl>
-                          <HoldingCodeSelector
-                            value={field.value || ""}
-                            onValueChange={(value) => {
-                              console.log('📝 Form: holdingCode changed to:', value);
-                              field.onChange(value);
-                            }}
-                            village={form.watch('client.village')}
-                            placeholder="اختر رمز الحيازة"
-                          />
-                        </FormControl>
-                        <FormMessage className="text-red-500 text-sm font-medium" />
-                      </FormItem>
-                    )}
+                    render={({ field }) => {
+                      // معالجة القرية - قد تكون string مباشرة أو object
+                      const villageValue = (() => {
+                        const village = form.watch('client.village');
+                        if (!village) return '';
+                        if (typeof village === 'string') return village;
+                        if (typeof village === 'object' && village !== null) {
+                          return (village as any).nameArabic || (village as any).nameEnglish || '';
+                        }
+                        return '';
+                      })();
+                      
+                      console.log('🏘️ HoldingCodeSelector village prop:', {
+                        rawVillage: form.watch('client.village'),
+                        processedVillage: villageValue,
+                        currentHoldingCodeValue: field.value,
+                        isEmpty: !villageValue || villageValue.trim() === ''
+                      });
+                      
+                      return (
+                        <FormItem>
+                          <FormLabel>رمز الحيازة</FormLabel>
+                          <FormControl>
+                            <HoldingCodeSelector
+                              value={field.value || ""}
+                              onValueChange={(value) => {
+                                console.log('📝 Form: holdingCode changed to:', value);
+                                field.onChange(value);
+                              }}
+                              village={villageValue}
+                              placeholder="اختر رمز الحيازة"
+                            />
+                          </FormControl>
+                          <FormMessage className="text-red-500 text-sm font-medium" />
+                        </FormItem>
+                      );
+                    }}
                   />
                 </div>
               </TabsContent>

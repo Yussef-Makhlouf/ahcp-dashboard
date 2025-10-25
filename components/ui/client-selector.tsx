@@ -45,16 +45,17 @@ export function ClientSelector({
     isLoading,
     error: fetchError,
   } = useQuery({
-    queryKey: ['clients'],
+    queryKey: ['clients', 'selector'],
     queryFn: () => clientsApi.getList({
       page: 1,
-      limit: 100,
+      limit: 500,
+      includeServices: false, // إيقاف تحميل الخدمات لتسريع الاستجابة
     }),
-    staleTime: 2 * 60 * 1000,
-    gcTime: 5 * 60 * 1000,
+    staleTime: 5 * 60 * 1000, // زيادة staleTime إلى 5 دقائق
+    gcTime: 10 * 60 * 1000, // زيادة gcTime إلى 10 دقائق
     refetchOnMount: false,
     refetchOnWindowFocus: false,
-    retry: 3,
+    retry: 2, // تقليل عدد المحاولات
   });
 
   const allClients = clientsResponse?.data || [];
@@ -226,7 +227,11 @@ export function ClientSelector({
                             {client.village && (
                               <div className="flex items-center gap-1">
                                 <MapPin className="h-3 w-3" />
-                                <span>{client.village}</span>
+                                <span>
+                                  {typeof client.village === 'object' && client.village !== null
+                                    ? (client.village as any).nameArabic || (client.village as any).nameEnglish || ''
+                                    : client.village}
+                                </span>
                               </div>
                             )}
                             

@@ -26,12 +26,14 @@ export const clientsApi = {
     search?: string;
     status?: string;
     village?: string;
+    includeServices?: boolean;
   }): Promise<PaginatedResponse<Client>> => {
     try {
       // Filter out empty search parameters to avoid validation errors
       const cleanParams: Record<string, any> = {
         page: params?.page || 1,
-        limit: params?.limit || 10,
+        limit: params?.limit || 100,
+        includeServices: params?.includeServices !== undefined ? params.includeServices : false,
       };
       
       if (params?.search && params.search.trim()) {
@@ -46,7 +48,7 @@ export const clientsApi = {
 
       const response = await api.get('/clients', {
         params: cleanParams,
-        timeout: 30000,
+        timeout: 60000, // زيادة timeout إلى 60 ثانية
       });
 
       // Use the universal response handler

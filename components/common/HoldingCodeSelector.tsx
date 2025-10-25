@@ -39,6 +39,7 @@ export function HoldingCodeSelector({
     
     if (!village) {
       console.log('❌ No village provided, skipping fetch');
+      setHoldingCodes([]);
       return;
     }
     
@@ -47,16 +48,42 @@ export function HoldingCodeSelector({
       const params = new URLSearchParams();
       params.append('village', village);
       params.append('active', 'true');
+      params.append('limit', '100'); // زيادة الحد الأقصى
 
       console.log('📡 Fetching holding codes with URL:', `/holding-codes?${params.toString()}`);
-      const data = await api.get<{success: boolean, data: HoldingCode[]}>(`/holding-codes?${params.toString()}`);
+      const response = await api.get<{success: boolean, data: HoldingCode[], pagination?: any}>(`/holding-codes?${params.toString()}`);
       
-      console.log('✅ Holding codes response:', data);
-      console.log('📋 Number of holding codes found:', data.data?.length || 0);
+      console.log('✅ Holding codes raw response:', response);
       
-      setHoldingCodes(data.data || []);
-    } catch (error) {
+      // معالجة الاستجابة - قد تكون متداخلة
+      let holdingCodesData: HoldingCode[] = [];
+      
+      if (response && typeof response === 'object') {
+        // تحقق من البنية: { success: true, data: [...] }
+        if (response.data && Array.isArray(response.data)) {
+          holdingCodesData = response.data;
+        }
+        // تحقق من البنية المتداخلة: { data: { success: true, data: [...] } }
+        else if ((response as any).data?.data && Array.isArray((response as any).data.data)) {
+          holdingCodesData = (response as any).data.data;
+        }
+        // إذا كانت الاستجابة مباشرة مصفوفة
+        else if (Array.isArray(response)) {
+          holdingCodesData = response;
+        }
+      }
+      
+      console.log('📋 Processed holding codes:', holdingCodesData);
+      console.log('📊 Number of holding codes found:', holdingCodesData.length);
+      
+      setHoldingCodes(holdingCodesData);
+    } catch (error: any) {
       console.error('❌ Error fetching holding codes:', error);
+      console.error('❌ Error details:', {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status
+      });
       setHoldingCodes([]);
     } finally {
       setLoading(false);
