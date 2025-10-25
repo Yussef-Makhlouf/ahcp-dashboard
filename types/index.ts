@@ -24,6 +24,7 @@ export interface Client {
   phone: string;
   email?: string;
   village?: string;
+  detailedAddress?: string; // Backend primary field
   status: "نشط" | "غير نشط";
   animals: Animal[];
   availableServices: string[]; // Backend primary field
@@ -62,6 +63,7 @@ export interface Client {
   // Legacy fields for compatibility
   national_id?: string;
   birth_date?: string;
+  detailed_address?: string;
   available_services?: string[];
 }
 

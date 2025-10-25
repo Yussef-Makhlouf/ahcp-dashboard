@@ -51,6 +51,8 @@ export const clientsApi = {
         timeout: 60000, // زيادة timeout إلى 60 ثانية
       });
 
+      console.log('🔍 Raw clients response:', response);
+
       // Use the universal response handler
       return handleAPIResponse<Client>(response, params?.limit || 10);
     } catch (error: any) {
@@ -232,7 +234,19 @@ export const clientsApi = {
       const response = await api.get('/clients/statistics', {
         timeout: 30000,
       });
-      return handleStatisticsResponse(response);
+      
+      console.log('🔍 Raw statistics response:', response);
+      
+      const stats = handleStatisticsResponse(response);
+      
+      // Ensure all required fields exist with default values
+      return {
+        totalClients: stats.totalClients || 0,
+        activeClients: stats.activeClients || 0,
+        inactiveClients: stats.inactiveClients || 0,
+        totalAnimals: stats.totalAnimals || 0,
+        clientsByVillage: stats.clientsByVillage || {},
+      };
     } catch (error: any) {
       console.error('Error fetching clients statistics:', error);
       // Return default values if API fails

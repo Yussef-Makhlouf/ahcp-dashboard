@@ -126,45 +126,45 @@ export function DetailedReports({ clientId, visits, filters }: DetailedReportsPr
     const isExpanded = expandedVisits.has(visitId);
     
     return (
-      <Card key={visitId} className="mb-4 text-right">
+      <Card key={visitId} className="mb-4">
         <Collapsible>
           <CollapsibleTrigger asChild>
             <CardHeader 
-              className="cursor-pointer hover:bg-muted/50 transition-colors text-right"
+              className="cursor-pointer hover:bg-muted/50 transition-colors"
               onClick={() => toggleVisitExpansion(visitId)}
             >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-                  <div className="text-sm text-muted-foreground flex items-center gap-1">
-                    {formatDate(visit.date)}
-                    <Calendar className="h-3 w-3" />
-                  </div>
-                </div>
+              <div className="flex items-center justify-between" dir="rtl">
                 <div className="flex items-center gap-3">
-                  <Badge variant="outline">{visit.serialNo || 'غير محدد'}</Badge>
                   <div className="flex items-center gap-2">
-                    <span className="font-medium">{getVisitTypeName(visit.type)}</span>
                     {getVisitIcon(visit.type)}
+                    <span className="font-medium">{getVisitTypeName(visit.type)}</span>
                   </div>
+                  <Badge variant="outline">{visit.serialNo || 'غير محدد'}</Badge>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="text-sm text-muted-foreground flex items-center gap-1">
+                    <Calendar className="h-3 w-3" />
+                    {formatDate(visit.date)}
+                  </div>
+                  {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
                 </div>
               </div>
             </CardHeader>
           </CollapsibleTrigger>
           
           <CollapsibleContent>
-            <CardContent className="pt-0 text-right">
+            <CardContent className="pt-0">
               <div className="space-y-4">
                 {/* معلومات أساسية */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-right">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                   {visit.supervisor && (
-                    <div className="text-right">
+                    <div>
                       <span className="font-medium">المشرف: </span>
                       <span>{visit.supervisor}</span>
                     </div>
                   )}
                   {visit.vehicleNo && (
-                    <div className="text-right">
+                    <div>
                       <span className="font-medium">رقم المركبة: </span>
                       <span>{visit.vehicleNo}</span>
                     </div>
@@ -173,14 +173,14 @@ export function DetailedReports({ clientId, visits, filters }: DetailedReportsPr
 
                 {/* معلومات الموقع */}
                 {(visit.coordinates || visit.client?.village) && (
-                  <div className="flex items-center gap-2 text-sm justify-end text-right">
+                  <div className="flex items-center gap-2 text-sm">
+                    <MapPin className="h-4 w-4 text-muted-foreground" />
+                    <span>{visit.client?.village || "غير محدد"}</span>
                     {visit.coordinates && (
                       <span className="text-muted-foreground">
                         ({visit.coordinates.latitude?.toFixed(4)}, {visit.coordinates.longitude?.toFixed(4)})
                       </span>
                     )}
-                    <span>{visit.client?.village || "غير محدد"}</span>
-                    <MapPin className="h-4 w-4 text-muted-foreground" />
                   </div>
                 )}
 
@@ -198,21 +198,21 @@ export function DetailedReports({ clientId, visits, filters }: DetailedReportsPr
     switch (visit.type) {
       case 'mobile_clinic':
         return (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-right">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
             {visit.diagnosis && (
-              <div className="text-right">
+              <div>
                 <span className="font-medium">التشخيص: </span>
                 <span>{visit.diagnosis}</span>
               </div>
             )}
             {visit.interventionCategory && (
-              <div className="text-right">
+              <div>
                 <span className="font-medium">نوع التدخل: </span>
                 <span>{visit.interventionCategory}</span>
               </div>
             )}
             {visit.treatment && (
-              <div className="md:col-span-2 text-right">
+              <div className="md:col-span-2">
                 <span className="font-medium">العلاج: </span>
                 <span>{visit.treatment}</span>
               </div>
@@ -221,10 +221,12 @@ export function DetailedReports({ clientId, visits, filters }: DetailedReportsPr
               <div className="md:col-span-2">
                 <span className="font-medium">أعداد الحيوانات: </span>
                 <div className="flex gap-2 mt-1 flex-wrap">
-                  {Object.entries(visit.animalCounts).filter(([_, count]) => Number(count) > 0).map(([animal, count]) => (
-                    <Badge key={animal} variant="secondary" className="text-xs">
-                      {animal}: {String(count)}
-                    </Badge>
+                  {Object.entries(visit.animalCounts).map(([animal, count]) => (
+                    Number(count) > 0 && (
+                      <Badge key={animal} variant="secondary" className="text-xs">
+                        {animal}: {Number(count)}
+                      </Badge>
+                    )
                   ))}
                 </div>
               </div>
@@ -327,10 +329,12 @@ export function DetailedReports({ clientId, visits, filters }: DetailedReportsPr
               <div className="md:col-span-2">
                 <span className="font-medium">أعداد العينات: </span>
                 <div className="flex gap-2 mt-1 flex-wrap">
-                  {Object.entries(visit.speciesCounts).filter(([_, count]) => Number(count) > 0).map(([species, count]) => (
-                    <Badge key={species} variant="outline" className="text-xs">
-                      {species}: {String(count)}
-                    </Badge>
+                  {Object.entries(visit.speciesCounts).map(([species, count]) => (
+                    count > 0 && (
+                      <Badge key={species} variant="outline" className="text-xs">
+                        {species}: {count}
+                      </Badge>
+                    )
                   ))}
                 </div>
               </div>
@@ -442,19 +446,19 @@ export function DetailedReports({ clientId, visits, filters }: DetailedReportsPr
   };
 
   return (
-    <div className="space-y-6 rtl" dir="rtl">
+    <div className="space-y-6">
       {/* إحصائيات سريعة */}
-      <Card className="text-right">
+      <Card>
         <CardHeader>
-          <CardTitle className="flex items-center justify-between text-right">
+          <CardTitle className="flex items-center justify-between">
             <span>ملخص الزيارات</span>
             <Button variant="outline" size="sm">
-              <Download className="h-4 w-4 ml-2" />
+              <Download className="h-4 w-4 mr-2" />
               تصدير التقرير
             </Button>
           </CardTitle>
         </CardHeader>
-        <CardContent className="text-right">
+        <CardContent>
           <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
             <div className="text-center">
               <div className="text-2xl font-bold text-primary">{stats.total}</div>
@@ -485,7 +489,7 @@ export function DetailedReports({ clientId, visits, filters }: DetailedReportsPr
       </Card>
 
       {/* تبويبات الزيارات */}
-      <Tabs defaultValue="all" className="w-full text-right">
+      <Tabs defaultValue="all" className="w-full">
         <TabsList className="grid w-full grid-cols-6">
           <TabsTrigger value="all">الكل ({stats.total})</TabsTrigger>
           <TabsTrigger value="mobile_clinic">عيادة ({stats.mobile_clinic})</TabsTrigger>
@@ -495,11 +499,11 @@ export function DetailedReports({ clientId, visits, filters }: DetailedReportsPr
           <TabsTrigger value="equine_health">خيول ({stats.equine_health})</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="all" className="space-y-4 text-right">
+        <TabsContent value="all" className="space-y-4">
           {filteredVisits.length > 0 ? (
             filteredVisits.map(renderVisitDetails)
           ) : (
-            <Card className="text-right">
+            <Card>
               <CardContent className="text-center py-8">
                 <p className="text-muted-foreground">لا توجد زيارات تطابق المعايير المحددة</p>
               </CardContent>
@@ -508,11 +512,11 @@ export function DetailedReports({ clientId, visits, filters }: DetailedReportsPr
         </TabsContent>
 
         {Object.entries(visitsByType).map(([type, visits]) => (
-          <TabsContent key={type} value={type} className="space-y-4 text-right">
+          <TabsContent key={type} value={type} className="space-y-4">
             {visits.length > 0 ? (
               visits.map(renderVisitDetails)
             ) : (
-              <Card className="text-right">
+              <Card>
                 <CardContent className="text-center py-8">
                   <p className="text-muted-foreground">لا توجد زيارات من هذا النوع</p>
                 </CardContent>

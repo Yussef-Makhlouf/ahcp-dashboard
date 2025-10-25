@@ -320,6 +320,23 @@ export function MobileClinicDialog({ open, onOpenChange, clinic, onSave }: Mobil
       // which will be displayed by FormMessage components
       return;
     }
+
+    // Additional client validation
+    const hasClientReference = formData.client._id && formData.client._id.trim();
+    const hasClientData = formData.client.name && formData.client.nationalId;
+    
+    console.log('🔍 Client validation:', {
+      hasClientReference,
+      hasClientData,
+      clientId: formData.client._id,
+      clientName: formData.client.name,
+      clientNationalId: formData.client.nationalId
+    });
+    
+    if (!hasClientReference && !hasClientData) {
+      setFieldError('client.name', 'يجب اختيار مربي من القائمة أو ملء بيانات المربي يدوياً (الاسم ورقم الهوية مطلوبان)');
+      return;
+    }
     
     setIsSubmitting(true);
     
@@ -328,19 +345,31 @@ export function MobileClinicDialog({ open, onOpenChange, clinic, onSave }: Mobil
         ? formData.treatments.map(t => t.medicine).join(", ")
         : formData.treatment;
 
+      // Debug client data
+      console.log('🔍 Client data debug:', {
+        clientId: formData.client._id,
+        clientName: formData.client.name,
+        clientNationalId: formData.client.nationalId,
+        hasClientId: !!formData.client._id,
+        hasClientName: !!formData.client.name,
+        hasNationalId: !!formData.client.nationalId
+      });
+
       // تحويل البيانات للشكل المطلوب من الباك إند
       const submitData = {
         serialNo: formData.serialNo,
         date: formData.date ? format(formData.date, "yyyy-MM-dd") : "",
-        // إرسال بيانات العميل للباك إند ليتعامل معها
-        client: formData.client._id || {
-          name: formData.client.name.trim(),
-          nationalId: formData.client.nationalId.trim(),
-          phone: formData.client.phone.trim(),
-          village: formData.client.village || '',
-          detailedAddress: formData.client.detailedAddress || '',
-          birthDate: formData.client.birthDate || '',
-        },
+        // إرسال بيانات العميل بالطريقة الصحيحة
+        ...(formData.client._id && formData.client._id.trim() ? {
+          client: formData.client._id
+        } : {
+          clientName: formData.client.name?.trim() || '',
+          clientId: formData.client.nationalId?.trim() || '',
+          clientPhone: formData.client.phone?.trim() || '',
+          clientVillage: formData.client.village || '',
+          clientDetailedAddress: formData.client.detailedAddress || '',
+          clientBirthDate: formData.client.birthDate || '',
+        }),
         coordinates: {
           latitude: formData.coordinates.latitude || 0,
           longitude: formData.coordinates.longitude || 0,
@@ -369,6 +398,8 @@ export function MobileClinicDialog({ open, onOpenChange, clinic, onSave }: Mobil
         holdingCode: typeof formData.holdingCode === 'string' ? formData.holdingCode : (formData.holdingCode?._id || undefined),
         remarks: formData.remarks || '',
       };
+
+      console.log('📤 Final submit data:', JSON.stringify(submitData, null, 2));
       
       if (clinic) {
         // Update existing clinic
@@ -543,6 +574,7 @@ export function MobileClinicDialog({ open, onOpenChange, clinic, onSave }: Mobil
                             nationalId: client.nationalId || client.national_id || "",
                             phone: client.phone || "",
                             village: client.village || "",
+                            detailedAddress: client.detailedAddress || client.detailed_address || "",
                             birthDate: client.birthDate || client.birth_date || "",
                           },
                           owner: {
@@ -561,6 +593,12 @@ export function MobileClinicDialog({ open, onOpenChange, clinic, onSave }: Mobil
                     placeholder="ابحث عن المربي"
                     showDetails
                   />
+                  <p className="text-sm text-gray-600 mt-1">
+                    اختر مربي موجود من القائمة أو املأ بيانات المربي في الحقول أدناه
+                  </p>
+                  {getFieldError('client.name') && (
+                    <p className="text-red-500 text-sm font-medium mt-1">{getFieldError('client.name')}</p>
+                  )}
                 </div>
 
                 <ValidatedInput
