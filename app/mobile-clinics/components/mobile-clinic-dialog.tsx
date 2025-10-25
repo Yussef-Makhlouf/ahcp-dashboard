@@ -167,12 +167,13 @@ export function MobileClinicDialog({ open, onOpenChange, clinic, onSave }: Mobil
         date: clinic.date ? new Date(clinic.date) : undefined,
         client: {
           _id: clinic.client?._id || "",
-          name: clinic.client?.name || "",
-          nationalId: clinic.client?.nationalId || "",
-          phone: clinic.client?.phone || "",
-          village: clinic.client?.village || "",
+          // دعم كلا من البنية المتداخلة (clinic.client) والمسطحة (clinic.clientName)
+          name: clinic.client?.name || clinic.clientName || "",
+          nationalId: clinic.client?.nationalId || clinic.clientId || "",
+          phone: clinic.client?.phone || clinic.clientPhone || "",
+          village: clinic.client?.village || clinic.clientVillage || "",
           detailedAddress: clinic.client?.detailedAddress || "",
-          birthDate: clinic.client?.birthDate || "",
+          birthDate: clinic.client?.birthDate || clinic.clientBirthDate || "",
         },
         coordinates: {
           latitude: clinic.coordinates?.latitude || null,
@@ -180,6 +181,7 @@ export function MobileClinicDialog({ open, onOpenChange, clinic, onSave }: Mobil
         },
         supervisor: clinic.supervisor || "",
         vehicleNo: clinic.vehicleNo || "",
+        farmLocation: clinic.farmLocation || "",
         animalCounts: {
           sheep: clinic.animalCounts?.sheep || clinic.sheep || 0,
           goats: clinic.animalCounts?.goats || clinic.goats || 0,
@@ -239,6 +241,7 @@ export function MobileClinicDialog({ open, onOpenChange, clinic, onSave }: Mobil
         },
         supervisor: "",
         vehicleNo: "",
+        farmLocation: "",
         animalCounts: {
           sheep: 0,
           goats: 0,
@@ -367,7 +370,6 @@ export function MobileClinicDialog({ open, onOpenChange, clinic, onSave }: Mobil
           clientId: formData.client.nationalId?.trim() || '',
           clientPhone: formData.client.phone?.trim() || '',
           clientVillage: formData.client.village || '',
-          clientDetailedAddress: formData.client.detailedAddress || '',
           clientBirthDate: formData.client.birthDate || '',
         }),
         coordinates: {
@@ -395,7 +397,7 @@ export function MobileClinicDialog({ open, onOpenChange, clinic, onSave }: Mobil
         },
         followUpRequired: formData.followUpRequired,
         followUpDate: formData.followUpDate ? format(formData.followUpDate, "yyyy-MM-dd") : null,
-        holdingCode: typeof formData.holdingCode === 'string' ? formData.holdingCode : (formData.holdingCode?._id || undefined),
+        holdingCode: typeof formData.holdingCode === 'string' ? formData.holdingCode : ((formData.holdingCode as any)?._id || undefined),
         remarks: formData.remarks || '',
       };
 

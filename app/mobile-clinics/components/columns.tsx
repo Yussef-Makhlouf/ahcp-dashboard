@@ -48,11 +48,16 @@ export function getColumns({
       id: "clientInfo",
       header: "Client Info",
       cell: ({ row }) => {
+        // دعم كلا من البنية المسطحة (الإدخال اليدوي) والمتداخلة (اختيار من القائمة)
         const client = row.original.client;
-        const name = client?.name || '-';
-        const nationalId = client?.nationalId || '';
-        const phone = client?.phone || '';
-        const birthDate = (client as any)?.birthDate;
+        const name = row.original.clientName || client?.name || '-';
+        const nationalId = row.original.clientId || client?.nationalId || '';
+        const phone = row.original.clientPhone || client?.phone || '';
+        const birthDate = row.original.clientBirthDate || (client as any)?.birthDate;
+        const village = row.original.clientVillage || 
+          (typeof client?.village === 'object' ? 
+            (client.village as any).nameArabic || (client.village as any).nameEnglish : 
+            client?.village) || '';
         
         return (
           <div className="space-y-1 min-w-[200px]">
@@ -69,6 +74,12 @@ export function getColumns({
                 DOB: <SimpleDateCell date={birthDate} className="text-xs" />
               </div>
             )}
+            {village && (
+              <div className="text-xs text-gray-500 flex items-center gap-1">
+                <MapPin className="h-3 w-3" />
+                {village}
+              </div>
+            )}
             {phone && (
               <div className="text-xs text-gray-500 flex items-center gap-1">
                 <Phone className="h-3 w-3" />
@@ -81,11 +92,12 @@ export function getColumns({
     },
     // Birth Date
     {
-      accessorKey: "client.birthDate",
+      accessorKey: "clientBirthDate",
       header: "Birth Date",
       cell: ({ row }) => {
+        // دعم كلا من البنية المسطحة والمتداخلة
         const client = row.original.client;
-        const birthDate = client?.birthDate;
+        const birthDate = row.original.clientBirthDate || client?.birthDate;
         return <BirthDateCell date={birthDate} className="text-sm" />;
       },
       size: 120,
@@ -111,7 +123,10 @@ export function getColumns({
             }
             // فحص holdingCode كـ fallback
             else if ((client as any).holdingCode && typeof (client as any).holdingCode === 'object' && (client as any).holdingCode !== null && 'village' in (client as any).holdingCode) {
-              village = ((client as any).holdingCode as any).village || 'غير محدد';
+              const holdingCodeVillage = ((client as any).holdingCode as any).village;
+              village = typeof holdingCodeVillage === 'object' ? 
+                (holdingCodeVillage.nameArabic || holdingCodeVillage.nameEnglish || 'غير محدد') : 
+                (holdingCodeVillage || 'غير محدد');
             }
             // إذا كان village مجرد string (legacy data)
             else if (typeof client.village === 'string') {
@@ -195,7 +210,8 @@ export function getColumns({
         
         // Handle both string and object types
         const code = typeof holdingCode === 'object' ? holdingCode.code : holdingCode;
-        const village = typeof holdingCode === 'object' ? holdingCode.village : '';
+        const village = typeof holdingCode === 'object' ? 
+          (typeof holdingCode.village === 'object' ? (holdingCode.village as any).nameArabic || (holdingCode.village as any).nameEnglish : holdingCode.village) : '';
         const isActive = typeof holdingCode === 'object' ? (holdingCode as any).isActive !== false : true;
         
         return (

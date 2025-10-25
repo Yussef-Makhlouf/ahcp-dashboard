@@ -153,6 +153,53 @@ export function DataTable<TData, TValue>({
     return [selectionColumn, ...columns];
   }, [columns, enableSelection]);
 
+  // Enhanced global filter function for better search
+  const enhancedGlobalFilter = React.useCallback((row: any, columnId: string, value: string) => {
+    if (!value) return true;
+    
+    const searchValue = value.toLowerCase().trim();
+    const rowData = row.original;
+    
+    // Search in all string and number fields
+    const searchableFields = Object.entries(rowData).filter(([key, val]) => {
+      // Include important fields for search
+      const importantFields = ['serialNo', 'clientId', 'clientName', 'clientPhone', 'nationalId', 'name', 'phone', 'id', '_id', 'sampleCode', 'code'];
+      return importantFields.includes(key) || 
+             typeof val === 'string' || 
+             typeof val === 'number' ||
+             (typeof val === 'object' && val !== null && ((val as any).name || (val as any).nationalId || (val as any).phone));
+    });
+    
+    // Check each searchable field
+    for (const [key, fieldValue] of searchableFields) {
+      if (fieldValue === null || fieldValue === undefined) continue;
+      
+      let searchText = '';
+      
+      // Handle different data types
+      if (typeof fieldValue === 'string') {
+        searchText = fieldValue.toLowerCase();
+      } else if (typeof fieldValue === 'number') {
+        searchText = fieldValue.toString();
+      } else if (typeof fieldValue === 'object' && fieldValue !== null) {
+        // Handle nested objects (like client data)
+        const nestedValues = [];
+        const obj = fieldValue as any;
+        if (obj.name) nestedValues.push(obj.name.toLowerCase());
+        if (obj.nationalId) nestedValues.push(obj.nationalId.toString());
+        if (obj.phone) nestedValues.push(obj.phone.toString());
+        searchText = nestedValues.join(' ');
+      }
+      
+      // Check if search value matches
+      if (searchText.includes(searchValue)) {
+        return true;
+      }
+    }
+    
+    return false;
+  }, []);
+
   const table = useReactTable({
     data,
     columns: columnsWithSelection,
@@ -165,7 +212,7 @@ export function DataTable<TData, TValue>({
     onColumnVisibilityChange: setColumnVisibility,
     onRowSelectionChange: setRowSelection,
     onGlobalFilterChange: setGlobalFilter,
-    globalFilterFn: "includesString",
+    globalFilterFn: enhancedGlobalFilter,
     enableRowSelection: enableSelection,
     // Use external pagination if provided, otherwise use internal
     manualPagination: showPagination && (totalCount !== undefined || totalPages !== undefined),
@@ -352,7 +399,7 @@ export function DataTable<TData, TValue>({
             <div className="relative flex-1 max-w-md border rounded-md shadow-sm">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
               <Input
-                placeholder="البحث في البيانات..."
+                placeholder="البحث بالاسم، رقم التسلسل، الهوية، أو الهاتف..."
                 value={globalFilter ?? ""}
                 onChange={(event) => setGlobalFilter(event.target.value)}
                 className="form-input pl-10 text-right"

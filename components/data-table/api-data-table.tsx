@@ -84,7 +84,7 @@ export function ApiDataTable<T extends { id?: string | number; _id?: string }>({
   onAdd,
   onEdit,
   onView,
-  searchPlaceholder = "البحث...",
+  searchPlaceholder = "البحث بالاسم، رقم التسلسل، الهوية، أو الهاتف...",
   enableExport = true,
   enableImport = false,
   enableDelete = true,

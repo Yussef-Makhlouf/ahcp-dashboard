@@ -379,20 +379,30 @@ export interface MobileClinic {
     village: string;
     description?: string;
   }; // Holding code reference - مرتبط بالقرية
-  client: {
+  client?: {
     _id: string;
     name: string;
     nationalId: string;
     phone: string;
     village?: string;
+    detailedAddress?: string;
     birthDate?: string;
   };
+  
+  // Flat client fields (alternative to client reference)
+  clientName?: string;
+  clientId?: string;
+  clientPhone?: string;
+  clientBirthDate?: string;
+  clientVillage?: string;
+  
   coordinates?: {
     latitude: number;
     longitude: number;
   };
   supervisor: string;
   vehicleNo: string;
+  farmLocation?: string;
   animalCounts: {
     sheep: number;
     goats: number;
