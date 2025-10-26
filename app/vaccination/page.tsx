@@ -18,6 +18,9 @@ import { ImportDialog } from "@/components/common/ImportDialog";
 import { ResponsiveActions, createActions } from "@/components/ui/responsive-actions";
 import { apiConfig } from "@/lib/api-config";
 import { VaccinationStats } from "@/components/dashboard/vaccination-stats";
+import { TableFilters, useTableFilters } from "@/components/data-table/table-filters";
+import { getTableFilterConfig, filtersToApiParams } from "@/lib/table-filter-configs";
+import { DateRange } from "react-day-picker";
 
 
 export default function VaccinationPage() {
@@ -29,13 +32,30 @@ export default function VaccinationPage() {
   const queryClient = useQueryClient();
   const { checkPermission } = usePermissions();
 
-  // Fetch vaccination data using React Query with pagination
+  // إعداد الفلاتر
+  const {
+    filters,
+    dateRange,
+    updateFilters,
+    updateDateRange,
+    clearFilters,
+    hasActiveFilters
+  } = useTableFilters({}, (newFilters) => {
+    // إعادة تعيين الصفحة عند تغيير الفلاتر
+    setCurrentPage(1);
+  });
+
+  // Fetch vaccination data using React Query with pagination and filters
   const { data: vaccinationData, isLoading, refetch } = useQuery({
-    queryKey: ['vaccination', currentPage, pageSize],
-    queryFn: () => vaccinationApi.getList({
-      page: currentPage,
-      limit: pageSize,
-    }),
+    queryKey: ['vaccination', currentPage, pageSize, filters, dateRange],
+    queryFn: () => {
+      const apiParams = filtersToApiParams({ ...filters, dateRange });
+      return vaccinationApi.getList({
+        page: currentPage,
+        limit: pageSize,
+        ...apiParams,
+      });
+    },
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 
@@ -165,9 +185,23 @@ export default function VaccinationPage() {
           />
         </div>
 
+        {/* الفلاتر */}
+        <TableFilters
+          dateFilter={{
+            enabled: true,
+            label: "فلترة بتاريخ التطعيم",
+            value: dateRange,
+            onDateChange: updateDateRange,
+          }}
+          fieldFilters={getTableFilterConfig('vaccination')}
+          filterValues={filters}
+          onFiltersChange={updateFilters}
+          defaultExpanded={hasActiveFilters}
+          className="mb-6"
+        />
+
         {/* Department Dashboard - Vaccination */}
         <VaccinationStats />
-
 
         {/* Data Table */}
         <DataTable

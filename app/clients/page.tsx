@@ -31,6 +31,9 @@ import { ProtectedButton } from "@/components/ui/protected-button";
 import { ImportExportManager } from "@/components/import-export";
 import { ResponsiveActions, createActions } from "@/components/ui/responsive-actions";
 import { apiConfig } from "@/lib/api-config";
+import { TableFilters, useTableFilters } from "@/components/data-table/table-filters";
+import { getTableFilterConfig, filtersToApiParams } from "@/lib/table-filter-configs";
+import { DateRange } from "react-day-picker";
 
 export default function ClientsPage() {
   const [isClientDialogOpen, setIsClientDialogOpen] = useState(false);
@@ -43,15 +46,32 @@ export default function ClientsPage() {
   const queryClient = useQueryClient();
   const { checkPermission, isAdmin } = usePermissions();
 
-  // استخدام React Query لجلب البيانات من API مع الترقيم والبحث
+  // إعداد الفلاتر
+  const {
+    filters,
+    dateRange,
+    updateFilters,
+    updateDateRange,
+    clearFilters,
+    hasActiveFilters
+  } = useTableFilters({}, (newFilters) => {
+    // إعادة تعيين الصفحة عند تغيير الفلاتر
+    setCurrentPage(1);
+  });
+
+  // استخدام React Query لجلب البيانات من API مع الترقيم والبحث والفلاتر
   const { data: clientsResponse, isLoading, error, refetch } = useQuery({
-    queryKey: ['clients', currentPage, pageSize, searchTerm],
-    queryFn: () => clientsApi.getList({
-      page: currentPage,
-      limit: pageSize,
-      search: searchTerm || undefined,
-      includeServices: true, // إضافة هذا المعامل لجلب الخدمات
-    }),
+    queryKey: ['clients', currentPage, pageSize, searchTerm, filters, dateRange],
+    queryFn: () => {
+      const apiParams = filtersToApiParams({ ...filters, dateRange });
+      return clientsApi.getList({
+        page: currentPage,
+        limit: pageSize,
+        search: searchTerm || undefined,
+        includeServices: true, // إضافة هذا المعامل لجلب الخدمات
+        ...apiParams,
+      });
+    },
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 
@@ -459,6 +479,20 @@ export default function ClientsPage() {
           />
         </div>
 
+        {/* الفلاتر */}
+        <TableFilters
+          dateFilter={{
+            enabled: true,
+            label: "فلترة بتاريخ التسجيل",
+            value: dateRange,
+            onDateChange: updateDateRange,
+          }}
+          fieldFilters={getTableFilterConfig('clients')}
+          filterValues={filters}
+          onFiltersChange={updateFilters}
+          defaultExpanded={hasActiveFilters}
+          className="mb-6"
+        />
 
         {/* Stats Cards */}
         <div className="grid gap-4 md:grid-cols-4">

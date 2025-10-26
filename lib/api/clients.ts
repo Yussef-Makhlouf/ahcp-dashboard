@@ -27,6 +27,11 @@ export const clientsApi = {
     status?: string;
     village?: string;
     includeServices?: boolean;
+    servicesReceived?: string;
+    'animals.animalType'?: string;
+    totalAnimals?: string;
+    startDate?: string;
+    endDate?: string;
   }): Promise<PaginatedResponse<Client>> => {
     try {
       // Filter out empty search parameters to avoid validation errors
@@ -44,6 +49,21 @@ export const clientsApi = {
       }
       if (params?.village) {
         cleanParams.village = params.village;
+      }
+      if (params?.servicesReceived) {
+        cleanParams.servicesReceived = params.servicesReceived;
+      }
+      if (params?.['animals.animalType']) {
+        cleanParams['animals.animalType'] = params['animals.animalType'];
+      }
+      if (params?.totalAnimals) {
+        cleanParams.totalAnimals = params.totalAnimals;
+      }
+      if (params?.startDate) {
+        cleanParams.startDate = params.startDate;
+      }
+      if (params?.endDate) {
+        cleanParams.endDate = params.endDate;
       }
 
       const response = await api.get('/clients', {

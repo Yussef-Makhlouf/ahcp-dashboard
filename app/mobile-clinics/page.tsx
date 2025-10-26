@@ -21,6 +21,9 @@ import { apiConfig } from "@/lib/api-config";
 import { ImportExportManager } from "@/components/import-export";
 import { ImportDialog } from "@/components/common/ImportDialog";
 import { ResponsiveActions, createActions } from "@/components/ui/responsive-actions";
+import { TableFilters, useTableFilters } from "@/components/data-table/table-filters";
+import { getTableFilterConfig, filtersToApiParams } from "@/lib/table-filter-configs";
+import { DateRange } from "react-day-picker";
 
 // تعريف حقول النموذج
 const formFields = [
@@ -247,16 +250,33 @@ export default function MobileClinicsPage() {
   const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize] = useState(30);
-  const { checkPermission } = usePermissions();
   const queryClient = useQueryClient();
+  const { checkPermission } = usePermissions();
 
-  // Fetch mobile clinics data using React Query with pagination
+  // إعداد الفلاتر
+  const {
+    filters,
+    dateRange,
+    updateFilters,
+    updateDateRange,
+    clearFilters,
+    hasActiveFilters
+  } = useTableFilters({}, (newFilters) => {
+    // إعادة تعيين الصفحة عند تغيير الفلاتر
+    setCurrentPage(1);
+  });
+
+  // Fetch mobile clinics data using React Query with pagination and filters
   const { data: mobileClinicsData, isLoading, refetch } = useQuery({
-    queryKey: ['mobile-clinics', currentPage, pageSize],
-    queryFn: () => mobileClinicsApi.getList({
-      page: currentPage,
-      limit: pageSize,
-    }),
+    queryKey: ['mobile-clinics', currentPage, pageSize, filters, dateRange],
+    queryFn: () => {
+      const apiParams = filtersToApiParams({ ...filters, dateRange });
+      return mobileClinicsApi.getList({
+        page: currentPage,
+        limit: pageSize,
+        ...apiParams,
+      });
+    },
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 
@@ -410,6 +430,21 @@ export default function MobileClinicsPage() {
             }}
           />
         </div>
+
+        {/* الفلاتر */}
+        <TableFilters
+          dateFilter={{
+            enabled: true,
+            label: "فلترة بتاريخ الزيارة",
+            value: dateRange,
+            onDateChange: updateDateRange,
+          }}
+          fieldFilters={getTableFilterConfig('mobileClinics')}
+          filterValues={filters}
+          onFiltersChange={updateFilters}
+          defaultExpanded={hasActiveFilters}
+          className="mb-6"
+        />
 
         {/* Stats Cards */}
         <div className="grid gap-4 md:grid-cols-4">

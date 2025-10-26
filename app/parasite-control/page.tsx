@@ -23,6 +23,9 @@ import { ImportExportManager } from "@/components/import-export";
 import { ImportDialog } from "@/components/common/ImportDialog";
 import { ResponsiveActions, createActions } from "@/components/ui/responsive-actions";
 import { apiConfig } from "@/lib/api-config";
+import { TableFilters, useTableFilters } from "@/components/data-table/table-filters";
+import { getTableFilterConfig, filtersToApiParams } from "@/lib/table-filter-configs";
+import { DateRange } from "react-day-picker";
 
 // تعريف حقول النموذج
 const formFields = [
@@ -226,13 +229,30 @@ export default function ParasiteControlPage() {
   const { checkPermission } = usePermissions();
   const queryClient = useQueryClient();
 
-  // Fetch parasite control data using React Query with pagination
+  // إعداد الفلاتر
+  const {
+    filters,
+    dateRange,
+    updateFilters,
+    updateDateRange,
+    clearFilters,
+    hasActiveFilters
+  } = useTableFilters({}, (newFilters) => {
+    // إعادة تعيين الصفحة عند تغيير الفلاتر
+    setCurrentPage(1);
+  });
+
+  // Fetch parasite control data using React Query with pagination and filters
   const { data: parasiteControlData, isLoading, refetch } = useQuery({
-    queryKey: ['parasite-control', currentPage, pageSize],
-    queryFn: () => parasiteControlApi.getList({
-      page: currentPage,
-      limit: pageSize,
-    }),
+    queryKey: ['parasite-control', currentPage, pageSize, filters, dateRange],
+    queryFn: () => {
+      const apiParams = filtersToApiParams({ ...filters, dateRange });
+      return parasiteControlApi.getList({
+        page: currentPage,
+        limit: pageSize,
+        ...apiParams,
+      });
+    },
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 
@@ -377,6 +397,21 @@ export default function ParasiteControlPage() {
             }}
           />
         </div>
+
+        {/* الفلاتر */}
+        <TableFilters
+          dateFilter={{
+            enabled: true,
+            label: "فلترة بتاريخ المكافحة",
+            value: dateRange,
+            onDateChange: updateDateRange,
+          }}
+          fieldFilters={getTableFilterConfig('parasiteControl')}
+          filterValues={filters}
+          onFiltersChange={updateFilters}
+          defaultExpanded={hasActiveFilters}
+          className="mb-6"
+        />
 
         {/* Department Dashboard - Parasite Control */}
         <ParasiteControlStats />

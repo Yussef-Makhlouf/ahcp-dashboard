@@ -8,9 +8,19 @@ export const vaccinationApi = {
     page?: number;
     limit?: number;
     search?: string;
+    startDate?: string;
+    endDate?: string;
+    'vaccine.type'?: string;
+    'vaccine.category'?: string;
+    herdHealthStatus?: string;
+    vaccinationStatus?: string;
+    'request.situation'?: string;
     filter?: Record<string, any>;
+    [key: string]: any; // Allow any additional filter parameters
   }): Promise<PaginatedResponse<Vaccination>> => {
     try {
+      console.log('🔍 Vaccination API getList called with params:', params);
+      
       // Filter out empty search parameters to avoid validation errors
       const cleanParams: Record<string, any> = {
         page: params?.page || 1,
@@ -21,13 +31,31 @@ export const vaccinationApi = {
         cleanParams.search = params.search.trim();
       }
       
-      if (params?.filter) {
-        Object.entries(params.filter).forEach(([key, value]) => {
-          if (value !== undefined && value !== null && value !== '') {
+      // Handle all filter parameters (including direct ones and nested in filter object)
+      if (params) {
+        Object.entries(params).forEach(([key, value]) => {
+          // Skip standard pagination/search params
+          if (['page', 'limit', 'search', 'filter'].includes(key)) return;
+          
+          // Add any other parameter as filter if it has a valid value
+          if (value !== undefined && value !== null && value !== '' && value !== '__all__') {
             cleanParams[key] = value;
+            console.log(`📋 Adding vaccination filter parameter: ${key} = ${value}`);
           }
         });
       }
+      
+      // Also handle legacy filter object structure
+      if (params?.filter) {
+        Object.entries(params.filter).forEach(([key, value]) => {
+          if (value !== undefined && value !== null && value !== '' && value !== '__all__') {
+            cleanParams[key] = value;
+            console.log(`📋 Adding legacy vaccination filter parameter: ${key} = ${value}`);
+          }
+        });
+      }
+      
+      console.log('📤 Final vaccination API parameters being sent:', cleanParams);
 
       const response = await api.get('/vaccination/', {
         params: cleanParams,

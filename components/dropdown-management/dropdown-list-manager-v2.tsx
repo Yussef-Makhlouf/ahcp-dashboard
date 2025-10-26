@@ -8,15 +8,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 import { DataTable } from '@/components/data-table/data-table';
 import { LoadingButton } from '@/components/ui/loading-button';
-import { Plus, Edit, Trash2, Search, Eye, RefreshCw, CheckCircle, XCircle, MoreHorizontal } from 'lucide-react';
+import { Plus, Edit, Trash2, Search, Eye, RefreshCw, CheckCircle, XCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { dropdownListsApi, type DropdownOption, type CategoryInfo } from '@/lib/api/dropdown-lists';
 
@@ -263,8 +257,7 @@ export function DropdownListManagerV2({
       cell: ({ row }: any) => {
         const option = row.original;
         return (
-          <div className="flex items-center gap-2">
-            {/* Always visible Eye button */}
+          <div className="flex items-center gap-1">
             <Button
               variant="ghost"
               size="sm"
@@ -274,64 +267,46 @@ export function DropdownListManagerV2({
               <Eye className="h-4 w-4" />
             </Button>
             
-            {/* Show dropdown only if user has edit or delete permissions */}
-            {(allowEdit || allowDelete) && (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button 
-                    variant="outline" 
-                    className="h-10 w-10 p-0 border-2 border-blue-300 bg-blue-50 hover:bg-blue-100 hover:border-blue-400 transition-all duration-200 shadow-lg hover:shadow-xl rounded-full"
-                  >
-                    <span className="sr-only">فتح القائمة</span>
-                    <MoreHorizontal className="h-5 w-5 text-blue-700 font-bold" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56 bg-white border-2 border-blue-200 shadow-xl rounded-lg">
-                  <div className="px-3 py-2 border-b border-blue-100">
-                    <span className="text-sm font-semibold text-blue-800">الإجراءات</span>
-                  </div>
-                  {allowEdit && (
-                    <DropdownMenuItem 
-                      onClick={() => handleEdit(option)}
-                      className="hover:bg-blue-50 focus:bg-blue-50 cursor-pointer"
-                    >
-                      <Edit className="ml-3 h-4 w-4 text-blue-600" />
-                      <span className="font-medium text-blue-800">تعديل</span>
-                    </DropdownMenuItem>
-                  )}
-                  {allowEdit && (
-                    <DropdownMenuItem 
-                      onClick={() => handleToggleActive(option)}
-                      className={`cursor-pointer ${
-                        option.isActive 
-                          ? 'hover:bg-orange-50 focus:bg-orange-50' 
-                          : 'hover:bg-green-50 focus:bg-green-50'
-                      }`}
-                    >
-                      {option.isActive ? (
-                        <>
-                          <XCircle className="ml-3 h-4 w-4 text-orange-600" />
-                          <span className="font-medium text-orange-800">إلغاء التفعيل</span>
-                        </>
-                      ) : (
-                        <>
-                          <CheckCircle className="ml-3 h-4 w-4 text-green-600" />
-                          <span className="font-medium text-green-800">تفعيل</span>
-                        </>
-                      )}
-                    </DropdownMenuItem>
-                  )}
-                  {allowDelete && (
-                    <DropdownMenuItem
-                      onClick={() => handleDelete(option)}
-                      className="text-red-600 hover:bg-red-50 focus:bg-red-50 cursor-pointer"
-                    >
-                      <Trash2 className="ml-3 h-4 w-4 text-red-600" />
-                      <span className="font-medium text-red-800">حذف</span>
-                    </DropdownMenuItem>
-                  )}
-                </DropdownMenuContent>
-              </DropdownMenu>
+            {allowEdit && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => handleEdit(option)}
+                className="h-8 w-8 p-0"
+              >
+                <Edit className="h-4 w-4" />
+              </Button>
+            )}
+            
+            {allowEdit && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => handleToggleActive(option)}
+                className={`h-8 w-8 p-0 ${
+                  option.isActive 
+                    ? 'text-orange-600 hover:text-orange-800 hover:bg-orange-50' 
+                    : 'text-green-600 hover:text-green-800 hover:bg-green-50'
+                }`}
+                title={option.isActive ? 'إلغاء التفعيل' : 'تفعيل'}
+              >
+                {option.isActive ? (
+                  <XCircle className="h-4 w-4" />
+                ) : (
+                  <CheckCircle className="h-4 w-4" />
+                )}
+              </Button>
+            )}
+            
+            {allowDelete && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => handleDelete(option)}
+                className="h-8 w-8 p-0 text-red-600 hover:text-red-800 hover:bg-red-50"
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
             )}
           </div>
         );
@@ -342,10 +317,10 @@ export function DropdownListManagerV2({
   const currentCategory = categories.find(cat => cat.category === selectedCategory);
 
   return (
-    <div className="space-y-6" dir="rtl">
+    <div className="space-y-6">
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="text-right">
+        <div className="">
           <h2 className="text-2xl font-bold">إدارة القوائم المنسدلة</h2>
           <p className="text-muted-foreground">
             إدارة خيارات القوائم المنسدلة المستخدمة في النظام
@@ -372,7 +347,7 @@ export function DropdownListManagerV2({
 
       {/* Category Selection */}
       <Card>
-        <CardHeader>
+        <CardHeader className="flex items-center justify-between" >
           <CardTitle>اختيار الفئة</CardTitle>
           <CardDescription>
             اختر الفئة التي تريد إدارة خياراتها
@@ -390,7 +365,7 @@ export function DropdownListManagerV2({
                   }
                 }}
               >
-                <SelectTrigger id="category-select">
+                <SelectTrigger id="category-select" dir='rtl'>
                   <SelectValue placeholder="اختر الفئة" />
                 </SelectTrigger>
                 <SelectContent>
@@ -452,13 +427,12 @@ export function DropdownListManagerV2({
             {/* Search */}
             <div className="flex items-center gap-4">
               <div className="relative flex-1">
-                <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
                   placeholder="البحث في الخيارات..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pr-10 text-right"
-                  dir="rtl"
+                  className="pl-10"
                 />
               </div>
             </div>
@@ -510,7 +484,7 @@ export function DropdownListManagerV2({
             </div>
 
             <div className="flex flex-col gap-2">
-              <Label htmlFor="option-name-en" className="text-right">اسم العنصر (إنجليزي) *</Label>
+              <Label htmlFor="option-name-en" className="text-left">اسم العنصر (إنجليزي) *</Label>
               <Input
                 id="option-name-en"
                 value={formData.label}
@@ -540,14 +514,7 @@ export function DropdownListManagerV2({
             )}
           </div>
 
-        <div className="flex justify-start gap-2 mt-6">
-          <LoadingButton 
-            loading={loading} 
-            onClick={handleSave}
-            disabled={!formData.labelAr.trim() || !formData.label.trim()}
-          >
-            {editingOption ? 'تحديث' : 'إنشاء'}
-          </LoadingButton>
+        <div className="flex justify-end gap-2 mt-6">
           <Button 
             variant="outline" 
             onClick={() => {
@@ -558,6 +525,13 @@ export function DropdownListManagerV2({
           >
             إلغاء
           </Button>
+          <LoadingButton 
+            loading={loading} 
+            onClick={handleSave}
+            disabled={!formData.labelAr.trim() || !formData.label.trim()}
+          >
+            {editingOption ? 'تحديث' : 'إنشاء'}
+          </LoadingButton>
         </div>
       </DialogContent>
     </Dialog>

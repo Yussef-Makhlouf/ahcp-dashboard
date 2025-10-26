@@ -25,10 +25,18 @@ export const laboratoriesApi = {
     search?: string;
     dateFrom?: string;
     dateTo?: string;
+    startDate?: string;
+    endDate?: string;
     sampleType?: string;
+    testResult?: string;
+    testType?: string;
+    priority?: string;
     collector?: string;
+    [key: string]: any; // Allow any additional filter parameters
   }): Promise<PaginatedResponse<Laboratory>> => {
     try {
+      console.log('🔍 Laboratory API getList called with params:', params);
+      
       // Filter out empty search parameters to avoid validation errors
       const cleanParams: Record<string, any> = {
         page: params?.page || 1,
@@ -38,18 +46,35 @@ export const laboratoriesApi = {
       if (params?.search && params.search.trim()) {
         cleanParams.search = params.search.trim();
       }
-      if (params?.dateFrom) {
-        cleanParams.dateFrom = params.dateFrom;
+      
+      // Handle date range filters (support both formats)
+      if (params?.startDate) {
+        cleanParams.startDate = params.startDate;
+      } else if (params?.dateFrom) {
+        cleanParams.startDate = params.dateFrom;
       }
-      if (params?.dateTo) {
-        cleanParams.dateTo = params.dateTo;
+      
+      if (params?.endDate) {
+        cleanParams.endDate = params.endDate;
+      } else if (params?.dateTo) {
+        cleanParams.endDate = params.dateTo;
       }
-      if (params?.sampleType) {
-        cleanParams.sampleType = params.sampleType;
+      
+      // Handle all other filter parameters
+      if (params) {
+        Object.entries(params).forEach(([key, value]) => {
+          // Skip standard pagination/search params
+          if (['page', 'limit', 'search', 'dateFrom', 'dateTo', 'startDate', 'endDate'].includes(key)) return;
+          
+          // Add any other parameter as filter if it has a valid value
+          if (value !== undefined && value !== null && value !== '' && value !== '__all__') {
+            cleanParams[key] = value;
+            console.log(`📋 Adding laboratory filter parameter: ${key} = ${value}`);
+          }
+        });
       }
-      if (params?.collector) {
-        cleanParams.collector = params.collector;
-      }
+      
+      console.log('📤 Final laboratory API parameters being sent:', cleanParams);
 
       const response = await api.get('/laboratories', {
         params: cleanParams,
