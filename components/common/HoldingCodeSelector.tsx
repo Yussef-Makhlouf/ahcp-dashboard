@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,6 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Plus, MapPin, User, Hash } from 'lucide-react';
 import { HoldingCode } from '@/lib/api/holding-codes';
 import { api } from '@/lib/api/base-api';
+import { villagesApi } from '@/lib/api/villages';
 
 interface HoldingCodeSelectorProps {
   value?: string;
@@ -33,12 +35,45 @@ export function HoldingCodeSelector({
   const [newCode, setNewCode] = useState('');
   const [newDescription, setNewDescription] = useState('');
 
-  // Fetch holding codes based on village
-  const fetchHoldingCodes = async () => {
-    console.log('🔍 HoldingCodeSelector: fetchHoldingCodes called with village:', village);
+  // Get villages data to resolve village ObjectId to name
+  const { data: villagesResponse } = useQuery({
+    queryKey: ['villages'],
+    queryFn: () => villagesApi.search('', 1000),
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+  });
+
+  const villages = villagesResponse?.data || [];
+
+  // Resolve village name from ObjectId if needed
+  const resolvedVillageName = React.useMemo(() => {
+    if (!village) return '';
     
-    if (!village) {
-      console.log('❌ No village provided, skipping fetch');
+    // If it's already a village name (string), return it
+    if (typeof village === 'string') {
+      // Check if it's an ObjectId (24 hex characters)
+      if (/^[0-9a-fA-F]{24}$/.test(village)) {
+        // Find village by ObjectId
+        const foundVillage = villages.find(v => v._id === village);
+        return foundVillage ? foundVillage.nameArabic : '';
+      } else {
+        // It's already a village name
+        return village;
+      }
+    }
+    
+    return '';
+  }, [village, villages]);
+
+  // Fetch holding codes based on resolved village name
+  const fetchHoldingCodes = async () => {
+    console.log('🔍 HoldingCodeSelector: fetchHoldingCodes called with:', {
+      originalVillage: village,
+      resolvedVillageName: resolvedVillageName
+    });
+    
+    if (!resolvedVillageName) {
+      console.log('❌ No resolved village name, skipping fetch');
       setHoldingCodes([]);
       return;
     }
@@ -46,9 +81,9 @@ export function HoldingCodeSelector({
     setLoading(true);
     try {
       const params = new URLSearchParams();
-      params.append('village', village);
+      params.append('village', resolvedVillageName); // استخدم اسم القرية المحلول
       params.append('active', 'true');
-      params.append('limit', '100'); // زيادة الحد الأقصى
+      params.append('limit', '100');
 
       console.log('📡 Fetching holding codes with URL:', `/holding-codes?${params.toString()}`);
       const response = await api.get<{success: boolean, data: HoldingCode[], pagination?: any}>(`/holding-codes?${params.toString()}`);
@@ -91,18 +126,18 @@ export function HoldingCodeSelector({
   };
 
   useEffect(() => {
-    console.log('🔄 HoldingCodeSelector useEffect triggered - village prop changed to:', village);
+    console.log('🔄 HoldingCodeSelector useEffect triggered - resolved village name changed to:', resolvedVillageName);
     fetchHoldingCodes();
-  }, [village]);
+  }, [resolvedVillageName]); // استخدم resolvedVillageName بدلاً من village
 
   // Create new holding code
   const handleCreateHoldingCode = async () => {
-    if (!newCode.trim() || !village) return;
+    if (!newCode.trim() || !resolvedVillageName) return;
 
     try {
       const data = await api.post<{success: boolean, data: HoldingCode, message: string}>('/holding-codes', {
         code: newCode.trim(),
-        village: village,
+        village: resolvedVillageName, // استخدم اسم القرية المحلول
         description: newDescription.trim() || undefined
       });
 
@@ -128,7 +163,7 @@ export function HoldingCodeSelector({
     return `${holdingCode.code} - ${holdingCode.village}`;
   };
 
-  const canCreateNew = village && !disabled;
+  const canCreateNew = resolvedVillageName && !disabled;
 
   return (
     <div className={`space-y-2 ${className}`}>
@@ -206,7 +241,7 @@ export function HoldingCodeSelector({
                 <div className="bg-gray-50 p-3 rounded-md">
                   <div className="flex items-center gap-2 text-sm text-gray-600">
                     <MapPin className="h-4 w-4" />
-                    <span>القرية: {village || 'غير محددة'}</span>
+                    <span>القرية: {resolvedVillageName || 'غير محددة'}</span>
                   </div>
                   <div className="text-xs text-gray-500 mt-1">
                     سيتم إنشاء رمز حيازة جديد لهذه القرية
@@ -240,10 +275,17 @@ export function HoldingCodeSelector({
       </div>
 
       {/* Info text */}
-      {!village && (
+      {!resolvedVillageName && (
         <p className="text-sm text-gray-500">
           يرجى تحديد القرية أولاً لعرض رمز الحيازة المتاح
         </p>
+      )}
+      
+      {/* Debug info */}
+      {process.env.NODE_ENV === 'development' && (
+        <div className="text-xs text-gray-400 mt-1">
+          Debug: village={village}, resolved={resolvedVillageName}, codes={holdingCodes.length}
+        </div>
       )}
 
     </div>

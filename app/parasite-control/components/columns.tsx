@@ -349,26 +349,69 @@ export function getColumns({
           );
         }
         
-        // Handle both string and object types
-        const code = typeof holdingCode === 'object' && holdingCode !== null ? holdingCode.code : holdingCode;
-        const village = typeof holdingCode === 'object' && holdingCode !== null ? holdingCode.village : '';
-        const isActive = typeof holdingCode === 'object' && holdingCode !== null ? (holdingCode as any).isActive !== false : true;
-        
-        return (
-          <div className="text-xs space-y-1">
-            <div className="flex items-center gap-1 font-medium">
-              <Hash className="h-3 w-3 text-blue-500" />
-              <span className={isActive ? 'text-blue-700' : 'text-gray-500'}>{code}</span>
-              {!isActive && (
-                <span className="text-xs text-red-500">(غير نشط)</span>
+        // Handle populated object (when populate works)
+        if (typeof holdingCode === 'object' && holdingCode !== null && (holdingCode as any).code) {
+          const code = (holdingCode as any).code;
+          const village = (holdingCode as any).village || '';
+          const isActive = (holdingCode as any).isActive !== false;
+          
+          return (
+            <div className="text-xs space-y-1">
+              <div className="flex items-center gap-1 font-medium">
+                <Hash className="h-3 w-3 text-blue-500" />
+                <span className={isActive ? 'text-blue-700' : 'text-gray-500'}>{code}</span>
+                {!isActive && (
+                  <span className="text-xs text-red-500">(غير نشط)</span>
+                )}
+              </div>
+              {village && (
+                <div className="flex items-center gap-1 text-gray-500">
+                  <MapPin className="h-3 w-3" />
+                  <span>{village}</span>
+                </div>
               )}
             </div>
-            {village && (
-              <div className="flex items-center gap-1 text-gray-500">
-                <MapPin className="h-3 w-3" />
-                <span>{village}</span>
+          );
+        }
+        
+        // Handle string ObjectId (when populate doesn't work or manual input)
+        if (typeof holdingCode === 'string') {
+          // Check if it's a valid ObjectId
+          if (/^[0-9a-fA-F]{24}$/.test(holdingCode)) {
+            return (
+              <div className="text-xs">
+                <div className="flex items-center gap-1 text-orange-600">
+                  <Hash className="h-3 w-3" />
+                  <span>رمز حيازة: {holdingCode.slice(-6)}</span>
+                </div>
+                <div className="text-xs text-gray-500 mt-1">
+                  (لم يتم تحميل التفاصيل)
+                </div>
               </div>
-            )}
+            );
+          } else {
+            // Invalid string - probably manual input that wasn't converted to ObjectId
+            return (
+              <div className="text-xs">
+                <div className="flex items-center gap-1 text-red-600">
+                  <Hash className="h-3 w-3" />
+                  <span>رمز غير صحيح: {holdingCode}</span>
+                </div>
+                <div className="text-xs text-gray-500 mt-1">
+                  يحتاج إلى تصحيح
+                </div>
+              </div>
+            );
+          }
+        }
+        
+        // Fallback for any other case
+        return (
+          <div className="text-xs">
+            <div className="flex items-center gap-1 text-gray-500">
+              <Hash className="h-3 w-3" />
+              <span>غير محدد</span>
+            </div>
           </div>
         );
       },

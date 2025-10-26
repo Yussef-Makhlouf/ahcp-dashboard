@@ -514,7 +514,7 @@ export function ParasiteControlDialog({
       console.log('Is string?', typeof data.holdingCode === 'string');
       console.log('Has _id?', (data.holdingCode as any)?._id);
       
-      // معالجة خاصة لـ holdingCode - التأكد من عدم إرسال undefined
+      // معالجة خاصة لـ holdingCode - التأكد من إرسال ObjectId صحيح أو null
       let processedHoldingCode = null; // Default to null
       
       // Check if holdingCode exists and is not empty
@@ -523,7 +523,16 @@ export function ParasiteControlDialog({
       
       if (holdingCodeValue && holdingCodeValue.trim() !== '') {
         if (typeof holdingCodeValue === 'string') {
-          processedHoldingCode = holdingCodeValue.trim();
+          // إذا كان string، تأكد من أنه ObjectId صحيح (24 حرف hex)
+          const trimmedValue = holdingCodeValue.trim();
+          if (/^[0-9a-fA-F]{24}$/.test(trimmedValue)) {
+            // ObjectId صحيح
+            processedHoldingCode = trimmedValue;
+          } else {
+            // String عادي - ابحث عن رمز الحياة المطابق أو اتركه null
+            console.warn('⚠️ holdingCode is not a valid ObjectId:', trimmedValue);
+            processedHoldingCode = null; // لا نرسل string للباك إند
+          }
         } else if ((holdingCodeValue as any)?._id) {
           processedHoldingCode = (holdingCodeValue as any)._id;
         }
@@ -981,16 +990,9 @@ export function ParasiteControlDialog({
                     control={form.control as any}
                     name="holdingCode"
                     render={({ field }) => {
-                      // معالجة القرية - قد تكون string مباشرة أو object
-                      const villageValue = (() => {
-                        const village = form.watch('client.village');
-                        if (!village) return '';
-                        if (typeof village === 'string') return village;
-                        if (typeof village === 'object' && village !== null) {
-                          return (village as any).nameArabic || (village as any).nameEnglish || '';
-                        }
-                        return '';
-                      })();
+                      // معالجة القرية - سنمرر القيمة كما هي للـ HoldingCodeSelector
+                      // HoldingCodeSelector سيتولى حل ObjectId إلى اسم القرية
+                      const villageValue = form.watch('client.village') || '';
                       
                       console.log('🏘️ HoldingCodeSelector village prop:', {
                         rawVillage: form.watch('client.village'),
@@ -1014,6 +1016,11 @@ export function ParasiteControlDialog({
                             />
                           </FormControl>
                           <FormMessage className="text-red-500 text-sm font-medium" />
+                          {!villageValue && (
+                            <div className="text-xs text-amber-600 mt-1">
+                              ⚠️ يجب تحديد القرية أولاً لعرض رموز الحيازة المتاحة
+                            </div>
+                          )}
                         </FormItem>
                       );
                     }}

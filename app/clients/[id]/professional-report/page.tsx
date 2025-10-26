@@ -180,15 +180,33 @@ export default function ClientProfessionalReport() {
 
   const latestVisit = getAllVisitsFlat()[0];
 
-  // Calculate analytics
+  // Calculate enhanced analytics
   const getAnalytics = () => {
     const allVisits = getAllVisitsFlat();
     const now = new Date();
     const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
     const sixMonthsAgo = new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000);
+    const oneYearAgo = new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000);
     
     const recentVisits = allVisits.filter(v => new Date(v.date) >= thirtyDaysAgo);
     const sixMonthVisits = allVisits.filter(v => new Date(v.date) >= sixMonthsAgo);
+    const yearVisits = allVisits.filter(v => new Date(v.date) >= oneYearAgo);
+    
+    // Calculate quarterly trends
+    const quarters = [];
+    for (let i = 0; i < 4; i++) {
+      const quarterStart = new Date(now.getTime() - (i + 1) * 90 * 24 * 60 * 60 * 1000);
+      const quarterEnd = new Date(now.getTime() - i * 90 * 24 * 60 * 60 * 1000);
+      const quarterVisits = allVisits.filter(v => {
+        const visitDate = new Date(v.date);
+        return visitDate >= quarterStart && visitDate < quarterEnd;
+      });
+      quarters.unshift({
+        period: `Q${4-i}`,
+        visits: quarterVisits.length,
+        services: [...new Set(quarterVisits.map(v => v._type))].length
+      });
+    }
     
     const serviceFrequency = {
       vaccination: visits.vaccination?.length || 0,
@@ -198,8 +216,46 @@ export default function ClientProfessionalReport() {
       equineHealth: visits.equineHealth?.length || 0
     };
     
+    // Calculate service trends
+    const serviceGrowth = Object.keys(serviceFrequency).reduce((acc, service) => {
+      const recentCount = allVisits.filter(v => v._type === service && new Date(v.date) >= thirtyDaysAgo).length;
+      const previousCount = allVisits.filter(v => {
+        const date = new Date(v.date);
+        return v._type === service && date >= new Date(now.getTime() - 60 * 24 * 60 * 60 * 1000) && date < thirtyDaysAgo;
+      }).length;
+      
+      acc[service] = {
+        current: recentCount,
+        previous: previousCount,
+        trend: recentCount > previousCount ? 'up' : recentCount < previousCount ? 'down' : 'stable'
+      };
+      return acc;
+    }, {} as Record<string, any>);
+    
     const avgVisitsPerMonth = sixMonthVisits.length / 6;
     const lastVisitDays = latestVisit ? Math.floor((now.getTime() - new Date(latestVisit.date).getTime()) / (24 * 60 * 60 * 1000)) : null;
+    
+    // Calculate compliance score
+    const complianceScore = (() => {
+      let score = 0;
+      if (avgVisitsPerMonth >= 2) score += 30;
+      else if (avgVisitsPerMonth >= 1) score += 20;
+      else if (avgVisitsPerMonth >= 0.5) score += 10;
+      
+      if (lastVisitDays && lastVisitDays <= 30) score += 25;
+      else if (lastVisitDays && lastVisitDays <= 60) score += 15;
+      else if (lastVisitDays && lastVisitDays <= 90) score += 5;
+      
+      if (serviceFrequency.vaccination >= 2) score += 20;
+      else if (serviceFrequency.vaccination >= 1) score += 10;
+      
+      if (Object.values(serviceFrequency).filter(count => count > 0).length >= 3) score += 15;
+      else if (Object.values(serviceFrequency).filter(count => count > 0).length >= 2) score += 10;
+      
+      if (totalAnimals > 0) score += 10;
+      
+      return Math.min(score, 100);
+    })();
     
     return {
       totalVisits: allVisits.length,
@@ -207,6 +263,10 @@ export default function ClientProfessionalReport() {
       avgVisitsPerMonth: Math.round(avgVisitsPerMonth * 10) / 10,
       lastVisitDays,
       serviceFrequency,
+      serviceGrowth,
+      quarters,
+      yearVisits: yearVisits.length,
+      complianceScore,
       mostUsedService: Object.entries(serviceFrequency).reduce((a, b) => serviceFrequency[a[0]] > serviceFrequency[b[0]] ? a : b)[0]
     };
   };
@@ -241,6 +301,10 @@ export default function ClientProfessionalReport() {
               <Button variant="outline" size="sm" onClick={() => setShowAnalytics(!showAnalytics)} className="hover:bg-white">
                 <BarChart3 className="h-4 w-4 ml-2" />
                 {showAnalytics ? 'إخفاء التحليلات' : 'عرض التحليلات'}
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => window.open(`/clients/${clientId}/professional-report?export=pdf`, '_blank')} className="hover:bg-white">
+                <Download className="h-4 w-4 ml-2" />
+                تصدير PDF
               </Button>
             </div>
             <div className="text-left" dir="ltr">
@@ -277,14 +341,15 @@ export default function ClientProfessionalReport() {
           </div>
         </div>
 
-        {/* Quick Stats Dashboard */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* Enhanced Quick Stats Dashboard */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
           <Card className="border-l-4 border-l-blue-500">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-gray-600">إجمالي الحيوانات</p>
                   <p className="text-2xl font-bold text-blue-600">{totalAnimals}</p>
+                  <p className="text-xs text-gray-500">رأس مسجل</p>
                 </div>
                 <PieChart className="h-8 w-8 text-blue-500" />
               </div>
@@ -297,6 +362,7 @@ export default function ClientProfessionalReport() {
                 <div>
                   <p className="text-sm text-gray-600">إجمالي الزيارات</p>
                   <p className="text-2xl font-bold text-green-600">{analytics.totalVisits}</p>
+                  <p className="text-xs text-gray-500">{analytics.yearVisits} في السنة الأخيرة</p>
                 </div>
                 <Activity className="h-8 w-8 text-green-500" />
               </div>
@@ -307,8 +373,9 @@ export default function ClientProfessionalReport() {
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-gray-600">متوسط الزيارات شهرياً</p>
+                  <p className="text-sm text-gray-600">متوسط شهري</p>
                   <p className="text-2xl font-bold text-purple-600">{analytics.avgVisitsPerMonth}</p>
+                  <p className="text-xs text-gray-500">زيارة/شهر</p>
                 </div>
                 <TrendingUp className="h-8 w-8 text-purple-500" />
               </div>
@@ -323,12 +390,100 @@ export default function ClientProfessionalReport() {
                   <p className="text-lg font-bold text-orange-600">
                     {analytics.lastVisitDays ? `${analytics.lastVisitDays} يوم` : 'لا توجد'}
                   </p>
+                  <p className="text-xs text-gray-500">{analytics.recentVisits} في آخر 30 يوم</p>
                 </div>
                 <Clock className="h-8 w-8 text-orange-500" />
               </div>
             </CardContent>
           </Card>
+          
+          <Card className="border-l-4 border-l-indigo-500">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-gray-600">درجة الالتزام</p>
+                  <p className="text-2xl font-bold text-indigo-600">{analytics.complianceScore}%</p>
+                  <p className="text-xs text-gray-500">
+                    {analytics.complianceScore >= 80 ? 'ممتاز' : 
+                     analytics.complianceScore >= 60 ? 'جيد' : 
+                     analytics.complianceScore >= 40 ? 'متوسط' : 'يحتاج تحسين'}
+                  </p>
+                </div>
+                <Shield className="h-8 w-8 text-indigo-500" />
+              </div>
+            </CardContent>
+          </Card>
         </div>
+        
+        {/* Quarterly Trends */}
+        <Card className="shadow-lg border-l-4 border-l-teal-500">
+          <CardHeader className="bg-teal-50">
+            <CardTitle className="flex items-center gap-2">
+              <BarChart3 className="h-5 w-5 text-teal-600" />
+              الاتجاهات الفصلية والمقارنات الزمنية
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div>
+                <h4 className="font-semibold mb-3 text-gray-800">أداء الأرباع الأخيرة</h4>
+                <div className="space-y-3">
+                  {analytics.quarters.map((quarter, index) => {
+                    const maxVisits = Math.max(...analytics.quarters.map(q => q.visits));
+                    const percentage = maxVisits > 0 ? (quarter.visits / maxVisits) * 100 : 0;
+                    return (
+                      <div key={quarter.period} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                        <div className="flex items-center gap-3">
+                          <span className="font-semibold text-sm w-8">{quarter.period}</span>
+                          <div className="w-32 bg-gray-200 rounded-full h-2">
+                            <div 
+                              className="bg-teal-500 h-2 rounded-full transition-all duration-500" 
+                              style={{ width: `${percentage}%` }}
+                            ></div>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <div className="font-semibold text-teal-600">{quarter.visits} زيارة</div>
+                          <div className="text-xs text-gray-600">{quarter.services} خدمة مختلفة</div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+              
+              <div>
+                <h4 className="font-semibold mb-3 text-gray-800">اتجاهات الخدمات</h4>
+                <div className="space-y-3">
+                  {Object.entries(analytics.serviceGrowth).map(([service, data]) => {
+                    const serviceNames = {
+                      vaccination: 'التطعيمات',
+                      mobileClinic: 'العيادة المتنقلة',
+                      parasiteControl: 'مكافحة الطفيليات',
+                      laboratory: 'المختبر',
+                      equineHealth: 'صحة الخيول'
+                    };
+                    
+                    return (
+                      <div key={service} className="flex items-center justify-between p-3 border rounded-lg">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm">{serviceNames[service as keyof typeof serviceNames]}</span>
+                          {data.trend === 'up' && <TrendingUp className="h-4 w-4 text-green-500" />}
+                          {data.trend === 'down' && <ArrowLeft className="h-4 w-4 text-red-500 rotate-45" />}
+                          {data.trend === 'stable' && <div className="w-4 h-0.5 bg-gray-400"></div>}
+                        </div>
+                        <div className="text-right text-xs">
+                          <div>الحالي: {data.current}</div>
+                          <div className="text-gray-500">السابق: {data.previous}</div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Analytics Section */}
         {showAnalytics && (
@@ -372,8 +527,24 @@ export default function ClientProfessionalReport() {
                 </div>
                 
                 <div>
-                  <h4 className="font-semibold mb-3 text-gray-800">مؤشرات الأداء</h4>
+                  <h4 className="font-semibold mb-3 text-gray-800">مؤشرات الأداء المتقدمة</h4>
                   <div className="space-y-3">
+                    <div className="flex items-center justify-between p-3 border rounded-lg">
+                      <span className="text-sm">درجة الالتزام العامة</span>
+                      <div className="flex items-center gap-2">
+                        <div className="w-16 bg-gray-200 rounded-full h-2">
+                          <div 
+                            className={`h-2 rounded-full ${
+                              analytics.complianceScore >= 80 ? 'bg-green-500' :
+                              analytics.complianceScore >= 60 ? 'bg-yellow-500' : 'bg-red-500'
+                            }`}
+                            style={{ width: `${analytics.complianceScore}%` }}
+                          ></div>
+                        </div>
+                        <span className="font-semibold text-sm">{analytics.complianceScore}%</span>
+                      </div>
+                    </div>
+                    
                     <div className="flex items-center justify-between p-3 border rounded-lg">
                       <span className="text-sm">الخدمة الأكثر استخداماً</span>
                       <Badge variant="outline">
@@ -386,10 +557,26 @@ export default function ClientProfessionalReport() {
                         }[analytics.mostUsedService as keyof typeof analytics.serviceFrequency]}
                       </Badge>
                     </div>
+                    
                     <div className="flex items-center justify-between p-3 border rounded-lg">
-                      <span className="text-sm">الزيارات في آخر 30 يوم</span>
-                      <span className="font-semibold">{analytics.recentVisits}</span>
+                      <span className="text-sm">النشاط الحديث (30 يوم)</span>
+                      <div className="text-right">
+                        <div className="font-semibold">{analytics.recentVisits} زيارة</div>
+                        <div className="text-xs text-gray-500">
+                          {analytics.recentVisits > analytics.avgVisitsPerMonth ? 'أعلى من المتوسط' :
+                           analytics.recentVisits === Math.round(analytics.avgVisitsPerMonth) ? 'ضمن المتوسط' : 'أقل من المتوسط'}
+                        </div>
+                      </div>
                     </div>
+                    
+                    <div className="flex items-center justify-between p-3 border rounded-lg">
+                      <span className="text-sm">تنوع الخدمات</span>
+                      <div className="text-right">
+                        <div className="font-semibold">{Object.values(analytics.serviceFrequency).filter(count => count > 0).length}/5</div>
+                        <div className="text-xs text-gray-500">خدمة مستخدمة</div>
+                      </div>
+                    </div>
+                    
                     <div className="flex items-center justify-between p-3 border rounded-lg">
                       <span className="text-sm">حالة النشاط</span>
                       <div className="flex items-center gap-2">
@@ -483,13 +670,34 @@ export default function ClientProfessionalReport() {
             </CardTitle>
           </CardHeader>
           <CardContent className="p-6">
-            <div className="mb-4 p-3 bg-gray-50 border-l-4 border-gray-700">
-              <div className="flex items-center justify-between">
-                <span className="font-semibold">إجمالي الرؤوس</span>
-                <span className="text-xl font-bold">{totalAnimals}</span>
-              </div>
-              <div className="text-xs text-gray-600 mt-1">
-                المصدر: {totalAnimals > 0 ? `من آخر زيارة في ${latestVisit ? formatDate(latestVisit.date) : 'غير محدد'}` : 'لا توجد بيانات'}
+            <div className="mb-6">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg text-center">
+                  <div className="text-2xl font-bold text-blue-600">{totalAnimals}</div>
+                  <div className="text-sm text-blue-700 font-medium">إجمالي الرؤوس</div>
+                  <div className="text-xs text-gray-600 mt-1">
+                    {totalAnimals > 0 ? `محدث في ${latestVisit ? formatDate(latestVisit.date) : 'غير محدد'}` : 'لا توجد بيانات'}
+                  </div>
+                </div>
+                
+                <div className="p-4 bg-green-50 border border-green-200 rounded-lg text-center">
+                  <div className="text-2xl font-bold text-green-600">
+                    {(() => {
+                      const healthyTypes = Object.entries(animalCounts).filter(([_, count]) => count > 0).length;
+                      return healthyTypes;
+                    })()}
+                  </div>
+                  <div className="text-sm text-green-700 font-medium">أنواع الحيوانات</div>
+                  <div className="text-xs text-gray-600 mt-1">نوع مختلف مسجل</div>
+                </div>
+                
+                <div className="p-4 bg-purple-50 border border-purple-200 rounded-lg text-center">
+                  <div className="text-2xl font-bold text-purple-600">
+                    {totalAnimals > 0 ? Math.round(totalAnimals / Math.max(Object.entries(animalCounts).filter(([_, count]) => count > 0).length, 1)) : 0}
+                  </div>
+                  <div className="text-sm text-purple-700 font-medium">متوسط القطيع</div>
+                  <div className="text-xs text-gray-600 mt-1">رأس لكل نوع</div>
+                </div>
               </div>
             </div>
 
@@ -814,6 +1022,133 @@ export default function ClientProfessionalReport() {
           </CardContent>
         </Card>
 
+        {/* Performance Benchmarks */}
+        <Card className="shadow-lg border-l-4 border-l-indigo-500">
+          <CardHeader className="border-b bg-indigo-50">
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <BarChart3 className="h-5 w-5 text-indigo-600" />
+              6. مقارنة الأداء والمعايير المرجعية
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div>
+                <h4 className="font-semibold mb-3 text-gray-800">مقارنة مع المعايير المثلى</h4>
+                <div className="space-y-4">
+                  <div className="p-4 border rounded-lg">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm font-medium">معدل الزيارات الشهرية</span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-semibold">{analytics.avgVisitsPerMonth}</span>
+                        <span className="text-xs text-gray-500">/ 2.0 (مثالي)</span>
+                      </div>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div 
+                        className={`h-2 rounded-full ${
+                          analytics.avgVisitsPerMonth >= 2 ? 'bg-green-500' :
+                          analytics.avgVisitsPerMonth >= 1.5 ? 'bg-yellow-500' : 'bg-red-500'
+                        }`}
+                        style={{ width: `${Math.min((analytics.avgVisitsPerMonth / 2) * 100, 100)}%` }}
+                      ></div>
+                    </div>
+                  </div>
+                  
+                  <div className="p-4 border rounded-lg">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm font-medium">تنوع الخدمات</span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-semibold">{Object.values(analytics.serviceFrequency).filter(count => count > 0).length}</span>
+                        <span className="text-xs text-gray-500">/ 5 (كامل)</span>
+                      </div>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div 
+                        className="bg-blue-500 h-2 rounded-full"
+                        style={{ width: `${(Object.values(analytics.serviceFrequency).filter(count => count > 0).length / 5) * 100}%` }}
+                      ></div>
+                    </div>
+                  </div>
+                  
+                  <div className="p-4 border rounded-lg">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm font-medium">الانتظام في الزيارات</span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-semibold">
+                          {analytics.lastVisitDays ? (analytics.lastVisitDays <= 30 ? '100%' : analytics.lastVisitDays <= 60 ? '75%' : analytics.lastVisitDays <= 90 ? '50%' : '25%') : '0%'}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div 
+                        className={`h-2 rounded-full ${
+                          !analytics.lastVisitDays ? 'bg-gray-400' :
+                          analytics.lastVisitDays <= 30 ? 'bg-green-500' :
+                          analytics.lastVisitDays <= 60 ? 'bg-yellow-500' : 'bg-red-500'
+                        }`}
+                        style={{ 
+                          width: `${!analytics.lastVisitDays ? 0 :
+                            analytics.lastVisitDays <= 30 ? 100 :
+                            analytics.lastVisitDays <= 60 ? 75 :
+                            analytics.lastVisitDays <= 90 ? 50 : 25}%` 
+                        }}
+                      ></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <div>
+                <h4 className="font-semibold mb-3 text-gray-800">تصنيف المربي</h4>
+                <div className="space-y-4">
+                  <div className="p-4 bg-gradient-to-r from-indigo-50 to-purple-50 border border-indigo-200 rounded-lg text-center">
+                    <div className="text-3xl font-bold text-indigo-600 mb-2">{analytics.complianceScore}%</div>
+                    <div className="text-lg font-semibold text-gray-800 mb-1">
+                      {analytics.complianceScore >= 90 ? 'مربي متميز' :
+                       analytics.complianceScore >= 80 ? 'مربي ممتاز' :
+                       analytics.complianceScore >= 70 ? 'مربي جيد جداً' :
+                       analytics.complianceScore >= 60 ? 'مربي جيد' :
+                       analytics.complianceScore >= 50 ? 'مربي مقبول' : 'يحتاج تحسين'}
+                    </div>
+                    <div className="text-sm text-gray-600">
+                      {analytics.complianceScore >= 80 ? 'يلتزم بمعايير الرعاية البيطرية' :
+                       analytics.complianceScore >= 60 ? 'أداء جيد مع إمكانية للتحسين' :
+                       'يحتاج متابعة أكثر وتحسين الالتزام'}
+                    </div>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="p-3 bg-green-50 border border-green-200 rounded-lg text-center">
+                      <div className="text-lg font-bold text-green-600">
+                        {analytics.quarters.filter(q => q.visits > 0).length}
+                      </div>
+                      <div className="text-xs text-green-700">أرباع نشطة</div>
+                    </div>
+                    
+                    <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg text-center">
+                      <div className="text-lg font-bold text-blue-600">
+                        {Math.round((analytics.yearVisits / Math.max(analytics.totalVisits, 1)) * 100)}%
+                      </div>
+                      <div className="text-xs text-blue-700">نشاط السنة الأخيرة</div>
+                    </div>
+                  </div>
+                  
+                  <div className="p-3 border rounded-lg">
+                    <div className="text-sm font-semibold text-gray-800 mb-2">نقاط القوة:</div>
+                    <div className="text-xs text-gray-600 space-y-1">
+                      {analytics.complianceScore >= 80 && <div>• التزام ممتاز بالمواعيد</div>}
+                      {Object.values(analytics.serviceFrequency).filter(count => count > 0).length >= 4 && <div>• تنوع جيد في الخدمات</div>}
+                      {analytics.avgVisitsPerMonth >= 2 && <div>• معدل زيارات مثالي</div>}
+                      {totalAnimals >= 100 && <div>• إدارة قطيع كبير</div>}
+                      {analytics.recentVisits > 0 && <div>• نشاط حديث مستمر</div>}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
         {/* System Metadata */}
         <Card className="shadow-lg">
           <CardHeader className="border-b bg-gray-50">
@@ -823,30 +1158,81 @@ export default function ClientProfessionalReport() {
             </CardTitle>
           </CardHeader>
           <CardContent className="p-6">
-            <table className="w-full text-sm">
-              <tbody>
-                <tr className="border-b">
-                  <td className="py-3 px-4 bg-gray-50 font-semibold w-1/3">معرف النظام (System ID)</td>
-                  <td className="py-3 px-4 font-mono text-xs" dir="ltr">{client._id || "غير محدد"}</td>
-                </tr>
-                <tr className="border-b">
-                  <td className="py-3 px-4 bg-gray-50 font-semibold">تاريخ التسجيل</td>
-                  <td className="py-3 px-4">{client.createdAt ? formatDate(client.createdAt) : "غير محدد"}</td>
-                </tr>
-                <tr className="border-b">
-                  <td className="py-3 px-4 bg-gray-50 font-semibold">آخر تحديث</td>
-                  <td className="py-3 px-4">{client.updatedAt ? formatDate(client.updatedAt) : "غير محدد"}</td>
-                </tr>
-                <tr>
-                  <td className="py-3 px-4 bg-gray-50 font-semibold">تم الإنشاء بواسطة</td>
-                  <td className="py-3 px-4">
-                    {client.createdBy 
-                      ? `${client.createdBy.name} (${client.createdBy.email})` 
-                      : "غير محدد"}
-                  </td>
-                </tr>
-              </tbody>
-            </table>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div>
+                <h4 className="font-semibold mb-3 text-gray-800">معلومات النظام</h4>
+                <table className="w-full text-sm">
+                  <tbody>
+                    <tr className="border-b">
+                      <td className="py-2 px-3 bg-gray-50 font-semibold w-1/2">معرف النظام</td>
+                      <td className="py-2 px-3 font-mono text-xs" dir="ltr">{client._id?.slice(-12) || "غير محدد"}</td>
+                    </tr>
+                    <tr className="border-b">
+                      <td className="py-2 px-3 bg-gray-50 font-semibold">تاريخ التسجيل</td>
+                      <td className="py-2 px-3">{client.createdAt ? formatDate(client.createdAt) : "غير محدد"}</td>
+                    </tr>
+                    <tr className="border-b">
+                      <td className="py-2 px-3 bg-gray-50 font-semibold">آخر تحديث</td>
+                      <td className="py-2 px-3">{client.updatedAt ? formatDate(client.updatedAt) : "غير محدد"}</td>
+                    </tr>
+                    <tr>
+                      <td className="py-2 px-3 bg-gray-50 font-semibold">المستخدم المنشئ</td>
+                      <td className="py-2 px-3 text-xs">
+                        {client.createdBy?.name || "غير محدد"}
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              
+              <div>
+                <h4 className="font-semibold mb-3 text-gray-800">إحصائيات التقرير</h4>
+                <div className="space-y-3">
+                  <div className="p-3 bg-gray-50 rounded-lg">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium">إجمالي البيانات المعروضة</span>
+                      <span className="font-semibold">{7} أقسام</span>
+                    </div>
+                  </div>
+                  
+                  <div className="p-3 bg-gray-50 rounded-lg">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium">مدة التغطية</span>
+                      <span className="font-semibold">
+                        {analytics.totalVisits > 0 ? 
+                          `${Math.round((new Date().getTime() - new Date(getAllVisitsFlat()[getAllVisitsFlat().length - 1]?.date || new Date()).getTime()) / (24 * 60 * 60 * 1000))} يوم` :
+                          'لا توجد بيانات'
+                        }
+                      </span>
+                    </div>
+                  </div>
+                  
+                  <div className="p-3 bg-gray-50 rounded-lg">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium">مستوى اكتمال البيانات</span>
+                      <span className="font-semibold">
+                        {(() => {
+                          let completeness = 0;
+                          if (client.name) completeness += 20;
+                          if (client.nationalId) completeness += 20;
+                          if (client.phone) completeness += 20;
+                          if (totalAnimals > 0) completeness += 20;
+                          if (analytics.totalVisits > 0) completeness += 20;
+                          return completeness;
+                        })()}%
+                      </span>
+                    </div>
+                  </div>
+                  
+                  <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                    <div className="text-xs text-blue-700">
+                      <div className="font-semibold mb-1">ملاحظة مهمة:</div>
+                      <div>جميع البيانات في هذا التقرير محدثة حتى تاريخ {formatDate(new Date().toISOString())} وتعكس الحالة الفعلية للمربي في النظام.</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
           </CardContent>
         </Card>
 

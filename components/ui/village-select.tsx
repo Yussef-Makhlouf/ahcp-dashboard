@@ -93,6 +93,13 @@ export function VillageSelect({
   const villages = villagesResponse?.data || [];
   const allHoldingCodes = holdingCodesResponse?.data || [];
 
+  // Cache villages globally for other components to use
+  React.useEffect(() => {
+    if (villages.length > 0) {
+      (window as any).__villagesCache = villages;
+    }
+  }, [villages]);
+
   // Enhanced search logic
   const filteredVillages = useMemo(() => {
     if (!enableSearch || !searchQuery.trim()) {
