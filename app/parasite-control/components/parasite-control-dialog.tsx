@@ -316,7 +316,24 @@ export function ParasiteControlDialog({
           situation: item.request?.situation || 'Open',
           fulfillingDate: item.request?.fulfillingDate ? formatDateFromBackend(item.request.fulfillingDate) : undefined,
         },
-        holdingCode: typeof item.holdingCode === 'string' ? item.holdingCode : ((item.holdingCode as any)?._id || ''),
+        holdingCode: (() => {
+          console.log('🔍 Loading holdingCode from item:', {
+            holdingCode: item.holdingCode,
+            type: typeof item.holdingCode,
+            isString: typeof item.holdingCode === 'string',
+            hasId: (item.holdingCode as any)?._id,
+            isNull: item.holdingCode === null,
+            isUndefined: item.holdingCode === undefined
+          });
+          
+          if (typeof item.holdingCode === 'string') {
+            return item.holdingCode;
+          } else if (item.holdingCode && (item.holdingCode as any)?._id) {
+            return (item.holdingCode as any)._id;
+          } else {
+            return ''; // قيمة افتراضية فارغة
+          }
+        })(),
         remarks: item.remarks || '',
       };
       
@@ -518,16 +535,21 @@ export function ParasiteControlDialog({
       let processedHoldingCode = null; // Default to null
       
       // Check if holdingCode exists and is not empty
-      const holdingCodeValue = data.holdingCode || '';
-      console.log('🔍 holdingCodeValue after fallback:', holdingCodeValue);
+      const holdingCodeValue = data.holdingCode;
+      console.log('🔍 holdingCodeValue (raw):', holdingCodeValue);
+      console.log('🔍 holdingCodeValue type:', typeof holdingCodeValue);
+      console.log('🔍 holdingCodeValue is undefined?', holdingCodeValue === undefined);
+      console.log('🔍 holdingCodeValue is null?', holdingCodeValue === null);
+      console.log('🔍 holdingCodeValue is empty string?', holdingCodeValue === '');
       
-      if (holdingCodeValue && holdingCodeValue.trim() !== '') {
+      if (holdingCodeValue && holdingCodeValue !== '' && holdingCodeValue !== null && holdingCodeValue !== undefined) {
         if (typeof holdingCodeValue === 'string') {
           // إذا كان string، تأكد من أنه ObjectId صحيح (24 حرف hex)
           const trimmedValue = holdingCodeValue.trim();
           if (/^[0-9a-fA-F]{24}$/.test(trimmedValue)) {
             // ObjectId صحيح
             processedHoldingCode = trimmedValue;
+            console.log('✅ Valid ObjectId found:', trimmedValue);
           } else {
             // String عادي - ابحث عن رمز الحياة المطابق أو اتركه null
             console.warn('⚠️ holdingCode is not a valid ObjectId:', trimmedValue);
@@ -535,7 +557,10 @@ export function ParasiteControlDialog({
           }
         } else if ((holdingCodeValue as any)?._id) {
           processedHoldingCode = (holdingCodeValue as any)._id;
+          console.log('✅ ObjectId extracted from object:', processedHoldingCode);
         }
+      } else {
+        console.log('⚠️ holdingCode is empty, null, undefined, or invalid - will be set to null');
       }
       console.log('🎯 PROCESSED holdingCode:', processedHoldingCode);
       
@@ -609,7 +634,7 @@ export function ParasiteControlDialog({
           situation: data.request.situation || 'Ongoing',
           fulfillingDate: (data.request.fulfillingDate && data.request.fulfillingDate.trim() !== '') ? formatDateForBackend(data.request.fulfillingDate) : undefined,
         },
-        holdingCode: processedHoldingCode,
+        holdingCode: processedHoldingCode, // سيكون null أو ObjectId صحيح
         remarks: data.remarks || '',
       };
 
@@ -1009,6 +1034,8 @@ export function ParasiteControlDialog({
                               value={field.value || ""}
                               onValueChange={(value) => {
                                 console.log('📝 Form: holdingCode changed to:', value);
+                                console.log('📝 Form: holdingCode type:', typeof value);
+                                console.log('📝 Form: holdingCode is undefined?', value === undefined);
                                 field.onChange(value);
                               }}
                               village={villageValue}

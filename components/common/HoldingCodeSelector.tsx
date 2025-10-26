@@ -174,7 +174,8 @@ export function HoldingCodeSelector({
             // تجنب إرسال القيمة الوهمية
             if (val === "__no_items__") return;
             console.log('🏠 HoldingCodeSelector: Value changed to:', val);
-            onValueChange(val);
+            // إرسال undefined بدلاً من string فارغ عندما لا يتم اختيار قيمة
+            onValueChange(val || undefined);
           }}
           disabled={disabled || loading}
         >

@@ -186,6 +186,43 @@ function transformToAPIFormat(appData: any): any {
       fulfillingDate: appData.request?.fulfillingDate,
     },
     remarks: appData.remarks,
+    // إضافة holdingCode - التأكد من إرساله بشكل صحيح
+    holdingCode: (() => {
+      console.log('🏠 API transformToAPIFormat - Processing holdingCode:', {
+        value: appData.holdingCode,
+        type: typeof appData.holdingCode,
+        isNull: appData.holdingCode === null,
+        isUndefined: appData.holdingCode === undefined,
+        isEmpty: appData.holdingCode === ''
+      });
+      
+      // إذا كان null أو undefined أو فارغ، أرسل null
+      if (!appData.holdingCode || appData.holdingCode === '' || appData.holdingCode === null || appData.holdingCode === undefined) {
+        console.log('🏠 API: holdingCode is empty/null/undefined - sending null');
+        return null;
+      }
+      
+      // إذا كان string وصحيح، أرسله
+      if (typeof appData.holdingCode === 'string') {
+        const trimmed = appData.holdingCode.trim();
+        if (/^[0-9a-fA-F]{24}$/.test(trimmed)) {
+          console.log('🏠 API: Valid ObjectId holdingCode - sending:', trimmed);
+          return trimmed;
+        } else {
+          console.warn('🏠 API: Invalid ObjectId format - sending null instead:', trimmed);
+          return null;
+        }
+      }
+      
+      // إذا كان object مع _id، استخرج الـ _id
+      if (typeof appData.holdingCode === 'object' && appData.holdingCode._id) {
+        console.log('🏠 API: Extracting _id from holdingCode object:', appData.holdingCode._id);
+        return appData.holdingCode._id;
+      }
+      
+      console.warn('🏠 API: Unknown holdingCode format - sending null:', appData.holdingCode);
+      return null;
+    })(),
   };
 }
 
@@ -260,7 +297,18 @@ export const parasiteControlApi = {
   // Create new record - Real API only
   create: async (data: Omit<ParasiteControl, 'serialNo'>): Promise<ParasiteControl> => {
     try {
+      console.log('🚀 API create - Original data received:', {
+        holdingCode: data.holdingCode,
+        holdingCodeType: typeof data.holdingCode
+      });
+      
       const apiData = transformToAPIFormat(data);
+      
+      console.log('📤 API create - Final data to send:', {
+        holdingCode: apiData.holdingCode,
+        holdingCodeType: typeof apiData.holdingCode,
+        fullApiData: apiData
+      });
       
       const endpoint = '/parasite-control/';
       console.log('🌐 Making POST request to endpoint:', endpoint);
@@ -287,8 +335,18 @@ export const parasiteControlApi = {
   update: async (id: string | number, data: Partial<ParasiteControl>): Promise<ParasiteControl> => {
     try {
       console.log('🔄 Starting parasite control update:', { id, data });
+      console.log('🚀 API update - Original data received:', {
+        holdingCode: data.holdingCode,
+        holdingCodeType: typeof data.holdingCode
+      });
+      
       const apiData = transformToAPIFormat(data);
-      console.log('📤 Transformed API data:', apiData);
+      
+      console.log('📤 API update - Final data to send:', {
+        holdingCode: apiData.holdingCode,
+        holdingCodeType: typeof apiData.holdingCode,
+        fullApiData: apiData
+      });
       
       const endpoint = `/parasite-control/${id}`;
       console.log('🌐 Making PUT request to endpoint:', endpoint);
