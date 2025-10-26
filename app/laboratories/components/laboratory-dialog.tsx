@@ -87,13 +87,12 @@ interface TestResult {
 export function LaboratoryDialog({ open, onOpenChange, laboratory, onSave }: LaboratoryDialogProps) {
   const [activeTab, setActiveTab] = useState("basic");
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
-  const [manualClientInput, setManualClientInput] = useState(false);
 
   // Validation rules for unified system - matching backend requirements
   const validationRules = {
-    'clientName': { required: true, minLength: 2 },
-    'clientId': { required: true, nationalId: true },
-    'clientPhone': { 
+    'client.name': { required: true, minLength: 2 },
+    'client.nationalId': { required: true, nationalId: true },
+    'client.phone': { 
       required: true, 
       custom: (value: string) => {
         if (!value) return null;
@@ -103,10 +102,10 @@ export function LaboratoryDialog({ open, onOpenChange, laboratory, onSave }: Lab
         return null;
       }
     },
-    'sampleCode': { required: true },
     'collector': { required: true },
     'sampleType': { required: true },
     'sampleNumber': { required: true },
+    'sampleCode': { required: true }
   };
 
   const {
@@ -123,11 +122,15 @@ export function LaboratoryDialog({ open, onOpenChange, laboratory, onSave }: Lab
     serialNo: 0,
     date: undefined as Date | undefined,
     sampleCode: "",
-    clientName: "",
-    clientId: "",
-    clientBirthDate: undefined as Date | undefined,
-    clientPhone: "",
-    clientVillage: "", // إضافة حقل القرية
+    client: {
+      _id: "",
+      name: "",
+      nationalId: "",
+      phone: "",
+      village: "",
+      detailedAddress: "",
+      birthDate: "",
+    },
     coordinates: {
       latitude: 0,
       longitude: 0,
@@ -176,16 +179,13 @@ export function LaboratoryDialog({ open, onOpenChange, laboratory, onSave }: Lab
         // Client exists as an object - use ClientSelector
         console.log('✅ Using ClientSelector - client object found');
         setSelectedClient(laboratory.client as Client);
-        setManualClientInput(false);
       } else if (laboratory.clientName && laboratory.clientId) {
         // Client data exists as flat fields - this was manual input
         console.log('✅ Using manual input - flat client data found');
         setSelectedClient(null);
-        setManualClientInput(true); // Use manual input to show the existing data
       } else {
         console.log('⚠️ No client data found - defaulting to ClientSelector');
         setSelectedClient(null);
-        setManualClientInput(false); // Default to client selector
       }
       
       setFormData({
@@ -193,12 +193,15 @@ export function LaboratoryDialog({ open, onOpenChange, laboratory, onSave }: Lab
         date: laboratory.date ? new Date(laboratory.date) : undefined,
         sampleCode: laboratory.sampleCode || "",
         // Handle both flat client fields and nested client object for maximum compatibility
-        clientName: laboratory.clientName || laboratory.client?.name || "",
-        clientId: laboratory.clientId || laboratory.client?.nationalId || "",
-        clientBirthDate: laboratory.clientBirthDate ? new Date(laboratory.clientBirthDate) : 
-                        laboratory.client?.birthDate ? new Date(laboratory.client.birthDate) : undefined,
-        clientPhone: laboratory.clientPhone || laboratory.client?.phone || "",
-        clientVillage: laboratory.client?.village || "", // إضافة القرية من العميل
+        client: {
+          _id: (laboratory.client as any)?._id || "",
+          name: laboratory.clientName || (laboratory.client as any)?.name || "",
+          nationalId: laboratory.clientId || (laboratory.client as any)?.nationalId || "",
+          phone: laboratory.clientPhone || (laboratory.client as any)?.phone || "",
+          village: typeof (laboratory.client as any)?.village === 'string' ? (laboratory.client as any)?.village : (laboratory.client as any)?.village?.nameArabic || (laboratory.client as any)?.village?.name || "",
+          detailedAddress: (laboratory.client as any)?.detailedAddress || "",
+          birthDate: laboratory.clientBirthDate || (laboratory.client as any)?.birthDate || "",
+        },
         coordinates: laboratory.coordinates || { latitude: 0, longitude: 0 },
         speciesCounts: laboratory.speciesCounts ? {
           sheep: laboratory.speciesCounts.sheep || 0,
@@ -227,7 +230,6 @@ export function LaboratoryDialog({ open, onOpenChange, laboratory, onSave }: Lab
     } else {
       // Reset selected client for new record
       setSelectedClient(null);
-      setManualClientInput(false); // Default to client selector for new records
       
       // Generate new sample code and serial number
       const newCode = `LAB${String(Math.floor(Math.random() * 10000)).padStart(3, '0')}`;
@@ -236,11 +238,15 @@ export function LaboratoryDialog({ open, onOpenChange, laboratory, onSave }: Lab
         serialNo: newSerial,
         date: new Date(),
         sampleCode: newCode,
-        clientName: "",
-        clientId: "",
-        clientBirthDate: undefined,
-        clientPhone: "",
-        clientVillage: "", // إضافة القرية للنموذج الجديد
+        client: {
+          _id: "",
+          name: "",
+          nationalId: "",
+          phone: "",
+          village: "",
+          detailedAddress: "",
+          birthDate: "",
+        },
         coordinates: { latitude: 0, longitude: 0 },
         speciesCounts: {
           sheep: 0,
@@ -267,11 +273,11 @@ export function LaboratoryDialog({ open, onOpenChange, laboratory, onSave }: Lab
     console.log('📋 Form data to validate:', formData);
     
     // Validate phone number format for backend
-    if (formData.clientPhone && !formData.clientPhone.match(/^05\d{8}$/)) {
-      const normalizedPhone = formData.clientPhone.startsWith('05') ? formData.clientPhone : `05${formData.clientPhone.replace(/^0+/, '')}`;
+    if (formData.client.phone && !formData.client.phone.match(/^05\d{8}$/)) {
+      const normalizedPhone = formData.client.phone.startsWith('05') ? formData.client.phone : `05${formData.client.phone.replace(/^0+/, '')}`;
       if (!normalizedPhone.match(/^05\d{8}$/)) {
-        console.log('❌ Phone validation failed:', formData.clientPhone, '-> normalized:', normalizedPhone);
-        setFieldError('clientPhone', 'رقم الهاتف يجب أن يبدأ بـ 05 ويكون مكون من 10 أرقام');
+        console.log('❌ Phone validation failed:', formData.client.phone, '-> normalized:', normalizedPhone);
+        setFieldError('client.phone', 'رقم الهاتف يجب أن يبدأ بـ 05 ويكون مكون من 10 أرقام');
         return false;
       }
     }
@@ -281,9 +287,9 @@ export function LaboratoryDialog({ open, onOpenChange, laboratory, onSave }: Lab
     
     // Check required fields manually - matching backend schema
     const requiredFields = {
-      'clientName': formData.clientName,
-      'clientId': formData.clientId,
-      'clientPhone': formData.clientPhone,
+      'client.name': formData.client.name,
+      'client.nationalId': formData.client.nationalId,
+      'client.phone': formData.client.phone,
       'collector': formData.collector,
       'sampleType': formData.sampleType,
       'sampleNumber': formData.sampleNumber,
@@ -369,10 +375,15 @@ export function LaboratoryDialog({ open, onOpenChange, laboratory, onSave }: Lab
       serialNo: formData.serialNo,
       date: formData.date ? format(formData.date, "yyyy-MM-dd") : format(new Date(), "yyyy-MM-dd"), // Use current date if not set
       sampleCode: formData.sampleCode,
-      clientName: formData.clientName,
-      clientId: formData.clientId,
-      clientBirthDate: formData.clientBirthDate ? format(formData.clientBirthDate, "yyyy-MM-dd") : undefined,
-      clientPhone: formData.clientPhone.startsWith('05') ? formData.clientPhone : `05${formData.clientPhone.replace(/^0+/, '')}`, // Ensure phone starts with 05
+      client: {
+        _id: formData.client._id,
+        name: formData.client.name,
+        nationalId: formData.client.nationalId,
+        phone: formData.client.phone.startsWith('05') ? formData.client.phone : `05${formData.client.phone.replace(/^0+/, '')}`, // Ensure phone starts with 05
+        village: formData.client.village,
+        detailedAddress: formData.client.detailedAddress,
+        birthDate: formData.client.birthDate ? format(formData.client.birthDate, "yyyy-MM-dd") : undefined,
+      },
       coordinates: formData.coordinates,
       speciesCounts: formData.speciesCounts,
       collector: formData.collector,
@@ -394,35 +405,36 @@ export function LaboratoryDialog({ open, onOpenChange, laboratory, onSave }: Lab
       } else {
         console.log('➕ Creating new laboratory...');
         
-        // If manual client input, create client first
-        if (manualClientInput && formData.clientName && formData.clientId) {
-          console.log('👤 Creating client from manual input...');
+        // Create client if we have client data but no client reference
+        const hasClientReference = formData.client._id && formData.client._id.trim();
+        const hasClientData = formData.client.name && formData.client.nationalId;
+        
+        // Create client if we have client data but no client reference
+        if (!hasClientReference && hasClientData) {
+          console.log('👤 Creating client from form data...');
           try {
             const clientData = {
-              name: formData.clientName,
-              nationalId: formData.clientId,
-              phone: submitData.clientPhone, // Use formatted phone
-              birthDate: formData.clientBirthDate ? format(formData.clientBirthDate, "yyyy-MM-dd") : undefined,
-              village: '', // Default empty
-              detailedAddress: '', // Default empty
+              name: formData.client.name,
+              nationalId: formData.client.nationalId,
+              phone: formData.client.phone || '',
+              birthDate: formData.client.birthDate ? format(new Date(formData.client.birthDate), "yyyy-MM-dd") : undefined,
+              village: formData.client.village || '',
+              detailedAddress: formData.client.detailedAddress || '',
               status: 'نشط'
             };
             
             // Create client via API
             const clientResponse = await fetch('/api/clients', {
               method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
+              headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify(clientData),
             });
             
             if (clientResponse.ok) {
               const createdClient = await clientResponse.json();
-              console.log('✅ Client created successfully:', createdClient);
-              
               // Add client reference to submitData
               (submitData as any).client = createdClient.data?._id || createdClient._id;
+              console.log('✅ Client created successfully:', createdClient);
             } else {
               console.log('⚠️ Client creation failed, proceeding with flat data');
             }
@@ -660,228 +672,130 @@ export function LaboratoryDialog({ open, onOpenChange, laboratory, onSave }: Lab
                   )}
                 </div>
 
-                {/* Client Input Type Selection */}
-                <div className="col-span-full">
-                  <div className="bg-gray-50 p-4 rounded-lg space-y-3">
-                    <Label className="text-base font-semibold">طريقة إدخال بيانات العميل</Label>
-                    <div className="flex items-center gap-6">
-                      <div className="flex items-center gap-2">
-                        <input
-                          type="radio"
-                          id="existing-client"
-                          name="clientInputType"
-                          checked={!manualClientInput}
-                          onChange={() => {
-                            setManualClientInput(false);
-                            setSelectedClient(null);
-                            // Clear form data when switching
-                            setFormData({ 
-                              ...formData, 
-                              clientName: '',
-                              clientId: '',
-                              clientPhone: '',
-                              clientBirthDate: undefined
-                            });
-                          }}
-                          className="w-4 h-4 text-blue-600"
-                        />
-                        <label htmlFor="existing-client" className="text-sm font-medium cursor-pointer">
-                          اختيار من القائمة
-                        </label>
-                      </div>
-                      
-                      <div className="flex items-center gap-2">
-                        <input
-                          type="radio"
-                          id="manual-client"
-                          name="clientInputType"
-                          checked={manualClientInput}
-                          onChange={() => {
-                            setManualClientInput(true);
-                            setSelectedClient(null);
-                            // Clear form data when switching
-                            setFormData({ 
-                              ...formData, 
-                              clientName: '',
-                              clientId: '',
-                              clientPhone: '',
-                              clientBirthDate: undefined,
-                              clientVillage: '' // مسح القرية عند التبديل للإدخال اليدوي
-                            });
-                          }}
-                          className="w-4 h-4 text-blue-600"
-                        />
-                        <label htmlFor="manual-client" className="text-sm font-medium cursor-pointer">
-                          إدخال يدوي
-                        </label>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Client Selection/Input */}
-                {!manualClientInput ? (
-                  /* Client Selector */
-                  <div className="space-y-2">
-                    <Label>اختيار العميل *</Label>
-                    <ClientSelector
-                      value={selectedClient?._id || ''}
-                      onValueChange={(client) => {
-                        setSelectedClient(client);
-                        if (client) {
-                          setFormData({ 
-                            ...formData, 
-                            clientName: client.name,
-                            clientId: client.nationalId || '',
-                            clientPhone: client.phone || '',
-                            clientBirthDate: client.birthDate ? new Date(client.birthDate) : undefined,
-                            clientVillage: client.village || '' // إضافة القرية
-                          });
-                          clearFieldError('clientName');
-                          clearFieldError('clientId');
-                          clearFieldError('clientPhone');
-                          clearFieldError('clientBirthDate');
-                        } else {
-                          setFormData({ 
-                            ...formData, 
-                            clientName: '',
-                            clientId: '',
-                            clientPhone: '',
-                            clientBirthDate: undefined,
-                            clientVillage: '' // إضافة القرية عند المسح
-                          });
-                        }
-                      }}
-                      placeholder="ابحث عن العميل"
-                      error={getFieldError('clientName') || undefined}
-                      required
-                      showDetails
-                    />
-                    {getFieldError('clientName') && (
-                      <div className="flex items-center gap-2 p-2 bg-red-50 border border-red-200 rounded-md">
-                        <AlertCircle className="w-4 h-4 text-red-500 flex-shrink-0" />
-                        <p className="text-red-700 text-sm font-medium">{getFieldError('clientName')}</p>
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  /* Manual Client Input */
-                  <div className="col-span-full">
-                    <div className="bg-blue-50 p-4 rounded-lg space-y-4">
-                      <Label className="text-base font-semibold text-blue-900">بيانات العميل الجديد</Label>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {/* Client Name */}
-                        <div className="space-y-2">
-                          <Label>اسم العميل الكامل *</Label>
-                          <Input
-                            value={formData.clientName}
-                            onChange={(e) => {
-                              setFormData({ ...formData, clientName: e.target.value });
-                              clearFieldError('clientName');
-                            }}
-                            placeholder="اسم العميل الكامل"
-                            required
-                            className={getFieldError('clientName') ? 'border-red-500 focus:border-red-500' : ''}
-                          />
-                          {getFieldError('clientName') && (
-                            <div className="flex items-center gap-2 p-2 bg-red-50 border border-red-200 rounded-md">
-                              <AlertCircle className="w-4 h-4 text-red-500 flex-shrink-0" />
-                              <p className="text-red-700 text-sm font-medium">{getFieldError('clientName')}</p>
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Client National ID */}
-                        <div className="space-y-2">
-                          <Label>رقم الهوية الوطنية *</Label>
-                          <Input
-                            value={formData.clientId}
-                            onChange={(e) => {
-                              // Allow only numbers and limit to 10 digits
-                              const value = e.target.value.replace(/\D/g, '').slice(0, 10);
-                              setFormData({ ...formData, clientId: value });
-                              clearFieldError('clientId');
-                            }}
-                            placeholder="رقم الهوية (10 أرقام)"
-                            required
-                            maxLength={10}
-                            className={getFieldError('clientId') ? 'border-red-500 focus:border-red-500' : ''}
-                          />
-                          {getFieldError('clientId') && (
-                            <div className="flex items-center gap-2 p-2 bg-red-50 border border-red-200 rounded-md">
-                              <AlertCircle className="w-4 h-4 text-red-500 flex-shrink-0" />
-                              <p className="text-red-700 text-sm font-medium">{getFieldError('clientId')}</p>
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Client Phone */}
-                        <div className="space-y-2">
-                          <Label>رقم الهاتف *</Label>
-                          <Input
-                            type="tel"
-                            value={formData.clientPhone}
-                            onChange={(e) => {
-                              // Allow only numbers and limit to 10 digits
-                              const value = e.target.value.replace(/\D/g, '').slice(0, 10);
-                              setFormData({ ...formData, clientPhone: value });
-                              clearFieldError('clientPhone');
-                            }}
-                            placeholder="رقم الهاتف السعودي (10 أرقام - مثال: 0501234567)"
-                            required
-                            maxLength={10}
-                            className={getFieldError('clientPhone') ? 'border-red-500 focus:border-red-500' : ''}
-                          />
-                          {getFieldError('clientPhone') && (
-                            <div className="flex items-center gap-2 p-2 bg-red-50 border border-red-200 rounded-md">
-                              <AlertCircle className="w-4 h-4 text-red-500 flex-shrink-0" />
-                              <p className="text-red-700 text-sm font-medium">{getFieldError('clientPhone')}</p>
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Client Birth Date */}
-                        <div className="space-y-2">
-                          <SimpleDatePicker
-                            label="تاريخ الميلاد"
-                            placeholder="اختر تاريخ الميلاد"
-                            value={formData.clientBirthDate}
-                            onChange={(date) => {
-                              setFormData({ ...formData, clientBirthDate: date || undefined });
-                              clearFieldError('clientBirthDate');
-                            }}
-                            variant="modern"
-                            size="md"
-                          />
-                          {getFieldError('clientBirthDate') && (
-                            <div className="flex items-center gap-2 p-2 bg-red-50 border border-red-200 rounded-md">
-                              <AlertCircle className="w-4 h-4 text-red-500 flex-shrink-0" />
-                              <p className="text-red-700 text-sm font-medium">{getFieldError('clientBirthDate')}</p>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-
-                {/* Village Selection */}
+                {/* Client Selector */}
                 <div className="space-y-2">
-                  <Label>القرية</Label>
-                  <VillageSelect
-                    value={formData.clientVillage || ""}
-                    onValueChange={(value) => {
-                      setFormData({ ...formData, clientVillage: value || "" });
-                      clearFieldError('clientVillage');
+                  <Label>اختيار المربي</Label>
+                  <ClientSelector
+                    value={formData.client?._id || ""}
+                    onValueChange={(client) => {
+                      if (client) {
+                        setFormData({
+                          ...formData,
+                          client: {
+                            _id: client._id || "",
+                            name: client.name,
+                            nationalId: client.nationalId || client.national_id || "",
+                            phone: client.phone || "",
+                            village: client.village || "",
+                            detailedAddress: client.detailedAddress || client.detailed_address || "",
+                            birthDate: client.birthDate || client.birth_date || "",
+                          }
+                        });
+                        // Clear any existing errors for client fields
+                        clearFieldError('client.name');
+                        clearFieldError('client.nationalId');
+                        clearFieldError('client.phone');
+                      }
                     }}
-                    placeholder="اختر القرية"
+                    placeholder="ابحث عن المربي"
+                    showDetails
                   />
-                  {getFieldError('clientVillage') && (
-                    <p className="text-red-500 text-sm font-medium mt-1">{getFieldError('clientVillage')}</p>
+                  <p className="text-sm text-gray-600 mt-1">
+                    اختر مربي موجود من القائمة أو املأ بيانات المربي في الحقول أدناه
+                  </p>
+                  {getFieldError('client.name') && (
+                    <p className="text-red-500 text-sm font-medium mt-1">{getFieldError('client.name')}</p>
                   )}
                 </div>
 
+                <ValidatedInput
+                  label="اسم المربي"
+                  required
+                  value={formData.client?.name || ""}
+                  placeholder="أدخل اسم المربي"
+                  error={getFieldError('client.name')}
+                  onValueChange={(value) => {
+                    setFormData({
+                      ...formData,
+                      client: { ...formData.client, name: value }
+                    });
+                    clearFieldError('client.name');
+                  }}
+                  onBlur={() => {
+                    const error = validateField('client.name', formData.client?.name);
+                    if (error) {
+                      setFieldError('client.name', error);
+                    }
+                  }}
+                />
+
+                <ValidatedInput
+                  label="رقم هوية المربي"
+                  required
+                  value={formData.client?.nationalId || ""}
+                  placeholder="1234567890"
+                  error={getFieldError('client.nationalId')}
+                  onValueChange={(value) => {
+                    setFormData({
+                      ...formData,
+                      client: { ...formData.client, nationalId: value }
+                    });
+                    clearFieldError('client.nationalId');
+                  }}
+                  onBlur={() => {
+                    const error = validateField('client.nationalId', formData.client?.nationalId);
+                    if (error) {
+                      setFieldError('client.nationalId', error);
+                    }
+                  }}
+                />
+
+                <ValidatedInput
+                  label="رقم الهاتف"
+                  required
+                  value={formData.client?.phone || ""}
+                  placeholder="+966501234567 أو 0501234567"
+                  dir="ltr"
+                  error={getFieldError('client.phone')}
+                  onValueChange={(value) => {
+                    setFormData({
+                      ...formData,
+                      client: { ...formData.client, phone: value }
+                    });
+                    clearFieldError('client.phone');
+                  }}
+                  onBlur={() => {
+                    const error = validateField('client.phone', formData.client?.phone);
+                    if (error) {
+                      setFieldError('client.phone', error);
+                    }
+                  }}
+                />
+
+                <div className="space-y-2">
+                  <Label>القرية</Label>
+                  <VillageSelect
+                    value={formData.client?.village || ""}
+                    onValueChange={(value) => setFormData({
+                      ...formData,
+                      client: { ...formData.client, village: value }
+                    })}
+                    placeholder="اختر القرية"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label>تاريخ الميلاد</Label>
+                  <SimpleDatePicker
+                    value={formData.client?.birthDate ? new Date(formData.client.birthDate) : undefined}
+                    onChange={(date) => setFormData({
+                      ...formData,
+                      client: { ...formData.client, birthDate: date ? date.toISOString().split('T')[0] : "" }
+                    })}
+                    placeholder="اختر تاريخ الميلاد"
+                    maxDate={new Date()}
+                  />
+                </div>
 
                 {/* North Coordinate */}
                 <div className="space-y-2">

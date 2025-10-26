@@ -205,8 +205,8 @@ export default function ClientDetailPage() {
   return (
     <MainLayout>
       <div className="space-y-6 rtl" dir="rtl">
-        {/* Enhanced Header with Status */}
-        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-6 mb-6">
+        {/* Enhanced Header with Status - RTL Optimized */}
+        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-6 mb-6" dir="rtl">
           <div className="flex items-center justify-between mb-4">
             <Button
               variant="ghost"
@@ -214,61 +214,49 @@ export default function ClientDetailPage() {
               onClick={() => router.back()}
               className="flex items-center gap-2 hover:bg-white/50"
             >
-              <ArrowLeft className="h-4 w-4 ml-2" />
+              <ArrowLeft className="h-4 w-4 rotate-180" />
               العودة للقائمة
             </Button>
-    
           </div>
           
           <div className="flex items-center justify-between">
-            <div className="flex gap-6 text-center">
-              <div className=" backdrop-blur-sm rounded-xl p-5 min-w-[120px] border hover:bg-white/30 transition-all duration-300">
-                <div className="text-3xl font-bold mb-1">{totalAnimalsFromVisits || client?.animals?.reduce((sum, animal) => sum + (animal.animalCount || animal.animal_count || 0), 0) || 0}</div>
-                <div className="text-sm font-medium">إجمالي الحيوانات</div>
-              </div>
-              <div className="backdrop-blur-sm rounded-xl p-5 min-w-[120px] border hover:bg-white/30 transition-all duration-300">
-                <div className="text-3xl font-bold mb-1">{(visits.mobileClinic?.length || 0) + (visits.vaccination?.length || 0) + (visits.parasiteControl?.length || 0) + (visits.equineHealth?.length || 0) + (visits.laboratory?.length || 0)}</div>
-                <div className="text-sm font-medium">إجمالي الزيارات</div>
-              </div>
-            </div>
-            
             <div className="text-right">
               <div className="flex items-center gap-3 mb-3 justify-end">
+                <h1 className="text-4xl font-bold drop-shadow-lg">{client?.name || "غير محدد"}</h1>
                 <Badge 
                   variant={client?.status === "نشط" ? "secondary" : "destructive"}
-                  className="text-sm px-4 py-2 font-medium  border-white/30"
+                  className="text-sm px-4 py-2 font-medium border-white/30"
                 >
                   {client?.status || "غير محدد"}
                 </Badge>
-                <h1 className="text-4xl font-bold drop-shadow-lg">{client?.name || "غير محدد"}</h1>
               </div>
-                <div className="flex items-center gap-6  justify-end">
+              <div className="flex items-center gap-6 justify-end">
+                {client?.phone && (
                   <div className="flex items-center gap-2">
-                  <span className="font-medium">{villageInfo.village}</span>
+                    <Phone className="h-5 w-5" />
+                    <span className="font-medium" dir="ltr">{formatPhoneNumber(client.phone)}</span>
+                  </div>
+                )}
+                <div className="flex items-center gap-2">
                   <MapPin className="h-5 w-5" />
+                  <span className="font-medium">{villageInfo.village}</span>
                   {villageInfo.code && (
                     <Badge variant="outline" className="text-xs border-white/30 mr-2">
                       {villageInfo.code}
                     </Badge>
                   )}
                 </div>
-                {client?.phone && (
-                  <div className="flex items-center gap-2">
-                    <span className="font-medium">{formatPhoneNumber(client.phone)}</span>
-                    <Phone className="h-5 w-5" />
-                  </div>
-                )}
-                <div className="text-xs text-gray-600">إجمالي الحيوانات</div>
               </div>
-              <div className="text-center">
-                <div className="text-2xl font-bold text-green-600">
-                  {(visits.mobileClinic?.length || 0) + 
-                   (visits.vaccination?.length || 0) + 
-                   (visits.parasiteControl?.length || 0) + 
-                   (visits.equineHealth?.length || 0) + 
-                   (visits.laboratory?.length || 0)}
-                </div>
-                <div className="text-xs text-gray-600">إجمالي الزيارات</div>
+            </div>
+            
+            <div className="flex gap-6 text-center">
+              <div className="backdrop-blur-sm rounded-xl p-5 min-w-[120px] border hover:bg-white/30 transition-all duration-300">
+                <div className="text-3xl font-bold mb-1">{totalAnimalsFromVisits || client?.animals?.reduce((sum, animal) => sum + (animal.animalCount || animal.animal_count || 0), 0) || 0}</div>
+                <div className="text-sm font-medium">إجمالي الحيوانات</div>
+              </div>
+              <div className="backdrop-blur-sm rounded-xl p-5 min-w-[120px] border hover:bg-white/30 transition-all duration-300">
+                <div className="text-3xl font-bold mb-1">{(visits.mobileClinic?.length || 0) + (visits.vaccination?.length || 0) + (visits.parasiteControl?.length || 0) + (visits.equineHealth?.length || 0) + (visits.laboratory?.length || 0)}</div>
+                <div className="text-sm font-medium">إجمالي الزيارات</div>
               </div>
             </div>
           </div>
@@ -316,7 +304,7 @@ export default function ClientDetailPage() {
                   <div className="text-right">
                     <p className="text-sm font-semibold text-gray-700 mb-2">{service.name}</p>
                     <p className="text-3xl font-bold text-gray-800 mb-1">{service.count}</p>
-                    <p className="text-xs text-gray-500">زيارة مسجلة</p>
+                    <p className="text-xs text-black">زيارة مسجلة</p>
                   </div>
                 </div>
               </CardContent>
@@ -328,53 +316,53 @@ export default function ClientDetailPage() {
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
           {/* Left Column - Personal Info */}
           <div className="space-y-6">
-            {/* Personal Information */}
-            <Card className="shadow-lg hover:shadow-xl transition-all duration-300 rounded-2xl border-0 bg-gradient-to-br from-white to-gray-50">
+            {/* Personal Information - RTL Optimized */}
+            <Card className="shadow-lg hover:shadow-xl transition-all duration-300 rounded-2xl border-0 bg-gradient-to-br from-white to-gray-50" dir="rtl">
               <CardHeader className="pb-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-t-2xl">
-                <CardTitle className="flex items-center gap-3 text-xl font-bold text-right" dir="rtl">
-                  <span className="text-gray-800">البيانات الشخصية</span>
+                <CardTitle className="flex items-center gap-3 text-xl font-bold">
                   <div className="p-2 bg-blue-100 rounded-xl">
                     <User className="h-6 w-6 text-blue-600" />
                   </div>
+                  <span className="text-gray-800">البيانات الشخصية</span>
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-5 p-6">
-                <div className="grid grid-cols-1 gap-4" dir="rtl">
+                <div className="grid grid-cols-1 gap-4">
                   <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                    <span className="text-sm text-black">الاسم</span>
                     <span className="font-medium">{client?.name || "غير محدد"}</span>
-                    <span className="text-sm text-gray-500">الاسم</span>
                   </div>
                   <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                    <span className="text-sm text-black">رقم الهوية</span>
                     <span className="font-mono text-sm">{client?.nationalId || client?.national_id || "غير محدد"}</span>
-                    <span className="text-sm text-gray-500">رقم الهوية</span>
                   </div>
                   <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                    <span className="text-sm text-black">رقم الهاتف</span>
                     <span className="font-mono text-sm" dir="ltr">{client?.phone ? formatPhoneNumber(client.phone) : "غير محدد"}</span>
-                    <span className="text-sm text-gray-500">رقم الهاتف</span>
                   </div>
                   <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                    <span className="text-sm text-black">القرية</span>
                     <div className="flex items-center gap-2">
                       <span>{villageInfo.village}</span>
                       {villageInfo.code && (
                         <Badge variant="outline" className="text-xs">{villageInfo.code}</Badge>
                       )}
                     </div>
-                    <span className="text-sm text-gray-500">القرية</span>
                   </div>
                   {(client?.birthDate || client?.birth_date || client?.birthDateFromForms) && (
                     <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                      <span className="text-sm text-black">تاريخ الميلاد</span>
                       <span className="text-sm">
                         {formatDate(client?.birthDate || client?.birth_date || client?.birthDateFromForms)}
                       </span>
-                      <span className="text-sm text-gray-500">تاريخ الميلاد</span>
                     </div>
                   )}
                 </div>
               </CardContent>
             </Card>
 
-            {/* Latest Activity */}
-            <Card className="shadow-sm">
+            {/* Latest Activity - RTL Optimized */}
+            <Card className="shadow-sm" dir="rtl">
               <CardHeader className="pb-3">
                 <CardTitle className="flex items-center gap-2 text-lg">
                   <Calendar className="h-5 w-5 text-green-600" />
@@ -393,7 +381,7 @@ export default function ClientDetailPage() {
                   
                   if (allVisits.length === 0) {
                     return (
-                      <div className="text-center py-6 text-gray-500">
+                      <div className="text-center py-6 text-black">
                         <Calendar className="h-8 w-8 mx-auto mb-2 opacity-50" />
                         <p className="text-sm">لا توجد زيارات مسجلة</p>
                       </div>
@@ -424,12 +412,12 @@ export default function ClientDetailPage() {
                       <div className="grid grid-cols-2 gap-3 text-xs">
                         <div className="p-2 bg-gray-50 rounded text-center">
                           <div className="font-medium">{client?.createdAt ? formatDate(client.createdAt) : "غير محدد"}</div>
-                          <div className="text-gray-500">تاريخ التسجيل</div>
+                          <div className="text-black">تاريخ التسجيل</div>
                         </div>
                         {client?.updatedAt && (
                           <div className="p-2 bg-gray-50 rounded text-center">
                             <div className="font-medium">{formatDate(client.updatedAt)}</div>
-                            <div className="text-gray-500">آخر تحديث</div>
+                            <div className="text-black">آخر تحديث</div>
                           </div>
                         )}
                       </div>
@@ -442,28 +430,16 @@ export default function ClientDetailPage() {
 
           {/* Middle Column - Enhanced Animals Display */}
           <div className="space-y-6">
-            {/* Enhanced Animals Section */}
-            <Card className="shadow-lg hover:shadow-xl transition-all duration-300 rounded-2xl border-0 bg-gradient-to-br from-white to-gray-50">
+            {/* Enhanced Animals Section - RTL Optimized */}
+            <Card className="shadow-lg hover:shadow-xl transition-all duration-300 rounded-2xl border-0 bg-gradient-to-br from-white to-gray-50" dir="rtl">
               <CardHeader className="pb-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-t-2xl">
-                <CardTitle className="flex items-center gap-3 text-xl font-bold text-right" dir="rtl">
-                  <span className="text-gray-800">توزيع الحيوانات</span>
+                <CardTitle className="flex items-center gap-3 text-xl font-bold">
                   <div className="p-2 bg-green-100 rounded-xl">
                     <span className="text-2xl">🐑</span>
                   </div>
+                  <span className="text-gray-800">توزيع الحيوانات</span>
                 </CardTitle>
                 <div className="flex items-center justify-between mt-3">
-                  <Badge variant="secondary" className="text-sm px-3 py-1">
-                    {(() => {
-                      if (client?.animals && client.animals.length > 0) {
-                        return `${client.animals.length} نوع مسجل`;
-                      }
-                      if (totalAnimalsFromVisits > 0) {
-                        const typesCount = Object.values(animalCounts).filter(count => count > 0).length;
-                        return `${typesCount} نوع من الزيارات`;
-                      }
-                      return "لا توجد حيوانات";
-                    })()}
-                  </Badge>
                   <div className="text-right">
                     <div className="text-2xl font-bold text-green-600">
                       {(() => {
@@ -482,8 +458,20 @@ export default function ClientDetailPage() {
                         return totalAnimalsFromVisits || 0;
                       })()}
                     </div>
-                    <div className="text-xs text-gray-500">إجمالي الرؤوس</div>
+                    <div className="text-xs text-black">إجمالي الرؤوس</div>
                   </div>
+                  <Badge variant="secondary" className="text-sm px-3 py-1">
+                    {(() => {
+                      if (client?.animals && client.animals.length > 0) {
+                        return `${client.animals.length} نوع مسجل`;
+                      }
+                      if (totalAnimalsFromVisits > 0) {
+                        const typesCount = Object.values(animalCounts).filter(count => count > 0).length;
+                        return `${typesCount} نوع من الزيارات`;
+                      }
+                      return "لا توجد حيوانات";
+                    })()}
+                  </Badge>
                 </div>
               </CardHeader>
               <CardContent className="p-6">
@@ -599,30 +587,49 @@ export default function ClientDetailPage() {
                           </div>
                         </div>
 
-                        {/* Animal Distribution by Type */}
+                        {/* Animal Distribution by Type - Dynamic Grid */}
                         <div className="bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl p-6">
                           <h3 className="text-lg font-bold text-gray-800 mb-4 text-center">توزيع الحيوانات حسب النوع</h3>
-                          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-                            {Object.entries(animalsByType).map(([type, data]) => (
-                              <div key={type} className="text-center p-4 bg-white rounded-lg shadow-sm border border-gray-200">
-                                <div className={`text-3xl mb-2 ${data.color}`}>
-                                  {data.icon}
-                                </div>
-                                <div className="font-bold text-gray-800 text-sm">{type}</div>
-                                <div className="text-lg font-bold text-blue-600">{data.total}</div>
-                                <div className="text-xs text-gray-500">رأس</div>
-                                <div className="mt-2 space-y-1">
-                                  <div className="flex justify-between text-xs">
-                                    <span className="text-green-600">سليم:</span>
-                                    <span className="font-medium">{data.healthy}</span>
+                          <div className={`grid gap-4 ${
+                            (() => {
+                              const count = Object.keys(animalsByType).length;
+                              if (count === 1) return 'grid-cols-1 max-w-xs mx-auto';
+                              if (count === 2) return 'grid-cols-2 max-w-md mx-auto';
+                              if (count === 3) return 'grid-cols-3 max-w-2xl mx-auto';
+                              if (count === 4) return 'grid-cols-2 md:grid-cols-4 max-w-4xl mx-auto';
+                              return 'grid-cols-2 md:grid-cols-3 lg:grid-cols-5';
+                            })()
+                          }`}>
+                            {Object.entries(animalsByType).map(([type, data]) => {
+                              const percentage = totalCount > 0 ? ((data.total / totalCount) * 100).toFixed(1) : 0;
+                              return (
+                                <div key={type} className="text-center p-4 bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
+                                  <div className={`text-4xl mb-3 ${data.color}`}>
+                                    {data.icon}
                                   </div>
-                                  <div className="flex justify-between text-xs">
-                                    <span className="text-red-600">مريض:</span>
-                                    <span className="font-medium">{data.sick}</span>
+                                  <div className="font-bold text-gray-800 text-base mb-1">{type}</div>
+                                  <div className="text-2xl font-bold text-blue-600 mb-1">{data.total}</div>
+                                  <div className="text-xs text-black mb-2">رأس</div>
+                                  <div className="text-xs text-gray-600 mb-3">{percentage}% من المجموع</div>
+                                  <div className="space-y-2">
+                                    <div className="flex justify-between text-xs px-2">
+                                      <span className="font-medium">{data.healthy}</span>
+                                      <span className="text-green-600">سليم</span>
+                                    </div>
+                                    <div className="flex justify-between text-xs px-2">
+                                      <span className="font-medium">{data.sick}</span>
+                                      <span className="text-red-600">مريض</span>
+                                    </div>
+                                    <div className="w-full bg-gray-200 rounded-full h-2 mt-2">
+                                      <div 
+                                        className="bg-gradient-to-r from-blue-400 to-blue-600 h-2 rounded-full transition-all duration-500"
+                                        style={{ width: `${percentage}%` }}
+                                      ></div>
+                                    </div>
                                   </div>
                                 </div>
-                              </div>
-                            ))}
+                              );
+                            })}
                           </div>
                         </div>
 
@@ -679,26 +686,26 @@ export default function ClientDetailPage() {
                                   <div className="p-3 bg-gray-50 rounded-lg">
                                     <div className="flex justify-between items-center">
                                       <span className="font-medium text-gray-700">{animal.breed || "غير محدد"}</span>
-                                      <span className="text-gray-500 text-xs">السلالة</span>
+                                      <span className="text-black text-xs">السلالة</span>
                                     </div>
                                   </div>
                                   <div className="p-3 bg-gray-50 rounded-lg">
                                     <div className="flex justify-between items-center">
                                       <span className="font-medium text-gray-700">{animal.age || "غير محدد"} سنة</span>
-                                      <span className="text-gray-500 text-xs">العمر</span>
+                                      <span className="text-black text-xs">العمر</span>
                                     </div>
                                   </div>
                                   <div className="p-3 bg-gray-50 rounded-lg">
                                     <div className="flex justify-between items-center">
                                       <span className="font-medium text-gray-700">{animal.gender || "غير محدد"}</span>
-                                      <span className="text-gray-500 text-xs">الجنس</span>
+                                      <span className="text-black text-xs">الجنس</span>
                                     </div>
                                   </div>
                                   {(animal.identificationNumber || animal.identification_number) && (
                                     <div className="p-3 bg-gray-50 rounded-lg">
                                       <div className="flex justify-between items-center">
                                         <span className="font-medium font-mono text-xs text-gray-700">{animal.identificationNumber || animal.identification_number}</span>
-                                        <span className="text-gray-500 text-xs">رقم التعريف</span>
+                                        <span className="text-black text-xs">رقم التعريف</span>
                                       </div>
                                     </div>
                                   )}
@@ -748,31 +755,38 @@ export default function ClientDetailPage() {
                           </div>
                         </div>
 
-                        {/* Animal Distribution by Type */}
+                        {/* Animal Distribution by Type - Dynamic Grid for Visits Data */}
                         <div className="bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl p-6">
                           <h3 className="text-lg font-bold text-gray-800 mb-4 text-center">توزيع الحيوانات حسب النوع</h3>
-                          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+                          <div className={`grid gap-4 ${
+                            (() => {
+                              const count = animalTypes.length;
+                              if (count === 1) return 'grid-cols-1 max-w-xs mx-auto';
+                              if (count === 2) return 'grid-cols-2 max-w-md mx-auto';
+                              if (count === 3) return 'grid-cols-3 max-w-2xl mx-auto';
+                              if (count === 4) return 'grid-cols-2 md:grid-cols-4 max-w-4xl mx-auto';
+                              return 'grid-cols-2 md:grid-cols-3 lg:grid-cols-5';
+                            })()
+                          }`}>
                             {animalTypes.map((animal, index) => {
                               const percentage = ((animal.count / totalAnimalsFromVisits) * 100).toFixed(1);
                               
                               return (
-                                <div key={index} className="text-center p-4 bg-white rounded-lg shadow-sm border border-gray-200">
-                                  <div className={`text-3xl mb-2 ${animal.color}`}>
+                                <div key={index} className="text-center p-4 bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
+                                  <div className={`text-4xl mb-3 ${animal.color}`}>
                                     {animal.icon}
                                   </div>
-                                  <div className="font-bold text-gray-800 text-sm">{animal.name}</div>
-                                  <div className="text-lg font-bold text-blue-600">{animal.count}</div>
-                                  <div className="text-xs text-gray-500">رأس</div>
-                                  <div className="mt-2">
-                                    <div className="text-xs text-gray-600">{percentage}% من المجموع</div>
-                                    <div className="w-full bg-gray-200 rounded-full h-2 mt-1">
-                                      <div 
-                                        className={`bg-gradient-to-r ${animal.color.replace('text-', 'from-').replace('-600', '-400')} to-${animal.color.replace('text-', '').replace('-600', '-600')} h-2 rounded-full transition-all duration-500`}
-                                        style={{ width: `${percentage}%` }}
-                                      ></div>
-                                    </div>
+                                  <div className="font-bold text-gray-800 text-base mb-1">{animal.name}</div>
+                                  <div className="text-2xl font-bold text-blue-600 mb-1">{animal.count}</div>
+                                  <div className="text-xs text-black mb-2">رأس</div>
+                                  <div className="text-xs text-gray-600 mb-3">{percentage}% من المجموع</div>
+                                  <div className="w-full bg-gray-200 rounded-full h-2 mb-3">
+                                    <div 
+                                      className="bg-gradient-to-r from-blue-400 to-blue-600 h-2 rounded-full transition-all duration-500"
+                                      style={{ width: `${percentage}%` }}
+                                    ></div>
                                   </div>
-                                  <div className="mt-2 p-2 bg-blue-50 rounded text-xs text-blue-600">
+                                  <div className="p-2 bg-blue-50 rounded text-xs text-blue-600">
                                     من آخر زيارة
                                   </div>
                                 </div>
@@ -792,7 +806,7 @@ export default function ClientDetailPage() {
                         <div className="w-24 h-1 bg-gradient-to-r from-gray-300 to-gray-400 rounded-full mx-auto mb-4"></div>
                       </div>
                       <div className="space-y-4">
-                        <div className="text-gray-500 text-xl font-medium">لا توجد حيوانات مسجلة</div>
+                        <div className="text-black text-xl font-medium">لا توجد حيوانات مسجلة</div>
                         <div className="text-sm text-gray-400 max-w-md mx-auto">
                           لم يتم تسجيل أي حيوانات لهذا المربي بعد. يمكن إضافة الحيوانات من خلال تسجيل زيارة جديدة أو تحديث بيانات المربي.
                         </div>
@@ -872,7 +886,7 @@ export default function ClientDetailPage() {
                       return (
                         <div className="text-center py-8">
                           <div className="text-4xl mb-3 opacity-30">📊</div>
-                          <div className="text-gray-500 font-medium">لا توجد بيانات تاريخية للحيوانات</div>
+                          <div className="text-black font-medium">لا توجد بيانات تاريخية للحيوانات</div>
                           <div className="text-sm text-gray-400 mt-1">ستظهر البيانات التاريخية مع تسجيل المزيد من الزيارات</div>
                         </div>
                       );
@@ -909,9 +923,9 @@ export default function ClientDetailPage() {
                           </div>
                         </div>
 
-                        {/* Timeline */}
+                        {/* Timeline - RTL Optimized */}
                         <div className="space-y-3">
-                          <h4 className="font-bold text-lg text-gray-800 text-right">التطور التاريخي</h4>
+                          <h4 className="font-bold text-lg text-gray-800">التطور التاريخي</h4>
                           <div className="space-y-3 max-h-64 overflow-y-auto">
                             {animalHistory.map((entry, index) => {
                               const isLatest = index === animalHistory.length - 1;
@@ -921,11 +935,36 @@ export default function ClientDetailPage() {
                               return (
                                 <div key={index} className={`p-4 rounded-lg border-r-4 ${
                                   isLatest 
-                                    ? 'bg-gradient-to-r from-green-50 to-emerald-50 border-green-400' 
+                                    ? 'bg-gradient-to-l from-green-50 to-emerald-50 border-green-400' 
                                     : 'bg-gray-50 border-gray-300'
                                 } hover:shadow-sm transition-all duration-200`}>
                                   <div className="flex justify-between items-center">
+                                    <div className="flex items-center gap-2">
+                                      <div className="font-bold text-lg text-gray-800">{entry.total}</div>
+                                      {change !== 0 && (
+                                        <Badge variant={change > 0 ? "default" : "destructive"} className="text-xs">
+                                          {change > 0 ? '+' : ''}{change}
+                                        </Badge>
+                                      )}
+                                      {isLatest && (
+                                        <Badge variant="secondary" className="text-xs">
+                                          الأحدث
+                                        </Badge>
+                                      )}
+                                      <div className="text-xs text-black">إجمالي الرؤوس</div>
+                                    </div>
+                                    
                                     <div className="flex items-center gap-3">
+                                      <div>
+                                        <div className="font-medium text-gray-800">
+                                          {formatDate(entry.date)}
+                                        </div>
+                                        <div className="text-xs text-black">
+                                          {entry.serviceType === 'vaccination' ? 'زيارة تطعيم' :
+                                           entry.serviceType === 'parasiteControl' ? 'مكافحة طفيليات' :
+                                           entry.serviceType === 'mobileClinic' ? 'عيادة متنقلة' : 'زيارة'}
+                                        </div>
+                                      </div>
                                       <div className={`p-2 rounded-lg ${
                                         isLatest ? 'bg-green-100' : 'bg-gray-100'
                                       }`}>
@@ -935,61 +974,34 @@ export default function ClientDetailPage() {
                                            entry.serviceType === 'mobileClinic' ? '🚑' : '📋'}
                                         </span>
                                       </div>
-                                      <div>
-                                        <div className="font-medium text-gray-800">
-                                          {formatDate(entry.date)}
-                                        </div>
-                                        <div className="text-xs text-gray-500">
-                                          {entry.serviceType === 'vaccination' ? 'زيارة تطعيم' :
-                                           entry.serviceType === 'parasiteControl' ? 'مكافحة طفيليات' :
-                                           entry.serviceType === 'mobileClinic' ? 'عيادة متنقلة' : 'زيارة'}
-                                        </div>
-                                      </div>
-                                    </div>
-                                    
-                                    <div className="text-right">
-                                      <div className="flex items-center gap-2">
-                                        <div className="font-bold text-lg text-gray-800">{entry.total}</div>
-                                        {change !== 0 && (
-                                          <Badge variant={change > 0 ? "default" : "destructive"} className="text-xs">
-                                            {change > 0 ? '+' : ''}{change}
-                                          </Badge>
-                                        )}
-                                        {isLatest && (
-                                          <Badge variant="secondary" className="text-xs">
-                                            الأحدث
-                                          </Badge>
-                                        )}
-                                      </div>
-                                      <div className="text-xs text-gray-500">إجمالي الرؤوس</div>
                                     </div>
                                   </div>
                                   
-                                  {/* Animal breakdown */}
-                                  <div className="mt-3 grid grid-cols-5 gap-2 text-xs">
+                                  {/* Animal breakdown - RTL Optimized */}
+                                  <div className="mt-3 flex flex-wrap gap-2 text-xs justify-end">
                                     {entry.sheep > 0 && (
                                       <div className="text-center p-1 bg-white rounded">
-                                        <div className="font-medium">🐑 {entry.sheep}</div>
+                                        <div className="font-medium">{entry.sheep} 🐑</div>
                                       </div>
                                     )}
                                     {entry.goats > 0 && (
                                       <div className="text-center p-1 bg-white rounded">
-                                        <div className="font-medium">🐐 {entry.goats}</div>
+                                        <div className="font-medium">{entry.goats} 🐐</div>
                                       </div>
                                     )}
                                     {entry.camel > 0 && (
                                       <div className="text-center p-1 bg-white rounded">
-                                        <div className="font-medium">🐪 {entry.camel}</div>
+                                        <div className="font-medium">{entry.camel} 🐪</div>
                                       </div>
                                     )}
                                     {entry.cattle > 0 && (
                                       <div className="text-center p-1 bg-white rounded">
-                                        <div className="font-medium">🐄 {entry.cattle}</div>
+                                        <div className="font-medium">{entry.cattle} 🐄</div>
                                       </div>
                                     )}
                                     {entry.horse > 0 && (
                                       <div className="text-center p-1 bg-white rounded">
-                                        <div className="font-medium">🐎 {entry.horse}</div>
+                                        <div className="font-medium">{entry.horse} 🐎</div>
                                       </div>
                                     )}
                                   </div>
@@ -1062,7 +1074,7 @@ export default function ClientDetailPage() {
                     return (
                       <div className="text-center py-12">
                         <div className="text-6xl mb-4 opacity-20">📋</div>
-                        <div className="text-gray-500 mb-2 font-medium">لا توجد زيارات مسجلة</div>
+                        <div className="text-black mb-2 font-medium">لا توجد زيارات مسجلة</div>
                         <div className="text-sm text-gray-400">
                           لم يتم تسجيل أي زيارات لهذا المربي بعد
                         </div>
@@ -1103,25 +1115,25 @@ export default function ClientDetailPage() {
               </CardContent>
             </Card>
 
-            {/* System Information */}
-            <Card className="shadow-sm">
+            {/* System Information */} 
+            <Card className="shadow-sm" dir="rtl">
               <CardHeader className="pb-3">
                 <CardTitle className="flex items-center gap-2 text-lg">
                   <span>⚙️</span>
                   <span>معلومات النظام</span>
                 </CardTitle>
               </CardHeader>
-              <CardContent>
+              <CardContent dir="rtl">
                 <div className="space-y-3">
                   <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
                     <span className="font-mono text-sm">{client?.nationalId || client?.national_id || "غير محدد"}</span>
-                    <span className="text-sm text-gray-500">رقم الهوية</span>
+                    <span className="text-sm text-black">رقم الهوية</span>
                   </div>
                   
                   {villageInfo.code && (
                     <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
                       <Badge variant="outline" className="font-mono">{villageInfo.code}</Badge>
-                      <span className="text-sm text-gray-500">رمز الحيازة</span>
+                      <span className="text-sm text-black">رمز الحيازة</span>
                     </div>
                   )}
                   
@@ -1129,7 +1141,7 @@ export default function ClientDetailPage() {
                     <Badge variant={client?.status === "نشط" ? "secondary" : "destructive"}>
                       {client?.status || "غير محدد"}
                     </Badge>
-                    <span className="text-sm text-gray-500">الحالة</span>
+                    <span className="text-sm text-black">الحالة</span>
                   </div>
                   
                   <div className="grid grid-cols-1 gap-3 mt-4">
@@ -1191,7 +1203,7 @@ export default function ClientDetailPage() {
                     return (
                       <div className="text-center py-12 bg-gray-50 rounded-lg">
                         <div className="text-6xl mb-4 opacity-20">🏥</div>
-                        <div className="text-gray-500 mb-2 font-medium">لا توجد خدمات مسجلة</div>
+                        <div className="text-black mb-2 font-medium">لا توجد خدمات مسجلة</div>
                         <div className="text-sm text-gray-400">
                           لم يتم تقديم أي خدمات لهذا المربي بعد
                         </div>
@@ -1251,7 +1263,7 @@ export default function ClientDetailPage() {
                               <div className="font-medium text-gray-800">{visit.typeName}</div>
                               <div className="text-sm text-gray-600">{formatDate(visit.date)}</div>
                               {visit.supervisor && (
-                                <div className="text-xs text-gray-500">المشرف: {visit.supervisor}</div>
+                                <div className="text-xs text-black">المشرف: {visit.supervisor}</div>
                               )}
                             </div>
                             {visit.serialNo && (
@@ -1398,7 +1410,7 @@ export default function ClientDetailPage() {
                     return (
                       <div className="text-center py-12 bg-gray-50 rounded-lg">
                         <div className="text-6xl mb-4 opacity-20">📋</div>
-                        <div className="text-gray-500 mb-2 font-medium">لا توجد زيارات تطابق المعايير المحددة</div>
+                        <div className="text-black mb-2 font-medium">لا توجد زيارات تطابق المعايير المحددة</div>
                         <div className="text-sm text-gray-400">
                           جرب تعديل الفلاتر لعرض المزيد من النتائج
                         </div>
@@ -1459,31 +1471,31 @@ export default function ClientDetailPage() {
                             </div>
 
                             {/* Visit Details */}
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-sm">
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-sm" dir="rtl">
                               {/* Basic Information */}
-                              <div className="space-y-2">
+                              <div className="space-y-2" dir="rtl">
                                 <h5 className="font-medium text-gray-700 text-right">المعلومات الأساسية</h5>
-                                <div className="bg-gray-50 p-3 rounded space-y-1">
+                                <div className="bg-gray-50 p-3 rounded space-y-1" dir="rtl">
                                   {visit.serialNo && (
-                                    <div className="flex justify-between">
+                                    <div className="flex justify-between row-reverse">
+                                                                            <span className="text-black">الرقم التسلسلي:</span>
                                       <span className="font-mono text-xs">{visit.serialNo}</span>
-                                      <span className="text-gray-500">الرقم التسلسلي:</span>
                                     </div>
                                   )}
                                   <div className="flex justify-between">
+                                    <span className="text-black">التاريخ:</span>
                                     <span>{formatDate(visit.date)}</span>
-                                    <span className="text-gray-500">التاريخ:</span>
                                   </div>
                                   {visit.supervisor && (
-                                    <div className="flex justify-between">
+                                    <div className="flex justify-between flex-row-reverse">
                                       <span>{visit.supervisor}</span>
-                                      <span className="text-gray-500">المشرف:</span>
+                                      <span className="text-black">المشرف:</span>
                                     </div>
                                   )}
                                   {visit.vehicleNo && (
-                                    <div className="flex justify-between">
+                                    <div className="flex justify-between flex-row-reverse">
                                       <span>{visit.vehicleNo}</span>
-                                      <span className="text-gray-500">رقم المركبة:</span>
+                                      <span className="text-black">رقم المركبة:</span>
                                     </div>
                                   )}
                                 </div>
@@ -1497,21 +1509,21 @@ export default function ClientDetailPage() {
                                   {visit.serviceType === 'vaccination' && (
                                     <>
                                       {visit.vaccineType && (
-                                        <div className="flex justify-between">
+                                        <div className="flex justify-between flex-row-reverse">
                                           <span>{visit.vaccineType}</span>
-                                          <span className="text-gray-500">نوع اللقاح:</span>
+                                          <span className="text-black">نوع اللقاح:</span>
                                         </div>
                                       )}
                                       {visit.totalVaccinated && (
-                                        <div className="flex justify-between">
+                                        <div className="flex justify-between flex-row-reverse">
                                           <span>{visit.totalVaccinated}</span>
-                                          <span className="text-gray-500">المطعمة:</span>
+                                          <span className="text-black">المطعمة:</span>
                                         </div>
                                       )}
                                       {visit.vaccinationCoverage && (
-                                        <div className="flex justify-between">
+                                        <div className="flex justify-between flex-row-reverse">
                                           <span>{visit.vaccinationCoverage}%</span>
-                                          <span className="text-gray-500">نسبة التغطية:</span>
+                                          <span className="text-black">نسبة التغطية:</span>
                                         </div>
                                       )}
                                     </>
@@ -1521,26 +1533,26 @@ export default function ClientDetailPage() {
                                   {visit.serviceType === 'laboratory' && (
                                     <>
                                       {visit.sampleType && (
-                                        <div className="flex justify-between">
+                                        <div className="flex justify-between flex-row-reverse">
                                           <span>{visit.sampleType}</span>
-                                          <span className="text-gray-500">نوع العينة:</span>
+                                          <span className="text-black">نوع العينة:</span>
                                         </div>
                                       )}
                                       {visit.sampleCode && (
-                                        <div className="flex justify-between">
+                                        <div className="flex justify-between flex-row-reverse">
                                           <span>{visit.sampleCode}</span>
-                                          <span className="text-gray-500">رمز العينة:</span>
+                                          <span className="text-black">رمز العينة:</span>
                                         </div>
                                       )}
                                       {(visit.positiveCases !== undefined || visit.negativeCases !== undefined) && (
                                         <>
-                                          <div className="flex justify-between">
+                                          <div className="flex justify-between flex-row-reverse">
                                             <span className="text-red-600">{visit.positiveCases || 0}</span>
-                                            <span className="text-gray-500">الحالات الإيجابية:</span>
+                                            <span className="text-black">الحالات الإيجابية:</span>
                                           </div>
-                                          <div className="flex justify-between">
+                                          <div className="flex justify-between flex-row-reverse">
                                             <span className="text-green-600">{visit.negativeCases || 0}</span>
-                                            <span className="text-gray-500">الحالات السلبية:</span>
+                                            <span className="text-black">الحالات السلبية:</span>
                                           </div>
                                         </>
                                       )}
@@ -1551,21 +1563,21 @@ export default function ClientDetailPage() {
                                   {visit.serviceType === 'parasiteControl' && (
                                     <>
                                       {visit.totalTreated && (
-                                        <div className="flex justify-between">
+                                        <div className="flex justify-between flex-row-reverse">
                                           <span>{visit.totalTreated}</span>
-                                          <span className="text-gray-500">المعالجة:</span>
+                                          <span className="text-black">المعالجة:</span>
                                         </div>
                                       )}
                                       {visit.treatmentEfficiency && (
-                                        <div className="flex justify-between">
+                                        <div className="flex justify-between flex-row-reverse">
                                           <span>{visit.treatmentEfficiency}%</span>
-                                          <span className="text-gray-500">كفاءة العلاج:</span>
+                                          <span className="text-black">كفاءة العلاج:</span>
                                         </div>
                                       )}
                                       {visit.herdHealthStatus && (
-                                        <div className="flex justify-between">
+                                        <div className="flex justify-between flex-row-reverse">
                                           <span>{visit.herdHealthStatus}</span>
-                                          <span className="text-gray-500">حالة القطيع:</span>
+                                          <span className="text-black">حالة القطيع:</span>
                                         </div>
                                       )}
                                     </>
@@ -1575,21 +1587,21 @@ export default function ClientDetailPage() {
                                   {visit.serviceType === 'mobileClinic' && (
                                     <>
                                       {visit.diagnosis && (
-                                        <div className="flex justify-between">
+                                        <div className="flex justify-between flex-row-reverse">
                                           <span>{visit.diagnosis}</span>
-                                          <span className="text-gray-500">التشخيص:</span>
+                                          <span className="text-black">التشخيص:</span>
                                         </div>
                                       )}
                                       {visit.treatment && (
-                                        <div className="flex justify-between">
+                                        <div className="flex justify-between flex-row-reverse">
                                           <span>{visit.treatment}</span>
-                                          <span className="text-gray-500">العلاج:</span>
+                                          <span className="text-black">العلاج:</span>
                                         </div>
                                       )}
                                       {visit.interventionCategory && (
-                                        <div className="flex justify-between">
+                                        <div className="flex justify-between flex-row-reverse">
                                           <span>{visit.interventionCategory}</span>
-                                          <span className="text-gray-500">نوع التدخل:</span>
+                                          <span className="text-black">نوع التدخل:</span>
                                         </div>
                                       )}
                                     </>
@@ -1603,41 +1615,41 @@ export default function ClientDetailPage() {
                                   <h5 className="font-medium text-gray-700 text-right">أعداد الحيوانات</h5>
                                   <div className="bg-gray-50 p-3 rounded space-y-1">
                                     {visit.totalHerdCount && (
-                                      <div className="flex justify-between font-medium">
+                                      <div className="flex justify-between font-medium flex-row-reverse">
                                         <span className="text-blue-600">{visit.totalHerdCount}</span>
-                                        <span className="text-gray-500">الإجمالي:</span>
+                                        <span className="text-black">الإجمالي:</span>
                                       </div>
                                     )}
                                     {visit.herdCounts && (
                                       <>
                                         {visit.herdCounts.sheep?.total > 0 && (
-                                          <div className="flex justify-between">
+                                          <div className="flex justify-between flex-row-reverse">
                                             <span>{visit.herdCounts.sheep.total}</span>
-                                            <span className="text-gray-500">🐑 أغنام:</span>
+                                            <span className="text-black">🐑 أغنام:</span>
                                           </div>
                                         )}
                                         {visit.herdCounts.goats?.total > 0 && (
-                                          <div className="flex justify-between">
+                                          <div className="flex justify-between flex-row-reverse">
                                             <span>{visit.herdCounts.goats.total}</span>
-                                            <span className="text-gray-500">🐐 ماعز:</span>
+                                            <span className="text-black">🐐 ماعز:</span>
                                           </div>
                                         )}
                                         {visit.herdCounts.camel?.total > 0 && (
                                           <div className="flex justify-between">
                                             <span>{visit.herdCounts.camel.total}</span>
-                                            <span className="text-gray-500">🐪 إبل:</span>
+                                            <span className="text-black">🐪 إبل:</span>
                                           </div>
                                         )}
                                         {visit.herdCounts.cattle?.total > 0 && (
                                           <div className="flex justify-between">
                                             <span>{visit.herdCounts.cattle.total}</span>
-                                            <span className="text-gray-500">🐄 أبقار:</span>
+                                            <span className="text-black">🐄 أبقار:</span>
                                           </div>
                                         )}
                                         {visit.herdCounts.horse?.total > 0 && (
                                           <div className="flex justify-between">
                                             <span>{visit.herdCounts.horse.total}</span>
-                                            <span className="text-gray-500">🐎 خيول:</span>
+                                            <span className="text-black">🐎 خيول:</span>
                                           </div>
                                         )}
                                       </>
@@ -1650,23 +1662,23 @@ export default function ClientDetailPage() {
                               <div className="space-y-2 md:col-span-2 lg:col-span-3">
                                 <h5 className="font-medium text-gray-700 text-right">معلومات إضافية</h5>
                                 <div className="bg-gray-50 p-3 rounded">
-                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     {visit.farmLocation && (
                                       <div className="flex justify-between">
                                         <span>{visit.farmLocation}</span>
-                                        <span className="text-gray-500">موقع المزرعة:</span>
+                                        <span className="text-black">موقع المزرعة:</span>
                                       </div>
                                     )}
                                     {visit.coordinates && (
-                                      <div className="flex justify-between">
-                                        <span>{visit.coordinates.latitude?.toFixed(4)}, {visit.coordinates.longitude?.toFixed(4)}</span>
-                                        <span className="text-gray-500">الإحداثيات:</span>
+                                      <div className="md:col-span-2 flex flex-col">
+                                        <span className="text-black">الإحداثيات:</span>
+                                        <span className="text-black">{visit.coordinates.latitude?.toFixed(4)}, {visit.coordinates.longitude?.toFixed(4)}</span>
                                       </div>
                                     )}
                                     {visit.remarks && (
-                                      <div className="md:col-span-2">
-                                        <div className="text-gray-500 mb-1">الملاحظات:</div>
-                                        <div className="text-gray-700">{visit.remarks}</div>
+                                      <div className="md:col-span-2 flex flex-col">
+                                        <span className="text-black">الملاحظات:</span>
+                                        <span className="text-black">{visit.remarks}</span>
                                       </div>
                                     )}
                                   </div>
@@ -1714,7 +1726,7 @@ export default function ClientDetailPage() {
                               </div>
                               <div className="text-right">
                                 <div className="text-sm font-bold">{service.count}</div>
-                                <div className="text-xs text-gray-500">{percentage}%</div>
+                                <div className="text-xs text-black">{percentage}%</div>
                               </div>
                             </div>
                             <div className="w-full bg-gray-200 rounded-full h-3">
@@ -1753,7 +1765,7 @@ export default function ClientDetailPage() {
                         return (
                           <div className="text-center py-12">
                             <div className="text-6xl mb-4 opacity-20">🐑</div>
-                            <div className="text-gray-500 mb-2 font-medium">لا توجد حيوانات مسجلة</div>
+                            <div className="text-black mb-2 font-medium">لا توجد حيوانات مسجلة</div>
                           </div>
                         );
                       }
@@ -1774,7 +1786,7 @@ export default function ClientDetailPage() {
                                   </div>
                                   <div className="text-right">
                                     <div className="text-sm font-bold">{animal.animalCount}</div>
-                                    <div className="text-xs text-gray-500">{percentage}%</div>
+                                    <div className="text-xs text-black">{percentage}%</div>
                                   </div>
                                 </div>
                                 <div className="w-full bg-gray-200 rounded-full h-3">
@@ -1816,7 +1828,7 @@ export default function ClientDetailPage() {
                       return (
                         <div className="text-center py-12">
                           <div className="text-6xl mb-4 opacity-20">📈</div>
-                          <div className="text-gray-500 mb-2 font-medium">لا توجد زيارات لعرضها</div>
+                          <div className="text-black mb-2 font-medium">لا توجد زيارات لعرضها</div>
                         </div>
                       );
                     }

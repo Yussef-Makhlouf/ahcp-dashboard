@@ -50,6 +50,7 @@ export default function ClientsPage() {
       page: currentPage,
       limit: pageSize,
       search: searchTerm || undefined,
+      includeServices: true, // إضافة هذا المعامل لجلب الخدمات
     }),
     staleTime: 5 * 60 * 1000, // 5 minutes
   });

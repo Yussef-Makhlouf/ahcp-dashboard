@@ -352,7 +352,6 @@ export function DropdownListManager({
             data={options}
             isLoading={loading}
          
-            empty="لا توجد خيارات"
           />
         </CardContent>
       </Card>
