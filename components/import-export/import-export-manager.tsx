@@ -14,10 +14,17 @@ import {
   CheckCircle, 
   X,
   Loader2,
-  RefreshCw
+  RefreshCw,
+  ChevronDown
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 interface ImportExportManagerProps {
   exportEndpoint: string;
@@ -195,8 +202,8 @@ export function ImportExportManager({
     }
   };
 
-  // Handle export
-  const handleExport = async () => {
+  // Handle export with format selection
+  const handleExport = async (format: 'excel' | 'csv' = 'excel') => {
     setIsExporting(true);
 
     try {
@@ -205,7 +212,10 @@ export function ImportExportManager({
         throw new Error('لم يتم العثور على رمز المصادقة. يرجى تسجيل الدخول مرة أخرى.');
       }
 
-      const response = await fetch(exportEndpoint, {
+      // Add format parameter to the endpoint
+      const exportUrl = `${exportEndpoint}?format=${format}`;
+      
+      const response = await fetch(exportUrl, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -249,7 +259,8 @@ export function ImportExportManager({
       document.body.removeChild(a);
       window.URL.revokeObjectURL(url);
 
-      toast.success(`تم تصدير البيانات بنجاح (${blob.size} بايت)`);
+      const formatName = format === 'excel' ? 'Excel' : 'CSV';
+      toast.success(`تم تصدير البيانات بصيغة ${formatName} بنجاح (${blob.size} بايت)`);
       onExportSuccess?.();
 
     } catch (error: any) {
@@ -334,21 +345,47 @@ export function ImportExportManager({
         />
       </div>
 
-      {/* Export Button */}
-      <Button
-        variant="outline"
-        size="sm"
-        onClick={handleExport}
-        disabled={isExporting}
-        className="h-9 px-3"
-      >
-        {isExporting ? (
-          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-        ) : (
-          <Download className="h-4 w-4 mr-2" />
-        )}
-        تصدير
-      </Button>
+      {/* Export Dropdown Button */}
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={isExporting}
+            className="h-9 px-3"
+          >
+            {isExporting ? (
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            ) : (
+              <Download className="h-4 w-4 mr-2" />
+            )}
+            تصدير
+            <ChevronDown className="h-3 w-3 ml-1" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-40">
+          <DropdownMenuItem 
+            onClick={(e) => {
+              e.preventDefault();
+              handleExport('excel');
+            }}
+            className="flex items-center gap-2"
+          >
+            <FileSpreadsheet className="h-4 w-4 text-green-600" />
+            <span>Excel (.xlsx)</span>
+          </DropdownMenuItem>
+          <DropdownMenuItem 
+            onClick={(e) => {
+              e.preventDefault();
+              handleExport('csv');
+            }}
+            className="flex items-center gap-2"
+          >
+            <FileSpreadsheet className="h-4 w-4 text-blue-600" />
+            <span>CSV (.csv)</span>
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
 
       {/* Template Button */}
       {templateEndpoint && (

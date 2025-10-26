@@ -303,14 +303,34 @@ export function getColumns({
         const insecticide = row.original.insecticide;
         if (!insecticide) return <span className="text-gray-400">-</span>;
         
+        // Handle both object and string types
+        let parsedInsecticide;
+        try {
+          if (typeof insecticide === 'string') {
+            parsedInsecticide = JSON.parse(insecticide);
+          } else if (typeof insecticide === 'object') {
+            parsedInsecticide = insecticide;
+          } else {
+            return <span className="text-gray-400">-</span>;
+          }
+        } catch (error) {
+          // If parsing fails, try to display the raw string
+          return (
+            <div className="text-xs">
+              <div className="text-red-500">Invalid data format</div>
+              <div className="text-gray-500 text-xs">{String(insecticide).substring(0, 50)}...</div>
+            </div>
+          );
+        }
+        
         return (
           <div className="text-xs space-y-1">
-            <div className="font-medium">{insecticide.type || '-'}</div>
-            <div>Method: {insecticide.method || '-'}</div>
-            <div>Volume: {insecticide.volumeMl || 0} ml</div>
-            <div>Category: {insecticide.category || '-'}</div>
-            <Badge className={insecticide.status === 'Sprayed' ? 'bg-green-500 text-white' : 'bg-red-500 text-white'}>
-              {insecticide.status === 'Sprayed' ? 'Sprayed' : 'Not Sprayed'}
+            <div className="font-medium">{parsedInsecticide.type || '-'}</div>
+            <div>Method: {parsedInsecticide.method || '-'}</div>
+            <div>Volume: {parsedInsecticide.volumeMl || 0} ml</div>
+            <div>Category: {parsedInsecticide.category || '-'}</div>
+            <Badge className={parsedInsecticide.status === 'Sprayed' ? 'bg-green-500 text-white' : 'bg-red-500 text-white'}>
+              {parsedInsecticide.status === 'Sprayed' ? 'Sprayed' : 'Not Sprayed'}
             </Badge>
           </div>
         );
