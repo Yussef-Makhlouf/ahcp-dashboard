@@ -859,6 +859,7 @@ export function LaboratoryDialog({ open, onOpenChange, laboratory, onSave }: Lab
                     required={true}
                     placeholder="اختر نوع العينة"
                     error={getFieldError('sampleType') || undefined}
+                    language="en"
                   />
                 </div>
 
@@ -1064,6 +1065,7 @@ export function LaboratoryDialog({ open, onOpenChange, laboratory, onSave }: Lab
                         onValueChange={(value) => setNewTestResult({ ...newTestResult, animalType: value })}
                         label="نوع الحيوان"
                         placeholder="اختر نوع الحيوان"
+                        language="en"
                       />
                     </div>
 
@@ -1074,6 +1076,7 @@ export function LaboratoryDialog({ open, onOpenChange, laboratory, onSave }: Lab
                         onValueChange={(value) => setNewTestResult({ ...newTestResult, testType: value })}
                         label="نوع الفحص"
                         placeholder="اختر نوع الفحص"
+                        language="en"
                       />
                     </div>
 

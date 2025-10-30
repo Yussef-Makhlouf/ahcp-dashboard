@@ -76,6 +76,7 @@ export function HoldingCodeManagement({ onRefresh }: HoldingCodeManagementProps)
     loadVillages();
   }, [currentPage, pageSize, selectedVillage, activeFilter]);
 
+
   const loadHoldingCodes = async () => {
     try {
       setIsLoading(true);
@@ -181,10 +182,6 @@ export function HoldingCodeManagement({ onRefresh }: HoldingCodeManagementProps)
 
 
   const handleDeleteCode = async (codeId: string) => {
-    if (!confirm("هل أنت متأكد من حذف رمز الحيازة؟ قد يؤثر هذا على السجلات المرتبطة به.")) {
-      return;
-    }
-
     try {
       const response = await holdingCodesApi.delete(codeId);
       if (response.success) {
@@ -198,6 +195,79 @@ export function HoldingCodeManagement({ onRefresh }: HoldingCodeManagementProps)
       toast.error("حدث خطأ أثناء حذف رمز الحيازة");
     }
   };
+
+  const handleBulkDelete = async (selectedRows: HoldingCode[]) => {
+    const selectedIds = selectedRows.map(row => row._id!).filter(Boolean);
+    
+    if (selectedIds.length === 0) {
+      toast.error("يرجى اختيار رموز الحيازة المراد حذفها");
+      return;
+    }
+
+    try {
+      const response = await holdingCodesApi.bulkDelete(selectedIds);
+      if (response.success) {
+        toast.success(response.message);
+        
+        // Show detailed results if there were errors
+        if (response.results.failed > 0) {
+          const errorMessages = response.results.errors.map(err => 
+            `${err.code || err.id}: ${err.error}`
+          ).join('\n');
+          toast.error(`فشل في حذف ${response.results.failed} رمز:\n${errorMessages}`);
+        }
+        
+        loadHoldingCodes();
+        onRefresh?.();
+      } else {
+        toast.error(response.message || "حدث خطأ أثناء الحذف المحدد");
+      }
+    } catch (error: any) {
+      console.error('Bulk delete error:', error);
+      if (error.response?.data?.message) {
+        toast.error(error.response.data.message);
+      } else {
+        toast.error("حدث خطأ أثناء الحذف المحدد");
+      }
+    }
+  };
+
+  const handleDeleteAll = async () => {
+    try {
+      const response = await holdingCodesApi.deleteAll();
+      if (response.success) {
+        toast.success(response.message);
+        loadHoldingCodes();
+        onRefresh?.();
+      } else {
+        toast.error(response.message || "حدث خطأ أثناء الحذف الكلي");
+        
+        // Show usage details if available
+        if (response.usageDetails && response.usageDetails.length > 0) {
+          const usageInfo = response.usageDetails.map(usage => 
+            `${usage.model}: ${usage.count} سجل`
+          ).join('\n');
+          toast.error(`رموز الحيازة مستخدمة في:\n${usageInfo}`);
+        }
+      }
+    } catch (error: any) {
+      console.error('Delete all error:', error);
+      if (error.response?.data?.message) {
+        toast.error(error.response.data.message);
+        
+        // Show usage details from error response
+        if (error.response.data.usageDetails) {
+          const usageInfo = error.response.data.usageDetails.map((usage: any) => 
+            `${usage.model}: ${usage.count} سجل`
+          ).join('\n');
+          toast.error(`رموز الحيازة مستخدمة في:\n${usageInfo}`);
+        }
+      } else {
+        toast.error("حدث خطأ أثناء الحذف الكلي");
+      }
+    }
+  };
+
 
   const resetForm = () => {
     setCodeForm({
@@ -336,6 +406,11 @@ export function HoldingCodeManagement({ onRefresh }: HoldingCodeManagementProps)
             columns={columns}
             data={holdingCodes}
             isLoading={isLoading}
+            enableSelection={true}
+            enableBulkDelete={true}
+            onDeleteSelected={handleBulkDelete}
+            onDeleteAll={handleDeleteAll}
+            module="holding-codes"
           />
         </CardContent>
       </Card>

@@ -84,7 +84,7 @@ interface DataTableProps<TData, TValue> {
   enableSelection?: boolean;
   enableBulkDelete?: boolean;
   pageSize?: number;
-  module?: 'parasite-control' | 'vaccination' | 'mobile-clinics' | 'laboratories' | 'equine-health' | 'clients';
+  module?: 'parasite-control' | 'vaccination' | 'mobile-clinics' | 'laboratories' | 'equine-health' | 'clients' | 'holding-codes';
   // Pagination props
   totalCount?: number;
   currentPage?: number;

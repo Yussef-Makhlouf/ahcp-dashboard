@@ -78,6 +78,7 @@ export function DynamicSelectExamples() {
                 placeholder={`اختر ${example.title}`}
                 allowEmpty={!example.required}
                 emptyText="لا يوجد خيار"
+                language="en"
               />
               
               {selectedValues[example.category] && (

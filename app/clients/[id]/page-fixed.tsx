@@ -416,7 +416,7 @@ export default function ClientProfessionalReport() {
             </CardTitle>
             <p className="text-sm text-muted-foreground mt-2 text-right">سجلات الزيارات المفصلة ومعلومات النظام</p>
           </CardHeader>
-          <CardContent className="p-6 ">
+          <CardContent className="p-6">
             {showDetailedReport ? (
               <Tabs defaultValue="records" className="w-full">
                 <TabsList className="grid w-full grid-cols-3">
@@ -426,94 +426,7 @@ export default function ClientProfessionalReport() {
                 </TabsList>
                 
                 <TabsContent value="records" className="mt-6">
-                  <div className="space-y-6" dir='rtl'>
-                    {/* Vaccination Records */}
-                    {visits.vaccination && visits.vaccination.length > 0 && (
-                      <div>
-                        <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                          <Syringe className="h-5 w-5 text-primary" />
-                          سجلات التطعيمات ({visits.vaccination.length})
-                        </h3>
-                        <div className="space-y-4">
-                          {visits.vaccination.map((visit: any, index: number) => (
-                            <VisitDetails key={visit._id || index} visit={visit} serviceType="vaccination" />
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Mobile Clinic Records */}
-                    {visits.mobileClinic && visits.mobileClinic.length > 0 && (
-                      <div>
-                        <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                          <Stethoscope className="h-5 w-5 text-primary" />
-                          سجلات العيادة المتنقلة ({visits.mobileClinic.length})
-                        </h3>
-                        <div className="space-y-4">
-                          {visits.mobileClinic.map((visit: any, index: number) => (
-                            <VisitDetails key={visit._id || index} visit={visit} serviceType="mobileClinic" />
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Parasite Control Records */}
-                    {visits.parasiteControl && visits.parasiteControl.length > 0 && (
-                      <div>
-                        <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                          <Bug className="h-5 w-5 text-primary" />
-                          سجلات مكافحة الطفيليات ({visits.parasiteControl.length})
-                        </h3>
-                        <div className="space-y-4">
-                          {visits.parasiteControl.map((visit: any, index: number) => (
-                            <VisitDetails key={visit._id || index} visit={visit} serviceType="parasiteControl" />
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Equine Health Records */}
-                    {visits.equineHealth && visits.equineHealth.length > 0 && (
-                      <div>
-                        <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                          <Target className="h-5 w-5 text-primary" />
-                          سجلات صحة الخيول ({visits.equineHealth.length})
-                        </h3>
-                        <div className="space-y-4">
-                          {visits.equineHealth.map((visit: any, index: number) => (
-                            <VisitDetails key={visit._id || index} visit={visit} serviceType="equineHealth" />
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Laboratory Records */}
-                    {visits.laboratory && visits.laboratory.length > 0 && (
-                      <div>
-                        <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                          <TestTube className="h-5 w-5 text-primary" />
-                          سجلات المختبر ({visits.laboratory.length})
-                        </h3>
-                        <div className="space-y-4">
-                          {visits.laboratory.map((visit: any, index: number) => (
-                            <VisitDetails key={visit._id || index} visit={visit} serviceType="laboratory" />
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* No Records Message */}
-                    {(!visits.vaccination || visits.vaccination.length === 0) &&
-                     (!visits.mobileClinic || visits.mobileClinic.length === 0) &&
-                     (!visits.parasiteControl || visits.parasiteControl.length === 0) &&
-                     (!visits.equineHealth || visits.equineHealth.length === 0) &&
-                     (!visits.laboratory || visits.laboratory.length === 0) && (
-                      <div className="text-center py-8 text-muted-foreground">
-                        <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                        <p>لا توجد سجلات زيارات مسجلة لهذا المربي</p>
-                      </div>
-                    )}
-                  </div>
+                  <VisitDetails visits={visits} formatDate={formatDate} />
                 </TabsContent>
                 
                 <TabsContent value="statistics" className="mt-6">
@@ -528,7 +441,7 @@ export default function ClientProfessionalReport() {
                         <Building2 className="h-5 w-5 text-muted-foreground" />
                         معلومات النظام
                       </h3>
-                      <div className="overflow-x-auto" dir='rtl'>
+                      <div className="overflow-x-auto">
                         <table className="w-full text-sm border" dir="rtl">
                           <tbody>
                             <tr className="border-b">

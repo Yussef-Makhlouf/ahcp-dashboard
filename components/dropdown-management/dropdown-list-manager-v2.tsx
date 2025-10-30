@@ -12,7 +12,7 @@ import { DataTable } from '@/components/data-table/data-table';
 import { LoadingButton } from '@/components/ui/loading-button';
 import { Plus, Edit, Trash2, Search, Eye, RefreshCw, CheckCircle, XCircle } from 'lucide-react';
 import { toast } from 'sonner';
-import { dropdownListsApi, type DropdownOption, type CategoryInfo } from '@/lib/api/dropdown-lists';
+import { dropdownListsApi, type DropdownOption, type CategoryInfo, CATEGORY_LABELS } from '@/lib/api/dropdown-lists';
 
 interface DropdownListManagerV2Props {
   category?: string;
@@ -71,7 +71,7 @@ export function DropdownListManagerV2({
       }
     } catch (error) {
       console.error('Error loading categories:', error);
-      toast.error('فشل في تحميل الفئات');
+      toast.error('Failed to load categories');
     }
   };
 
@@ -89,7 +89,7 @@ export function DropdownListManagerV2({
       setOptions(optionsData);
     } catch (error) {
       console.error('Error loading options:', error);
-      toast.error('فشل في تحميل الخيارات');
+      toast.error('Failed to load options');
     } finally {
       setLoading(false);
     }
@@ -119,12 +119,12 @@ export function DropdownListManagerV2({
 
   const handleSave = async () => {
     if (!formData.labelAr.trim()) {
-      toast.error('يرجى إدخال الاسم العربي');
+      toast.error('Please enter Arabic name');
       return;
     }
     
     if (!formData.label.trim()) {
-      toast.error('يرجى إدخال الاسم الإنجليزي');
+      toast.error('Please enter English name');
       return;
     }
     
@@ -145,10 +145,10 @@ export function DropdownListManagerV2({
       
       if (editingOption) {
         await dropdownListsApi.update(editingOption._id!, dataToSave);
-        toast.success('تم تحديث الخيار بنجاح');
+        toast.success('Option updated successfully');
       } else {
         await dropdownListsApi.create(dataToSave);
-        toast.success('تم إنشاء الخيار بنجاح');
+        toast.success('Option created successfully');
       }
       
       setIsDialogOpen(false);
@@ -157,7 +157,7 @@ export function DropdownListManagerV2({
       loadCategories(); // Refresh category counts
     } catch (error: any) {
       console.error('Error saving option:', error);
-      toast.error(error.message || 'فشل في حفظ الخيار');
+      toast.error(error.message || 'Failed to save option');
     } finally {
       setLoading(false);
     }
@@ -184,33 +184,33 @@ export function DropdownListManagerV2({
       
       toast.success(
         newActiveStatus 
-          ? `تم تفعيل الخيار "${option.labelAr}" بنجاح`
-          : `تم إلغاء تفعيل الخيار "${option.labelAr}" بنجاح`
+          ? `Option "${option.label}" activated successfully`
+          : `Option "${option.label}" deactivated successfully`
       );
       
       loadOptions();
     } catch (error: any) {
       console.error('Error toggling option status:', error);
-      toast.error(error.message || 'فشل في تغيير حالة الخيار');
+      toast.error(error.message || 'Failed to change option status');
     }
   };
 
   const handleDelete = async (option: DropdownOption) => {
-    if (!confirm(`هل أنت متأكد من حذف الخيار "${option.labelAr || option.label}"؟`)) {
+    if (!confirm(`Are you sure you want to delete the option "${option.label || option.labelAr}"?`)) {
       return;
     }
 
     try {
       await dropdownListsApi.delete(option._id!);
-      toast.success('تم حذف الخيار بنجاح');
+      toast.success('Option deleted successfully');
       loadOptions();
       loadCategories(); // Refresh category counts
     } catch (error: any) {
       console.error('Error deleting option:', error);
       if (error.message?.includes('used in')) {
-        toast.error('لا يمكن حذف هذا الخيار لأنه مستخدم في السجلات');
+        toast.error('Cannot delete this option because it is used in records');
       } else {
-        toast.error('فشل في حذف الخيار');
+        toast.error('Failed to delete option');
       }
     }
   };
@@ -219,7 +219,7 @@ export function DropdownListManagerV2({
   const columns = [
     {
       accessorKey: 'value',
-      header: 'القيمة',
+      header: 'Value',
       cell: ({ row }: any) => (
         <code className="px-2 py-1 bg-gray-100 rounded text-md font-mono">
           {row.original.value}
@@ -227,27 +227,27 @@ export function DropdownListManagerV2({
       )
     },
     {
-      accessorKey: 'labelAr',
-      header: 'اسم العنصر (عربي)',
+      accessorKey: 'label',
+      header: 'English Name',
       cell: ({ row }: any) => (
         <div className="font-medium">
-          {row.original.labelAr}
+          {row.original.label}
         </div>
       )
     },
     {
-      accessorKey: 'label',
-      header: 'اسم العنصر (إنجليزي)',
+      accessorKey: 'labelAr',
+      header: 'Arabic Name',
       cell: ({ row }: any) => (
-        <span className="text-gray-600">{row.original.label}</span>
+        <span className="text-gray-600">{row.original.labelAr}</span>
       )
     },
     {
       accessorKey: 'isActive',
-      header: 'الحالة',
+      header: 'Status',
       cell: ({ row }: any) => (
         <Badge variant={row.original.isActive ? 'secondary' : 'destructive'}>
-          {row.original.isActive ? 'نشط' : 'غير نشط'}
+          {row.original.isActive ? 'Active' : 'Inactive'}
         </Badge>
       )
     },
@@ -288,7 +288,7 @@ export function DropdownListManagerV2({
                     ? 'text-orange-600 hover:text-orange-800 hover:bg-orange-50' 
                     : 'text-green-600 hover:text-green-800 hover:bg-green-50'
                 }`}
-                title={option.isActive ? 'إلغاء التفعيل' : 'تفعيل'}
+                title={option.isActive ? 'Deactivate' : 'Activate'}
               >
                 {option.isActive ? (
                   <XCircle className="h-4 w-4" />
@@ -321,9 +321,9 @@ export function DropdownListManagerV2({
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="">
-          <h2 className="text-2xl font-bold">إدارة القوائم المنسدلة</h2>
+          <h2 className="text-2xl font-bold">Dropdown Lists Management</h2>
           <p className="text-muted-foreground">
-            إدارة خيارات القوائم المنسدلة المستخدمة في النظام
+            Manage dropdown options used throughout the system
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -334,12 +334,12 @@ export function DropdownListManagerV2({
             className="gap-2"
           >
             <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-            تحديث
+            Refresh
           </Button>
           {selectedCategory && (
             <Button onClick={handleCreate} className="gap-2">
               <Plus className="h-4 w-4" />
-              إضافة خيار جديد
+              Add New Option
             </Button>
           )}
         </div>
@@ -348,15 +348,15 @@ export function DropdownListManagerV2({
       {/* Category Selection */}
       <Card>
         <CardHeader className="flex items-center justify-between" >
-          <CardTitle>اختيار الفئة</CardTitle>
+          <CardTitle>Category Selection</CardTitle>
           <CardDescription>
-            اختر الفئة التي تريد إدارة خياراتها
+            Choose the category you want to manage options for
           </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
             <div className="lg:col-span-2">
-              <Label htmlFor="category-select">الفئة</Label>
+              <Label htmlFor="category-select">Category</Label>
               <Select 
                 value={selectedCategory} 
                 onValueChange={(value) => {
@@ -365,19 +365,19 @@ export function DropdownListManagerV2({
                   }
                 }}
               >
-                <SelectTrigger id="category-select" dir='rtl'>
-                  <SelectValue placeholder="اختر الفئة" />
+                <SelectTrigger id="category-select">
+                  <SelectValue placeholder="Select Category" />
                 </SelectTrigger>
                 <SelectContent>
                   {categories.length === 0 ? (
                     <SelectItem value="no-categories" disabled>
-                      لا توجد فئات متاحة
+                      No categories available
                     </SelectItem>
                   ) : (
                     categories.map((cat) => (
                       <SelectItem key={cat.category} value={cat.category}>
                         <div className="flex items-center justify-between w-full">
-                          <span>{cat.labelAr || cat.label || cat.category}</span>
+                          <span>{CATEGORY_LABELS[cat.category as keyof typeof CATEGORY_LABELS]?.en || cat.label || cat.category}</span>
                           <Badge variant="secondary" className="ml-2">
                             {cat.total || 0}
                           </Badge>
@@ -392,10 +392,10 @@ export function DropdownListManagerV2({
             {currentCategory && (
               <div className="flex items-end">
                 <div className="w-full">
-                  <Label>إحصائيات الفئة</Label>
+                  <Label>Category Statistics</Label>
                   <div className="flex items-center gap-2 mt-2">
                     <Badge variant="outline" className="gap-1">
-                      المجموع: {currentCategory.total || 0}
+                      Total: {currentCategory.total || 0}
                     </Badge>
                   </div>
                 </div>
@@ -412,14 +412,14 @@ export function DropdownListManagerV2({
             <div className="flex items-center justify-between">
               <div>
                 <CardTitle>
-                  {currentCategory?.labelAr || currentCategory?.label || selectedCategory}
+                  {CATEGORY_LABELS[selectedCategory as keyof typeof CATEGORY_LABELS]?.en || currentCategory?.label || selectedCategory}
                 </CardTitle>
                 <CardDescription>
-                  إدارة خيارات هذه الفئة
+                  Manage options for this category
                 </CardDescription>
               </div>
               <Badge variant="secondary">
-                {options.length} خيار
+                {options.length} options
               </Badge>
             </div>
           </CardHeader>
@@ -429,7 +429,7 @@ export function DropdownListManagerV2({
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
-                  placeholder="البحث في الخيارات..."
+                  placeholder="Search options..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="pl-10"
@@ -458,33 +458,16 @@ export function DropdownListManagerV2({
         <DialogContent className="max-w-md p-4">
           <DialogHeader>
             <DialogTitle>
-              {editingOption ? 'تعديل الخيار' : 'إضافة خيار جديد'}
+              {editingOption ? 'Edit Option' : 'Add New Option'}
             </DialogTitle>
             <DialogDescription>
-              {editingOption ? 'قم بتعديل بيانات الخيار' : 'أدخل بيانات العنصر الجديد'}
+              {editingOption ? 'Edit the option details' : 'Enter the new option details'}
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4">
             <div className="flex flex-col gap-2">
-              <Label htmlFor="option-name-ar" className="text-right">اسم العنصر (عربي) *</Label>
-              <Input
-                id="option-name-ar"
-                value={formData.labelAr}
-                onChange={(e) => {
-                  setFormData({ 
-                    ...formData, 
-                    labelAr: e.target.value
-                  });
-                }}
-                placeholder="أدخل اسم العنصر بالعربية"
-                className="text-right"
-                dir="rtl"
-              />
-            </div>
-
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="option-name-en" className="text-left">اسم العنصر (إنجليزي) *</Label>
+              <Label htmlFor="option-name-en" className="text-left">English Name *</Label>
               <Input
                 id="option-name-en"
                 value={formData.label}
@@ -500,12 +483,29 @@ export function DropdownListManagerV2({
               />
             </div>
 
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="option-name-ar" className="text-right">Arabic Name *</Label>
+              <Input
+                id="option-name-ar"
+                value={formData.labelAr}
+                onChange={(e) => {
+                  setFormData({ 
+                    ...formData, 
+                    labelAr: e.target.value
+                  });
+                }}
+                placeholder="أدخل اسم العنصر بالعربية"
+                className="text-right"
+                dir="rtl"
+              />
+            </div>
+
    
 
             {formData.label && (
               <div className="p-3 bg-gray-50 rounded-lg space-y-2">
                 <div className="text-sm">
-                  <span className="font-medium">معاينة القيمة المولدة: </span>
+                  <span className="font-medium">Generated Value Preview: </span>
                   <code className="bg-white px-2 py-1 rounded text-xs">
                     {formData.label.replace(/\s+/g, '_').toLowerCase()}
                   </code>
@@ -523,14 +523,14 @@ export function DropdownListManagerV2({
             }}
             disabled={loading}
           >
-            إلغاء
+            Cancel
           </Button>
           <LoadingButton 
             loading={loading} 
             onClick={handleSave}
             disabled={!formData.labelAr.trim() || !formData.label.trim()}
           >
-            {editingOption ? 'تحديث' : 'إنشاء'}
+            {editingOption ? 'Update' : 'Create'}
           </LoadingButton>
         </div>
       </DialogContent>
@@ -540,39 +540,39 @@ export function DropdownListManagerV2({
     <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
       <DialogContent className="max-w-md p-4">
         <DialogHeader>
-          <DialogTitle>عرض تفاصيل الخيار</DialogTitle>
+          <DialogTitle>View Option Details</DialogTitle>
         </DialogHeader>
 
         {viewingOption && (
           <div className="space-y-4">
             <div className="grid grid-cols-1 gap-4">
               <div>
-                <Label className="text-md font-medium text-muted-foreground">اسم العنصر (عربي)</Label>
-                <p className="mt-1 text-lg font-medium">{viewingOption.labelAr}</p>
-              </div>
-              
-              <div>
-                <Label className="text-md font-medium text-muted-foreground">اسم العنصر (إنجليزي)</Label>
+                <Label className="text-md font-medium text-muted-foreground">English Name</Label>
                 <p className="mt-1 text-lg font-medium">{viewingOption.label}</p>
               </div>
               
               <div>
-                <Label className="text-md font-medium text-muted-foreground">القيمة المولدة</Label>
+                <Label className="text-md font-medium text-muted-foreground">Arabic Name</Label>
+                <p className="mt-1 text-lg font-medium">{viewingOption.labelAr}</p>
+              </div>
+              
+              <div>
+                <Label className="text-md font-medium text-muted-foreground">Generated Value</Label>
                 <code className="block mt-1 px-3 py-2 bg-gray-100 rounded text-md font-mono">
                   {viewingOption.value}
                 </code>
               </div>
 
               <div>
-                <Label className="text-md font-medium text-muted-foreground">الفئة</Label>
-                <p className="mt-1">{currentCategory?.labelAr || viewingOption.category}</p>
+                <Label className="text-md font-medium text-muted-foreground">Category</Label>
+                <p className="mt-1">{CATEGORY_LABELS[viewingOption.category as keyof typeof CATEGORY_LABELS]?.en || viewingOption.category}</p>
               </div>
 
               <div>
-                <Label className="text-md font-medium text-muted-foreground">الحالة</Label>
+                <Label className="text-md font-medium text-muted-foreground">Status</Label>
                 <div className="mt-1 flex items-center gap-2">
                   <Badge variant={viewingOption.isActive ? 'secondary' : 'destructive'}>
-                    {viewingOption.isActive ? 'نشط' : 'غير نشط'}
+                    {viewingOption.isActive ? 'Active' : 'Inactive'}
                   </Badge>
                 </div>
               </div>
@@ -580,15 +580,15 @@ export function DropdownListManagerV2({
 
             <div className="grid grid-cols-2 gap-4 pt-4 border-t text-md text-muted-foreground">
               <div>
-                <Label className="text-md font-medium text-muted-foreground">تاريخ الإنشاء</Label>
+                <Label className="text-md font-medium text-muted-foreground">Created Date</Label>
                 <p className="mt-1">
-                  {viewingOption.createdAt ? new Date(viewingOption.createdAt).toLocaleDateString('ar-SA') : '-'}
+                  {viewingOption.createdAt ? new Date(viewingOption.createdAt).toLocaleDateString('en-US') : '-'}
                 </p>
               </div>
               <div>
-                <Label className="text-md font-medium text-muted-foreground">تاريخ التحديث</Label>
+                <Label className="text-md font-medium text-muted-foreground">Updated Date</Label>
                 <p className="mt-1">
-                  {viewingOption.updatedAt ? new Date(viewingOption.updatedAt).toLocaleDateString('ar-SA') : '-'}
+                  {viewingOption.updatedAt ? new Date(viewingOption.updatedAt).toLocaleDateString('en-US') : '-'}
                 </p>
               </div>
             </div>

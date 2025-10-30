@@ -21,6 +21,7 @@ interface DynamicSelectProps {
   activeOnly?: boolean;
   allowEmpty?: boolean;
   emptyText?: string;
+  language?: 'ar' | 'en'; // إضافة خاصية اللغة
 }
 
 export function DynamicSelect({
@@ -36,7 +37,8 @@ export function DynamicSelect({
   showLabel = true,
   activeOnly = true,
   allowEmpty = false,
-  emptyText = "لا يوجد"
+  emptyText = "لا يوجد",
+  language = 'ar' // القيمة الافتراضية العربية
 }: DynamicSelectProps) {
   const [options, setOptions] = useState<DropdownOption[]>([]);
   const [loading, setLoading] = useState(false);
@@ -55,13 +57,17 @@ export function DynamicSelect({
     
     try {
       const categoryValue = DROPDOWN_CATEGORIES[category];
+      console.log(`🔍 Loading options for category: ${category} -> ${categoryValue}`);
+      
       const response = await dropdownListsApi.getByCategory(categoryValue, activeOnly);
+      console.log(`✅ Received response for ${categoryValue}:`, response);
       
       // Ensure response.data is an array
       const optionsData = Array.isArray(response.data) ? response.data : [];
+      console.log(`📋 Options data for ${categoryValue}:`, optionsData);
       setOptions(optionsData);
     } catch (error: any) {
-      console.error('Error loading dropdown options:', error);
+      console.error(`❌ Error loading dropdown options for ${category}:`, error);
       setLoadError('فشل في تحميل الخيارات');
       setOptions([]);
     } finally {
@@ -104,7 +110,7 @@ export function DynamicSelect({
                 جاري التحميل...
               </div>
             ) : selectedOption ? (
-              selectedOption.labelAr || selectedOption.label
+              language === 'en' ? (selectedOption.label || selectedOption.labelAr) : (selectedOption.labelAr || selectedOption.label)
             ) : (
               placeholder
             )}
@@ -140,9 +146,13 @@ export function DynamicSelect({
                   disabled={!option.isActive}
                 >
                   <div className="flex items-center gap-2">
-                    <span>{option.labelAr || option.label}</span>
+                    <span>
+                      {language === 'en' ? (option.label || option.labelAr) : (option.labelAr || option.label)}
+                    </span>
                     {!option.isActive && (
-                      <span className="text-xs text-gray-400">(غير نشط)</span>
+                      <span className="text-xs text-gray-400">
+                        {language === 'en' ? '(inactive)' : '(غير نشط)'}
+                      </span>
                     )}
                   </div>
                 </SelectItem>
@@ -198,9 +208,11 @@ export function useDynamicSelectOptions(category: keyof typeof DROPDOWN_CATEGORI
 }
 
 // Utility function to get option label by value
-export function getOptionLabel(options: DropdownOption[], value: string): string {
+export function getOptionLabel(options: DropdownOption[], value: string, language: 'ar' | 'en' = 'ar'): string {
   const option = options.find(opt => opt.value === value);
-  return option ? (option.labelAr || option.label) : value;
+  if (!option) return value;
+  
+  return language === 'en' ? (option.label || option.labelAr) : (option.labelAr || option.label);
 }
 
 // Utility function to get option by value

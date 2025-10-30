@@ -1241,6 +1241,7 @@ export function ParasiteControlDialog({
                             label="نوع المبيد"
                             placeholder="اختر نوع المبيد"
                             required
+                            language="en"
                           />
                         </FormControl>
                         <FormMessage className="text-red-500 text-sm font-medium" />
@@ -1257,6 +1258,7 @@ export function ParasiteControlDialog({
                             category="SPRAY_METHODS"
                             value={field.value || ""}
                             onValueChange={field.onChange}
+                            language="en"
                             label="طريقة الرش"
                             placeholder="اختر طريقة الرش"
                             required
@@ -1298,6 +1300,7 @@ export function ParasiteControlDialog({
                             label="فئة المبيد"
                             placeholder="اختر فئة المبيد"
                             required
+                            language="en"
                           />
                         </FormControl>
                         <FormMessage className="text-red-500 text-sm font-medium" />
@@ -1317,6 +1320,7 @@ export function ParasiteControlDialog({
                             label="حالة الرش"
                             placeholder="اختر حالة الرش"
                             required
+                            language="en"
                           />
                         </FormControl>
                         <FormMessage className="text-red-500 text-sm font-medium" />
@@ -1335,6 +1339,7 @@ export function ParasiteControlDialog({
                             category="HERD_HEALTH"
                             value={field.value || ""}
                             onValueChange={field.onChange}
+                            language="en"
                             label="الحالة الصحية للقطيع"
                             placeholder="اختر الحالة الصحية"
                             required
@@ -1357,6 +1362,7 @@ export function ParasiteControlDialog({
                             label="الامتثال للتعليمات"
                             placeholder="اختر حالة الامتثال"
                             required
+                            language="en"
                           />
                         </FormControl>
                         <FormMessage className="text-red-500 text-sm font-medium" />
@@ -1398,6 +1404,7 @@ export function ParasiteControlDialog({
                             label="مواقع التكاثر"
                             placeholder="اختر حالة مواقع التكاثر"
                             required
+                            language="en"
                           />
                         </FormControl>
                         <FormMessage className="text-red-500 text-sm font-medium" />
@@ -1462,6 +1469,7 @@ export function ParasiteControlDialog({
                             label="حالة الطلب"
                             placeholder="اختر حالة الطلب"
                             required
+                            language="en"
                           />
                         </FormControl>
                         <FormMessage className="text-red-500 text-sm font-medium" />

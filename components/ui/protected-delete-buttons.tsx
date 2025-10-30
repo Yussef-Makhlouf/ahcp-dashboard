@@ -1,10 +1,11 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Trash2, AlertTriangle } from 'lucide-react';
 import { usePermissions, PermissionConfig } from '@/lib/hooks/usePermissions';
+import { BulkDeleteDialog } from './delete-confirmation-dialog';
 
 interface ProtectedDeleteButtonsProps {
-  module: 'parasite-control' | 'vaccination' | 'mobile-clinics' | 'laboratories' | 'equine-health' | 'clients';
+  module: 'parasite-control' | 'vaccination' | 'mobile-clinics' | 'laboratories' | 'equine-health' | 'clients' | 'holding-codes';
   selectedRowsCount: number;
   onDeleteSelected: () => void;
   onDeleteAll?: () => void;
@@ -21,6 +22,8 @@ export const ProtectedDeleteButtons: React.FC<ProtectedDeleteButtonsProps> = ({
   showToast = true
 }) => {
   const { checkPermission, checkPermissionWithToast } = usePermissions();
+  const [showBulkDeleteDialog, setShowBulkDeleteDialog] = useState(false);
+  const [showDeleteAllDialog, setShowDeleteAllDialog] = useState(false);
 
   const deletePermission: PermissionConfig = { module, action: 'delete' };
   const hasDeletePermission = checkPermission(deletePermission);
@@ -29,11 +32,11 @@ export const ProtectedDeleteButtons: React.FC<ProtectedDeleteButtonsProps> = ({
     if (showToast) {
       const allowed = checkPermissionWithToast(deletePermission);
       if (allowed) {
-        onDeleteSelected();
+        setShowBulkDeleteDialog(true);
       }
     } else {
       if (hasDeletePermission) {
-        onDeleteSelected();
+        setShowBulkDeleteDialog(true);
       }
     }
   };
@@ -42,13 +45,25 @@ export const ProtectedDeleteButtons: React.FC<ProtectedDeleteButtonsProps> = ({
     if (showToast) {
       const allowed = checkPermissionWithToast(deletePermission);
       if (allowed && onDeleteAll) {
-        onDeleteAll();
+        setShowDeleteAllDialog(true);
       }
     } else {
       if (hasDeletePermission && onDeleteAll) {
-        onDeleteAll();
+        setShowDeleteAllDialog(true);
       }
     }
+  };
+
+  const confirmBulkDelete = () => {
+    onDeleteSelected();
+    setShowBulkDeleteDialog(false);
+  };
+
+  const confirmDeleteAll = () => {
+    if (onDeleteAll) {
+      onDeleteAll();
+    }
+    setShowDeleteAllDialog(false);
   };
 
   // إذا لم تكن هناك صلاحية حذف، لا تظهر الأزرار
@@ -85,18 +100,44 @@ export const ProtectedDeleteButtons: React.FC<ProtectedDeleteButtonsProps> = ({
           حذف الكل
         </Button>
       )}
+
+      {/* Dialog للحذف المحدد */}
+      <BulkDeleteDialog
+        open={showBulkDeleteDialog}
+        onOpenChange={setShowBulkDeleteDialog}
+        onConfirm={confirmBulkDelete}
+        selectedCount={selectedRowsCount}
+        isLoading={isDeleting}
+      />
+
+      {/* Dialog للحذف الكلي */}
+    
     </>
   );
 };
 
 // مكون منفصل لزر حذف المحدد فقط
 interface ProtectedDeleteSelectedButtonProps {
-  module: 'parasite-control' | 'vaccination' | 'mobile-clinics' | 'laboratories' | 'equine-health' | 'clients';
+  module: 'parasite-control' | 'vaccination' | 'mobile-clinics' | 'laboratories' | 'equine-health' | 'clients' | 'holding-codes';
   selectedRowsCount: number;
   onDeleteSelected: () => void;
   isDeleting?: boolean;
   showToast?: boolean;
 }
+
+// Helper function to get entity name in Arabic
+const getEntityName = (module: string): string => {
+  const entityNames: Record<string, string> = {
+    'parasite-control': 'سجلات مكافحة الطفيليات',
+    'vaccination': 'سجلات التطعيمات',
+    'mobile-clinics': 'سجلات العيادات المتنقلة',
+    'laboratories': 'سجلات المختبرات',
+    'equine-health': 'سجلات صحة الخيول',
+    'clients': 'العملاء',
+    'holding-codes': 'رموز الحيازة'
+  };
+  return entityNames[module] || 'العناصر';
+};
 
 export const ProtectedDeleteSelectedButton: React.FC<ProtectedDeleteSelectedButtonProps> = ({
   module,
@@ -106,6 +147,7 @@ export const ProtectedDeleteSelectedButton: React.FC<ProtectedDeleteSelectedButt
   showToast = true
 }) => {
   const { checkPermission, checkPermissionWithToast } = usePermissions();
+  const [showBulkDeleteDialog, setShowBulkDeleteDialog] = useState(false);
 
   const deletePermission: PermissionConfig = { module, action: 'delete' };
   const hasDeletePermission = checkPermission(deletePermission);
@@ -114,13 +156,18 @@ export const ProtectedDeleteSelectedButton: React.FC<ProtectedDeleteSelectedButt
     if (showToast) {
       const allowed = checkPermissionWithToast(deletePermission);
       if (allowed) {
-        onDeleteSelected();
+        setShowBulkDeleteDialog(true);
       }
     } else {
       if (hasDeletePermission) {
-        onDeleteSelected();
+        setShowBulkDeleteDialog(true);
       }
     }
+  };
+
+  const confirmBulkDelete = () => {
+    onDeleteSelected();
+    setShowBulkDeleteDialog(false);
   };
 
   // إذا لم تكن هناك صلاحية حذف أو لا توجد عناصر محددة، لا تظهر الزر
@@ -129,22 +176,32 @@ export const ProtectedDeleteSelectedButton: React.FC<ProtectedDeleteSelectedButt
   }
 
   return (
-    <Button
-      variant="destructive"
-      size="sm"
-      onClick={handleDeleteSelected}
-      disabled={isDeleting}
-      className="bg-red-600 hover:bg-red-700"
-    >
-      <Trash2 className="ml-2 h-4 w-4" />
-      حذف المحدد ({selectedRowsCount})
-    </Button>
+    <>
+      <Button
+        variant="destructive"
+        size="sm"
+        onClick={handleDeleteSelected}
+        disabled={isDeleting}
+        className="bg-red-600 hover:bg-red-700"
+      >
+        <Trash2 className="ml-2 h-4 w-4" />
+        حذف المحدد ({selectedRowsCount})
+      </Button>
+
+      <BulkDeleteDialog
+        open={showBulkDeleteDialog}
+        onOpenChange={setShowBulkDeleteDialog}
+        onConfirm={confirmBulkDelete}
+        selectedCount={selectedRowsCount}
+        isLoading={isDeleting}
+      />
+    </>
   );
 };
 
 // مكون منفصل لزر حذف الكل فقط
 interface ProtectedDeleteAllButtonProps {
-  module: 'parasite-control' | 'vaccination' | 'mobile-clinics' | 'laboratories' | 'equine-health' | 'clients';
+  module: 'parasite-control' | 'vaccination' | 'mobile-clinics' | 'laboratories' | 'equine-health' | 'clients' | 'holding-codes';
   onDeleteAll: () => void;
   isDeleting?: boolean;
   showToast?: boolean;
@@ -157,6 +214,7 @@ export const ProtectedDeleteAllButton: React.FC<ProtectedDeleteAllButtonProps> =
   showToast = true
 }) => {
   const { checkPermission, checkPermissionWithToast } = usePermissions();
+  const [showDeleteAllDialog, setShowDeleteAllDialog] = useState(false);
 
   const deletePermission: PermissionConfig = { module, action: 'delete' };
   const hasDeletePermission = checkPermission(deletePermission);
@@ -165,13 +223,18 @@ export const ProtectedDeleteAllButton: React.FC<ProtectedDeleteAllButtonProps> =
     if (showToast) {
       const allowed = checkPermissionWithToast(deletePermission);
       if (allowed) {
-        onDeleteAll();
+        setShowDeleteAllDialog(true);
       }
     } else {
       if (hasDeletePermission) {
-        onDeleteAll();
+        setShowDeleteAllDialog(true);
       }
     }
+  };
+
+  const confirmDeleteAll = () => {
+    onDeleteAll();
+    setShowDeleteAllDialog(false);
   };
 
   // إذا لم تكن هناك صلاحية حذف، لا تظهر الزر
@@ -180,15 +243,19 @@ export const ProtectedDeleteAllButton: React.FC<ProtectedDeleteAllButtonProps> =
   }
 
   return (
-    <Button
-      variant="destructive"
-      size="sm"
-      onClick={handleDeleteAll}
-      disabled={isDeleting}
-      className="bg-red-600 hover:bg-red-700"
-    >
-      <AlertTriangle className="ml-2 h-4 w-4" />
-      حذف الكل
-    </Button>
+    <>
+      <Button
+        variant="destructive"
+        size="sm"
+        onClick={handleDeleteAll}
+        disabled={isDeleting}
+        className="bg-red-600 hover:bg-red-700"
+      >
+        <AlertTriangle className="ml-2 h-4 w-4" />
+        حذف الكل
+      </Button>
+
+   
+    </>
   );
 };

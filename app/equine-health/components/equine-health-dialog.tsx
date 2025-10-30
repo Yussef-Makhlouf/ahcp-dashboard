@@ -654,6 +654,7 @@ export function EquineHealthDialog({
                             label="فئة التدخل"
                             placeholder="اختر فئة التدخل"
                             required
+                            language="en"
                           />
                         </FormControl>
                         <FormMessage className="text-red-500 text-sm font-medium" />
@@ -735,6 +736,7 @@ export function EquineHealthDialog({
                             label="حالة الطلب"
                             placeholder="اختر حالة الطلب"
                             required
+                            language="en"
                           />
                         </FormControl>
                         <FormMessage className="text-red-500 text-sm font-medium" />

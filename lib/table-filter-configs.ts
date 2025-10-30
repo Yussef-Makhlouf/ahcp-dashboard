@@ -6,83 +6,79 @@ export const TABLE_FILTER_CONFIGS: Record<string, FieldFilter[]> = {
   parasiteControl: [
     {
       key: "insecticide.method",
-      label: "طريقة الرش",
+      label: "Spray Method",
       type: "multiselect" as const,
       options: [
-        { value: "Spray", label: "رش", color: "default" as const },
-        { value: "Dipping", label: "غمس", color: "secondary" as const },
-        { value: "Pour-on", label: "صب على الظهر", color: "outline" as const },
-        { value: "Injection", label: "حقن", color: "destructive" as const },
-        { value: "Powder", label: "بودرة", color: "default" as const },
-        { value: "Aerosol", label: "رذاذ", color: "secondary" as const }
+      { value: 'Spray', label: 'Spray', color: 'default' as const },
+      { value: 'Oral-Drenching', label: 'Oral-Drenching', color: 'secondary' as const },
+      { value: 'Pour-on', label: 'Pour-on', color: 'outline' as const },
       ]
     },
     {
       key: "insecticide.category",
-      label: "فئة المبيد",
+      label: "Insecticide Category",
       type: "select" as const,
-      placeholder: "اختر فئة المبيد",
+      placeholder: "Select insecticide category",
       options: [
-        { value: "Organophosphate", label: "فوسفات عضوي", color: "default" as const },
-        { value: "Pyrethroid", label: "بيريثرويد", color: "secondary" as const },
-        { value: "Carbamate", label: "كاربامات", color: "outline" as const },
-        { value: "Biological", label: "بيولوجي", color: "default" as const },
-        { value: "Synthetic", label: "صناعي", color: "secondary" as const }
+           { value: 'Cyperdip', label: 'Cyperdip 10%', color: 'default' as const },
+      { value: 'Ultra-Pour', label: 'Ultra-Pour 1%', color: 'secondary' as const },
+      { value: 'Albevet', label: 'Albevet 2.5%', color: 'outline' as const },
+      { value: 'Cypermethrin', label: 'Cyper-Cide 10%', color: 'destructive' as const },
+      { value: 'Albendazole', label: 'Albendazole 2.5%', color: 'secondary' as const }
+       
       ]
     },
     {
       key: "insecticide.status",
-      label: "حالة الرش",
+      label: "Spray Status",
       type: "select" as const,
-      placeholder: "اختر حالة الرش",
+      placeholder: "Select spray status",
       options: [
-        { value: "Sprayed", label: "تم الرش", color: "default" as const },
-        { value: "Not Sprayed", label: "لم يتم الرش", color: "destructive" as const }
+        { value: "Sprayed", label: "Sprayed", color: "default" as const },
+        { value: "Not-Sprayed", label: "Not-Sprayed", color: "destructive" as const }
       ]
     },
     {
       key: "insecticide.type",
-      label: "نوع المبيد",
+      label: "Insecticide Type",
       type: "multiselect" as const,
       options: [
-        { value: "Deltamethrin", label: "دلتاميثرين", color: "default" as const },
-        { value: "Cypermethrin", label: "سايبرميثرين", color: "secondary" as const },
-        { value: "Malathion", label: "مالاثيون", color: "outline" as const },
-        { value: "Diazinon", label: "ديازينون", color: "destructive" as const },
-        { value: "Ivermectin", label: "إيفرمكتين", color: "default" as const },
-        { value: "Fipronil", label: "فيبرونيل", color: "secondary" as const },
-        { value: "Amitraz", label: "أميتراز", color: "outline" as const }
+       { value: 'Cyperdip', label: 'Cyperdip 10%', color: 'default' as const },
+      { value: 'Ultra-Pour', label: 'Ultra-Pour 1%', color: 'secondary' as const },
+      { value: 'Albevet', label: 'Albevet 2.5%', color: 'outline' as const },
+      { value: 'Cypermethrin', label: 'Cyper-Cide 10%', color: 'destructive' as const },
+      { value: 'Albendazole', label: 'Albendazole 2.5%', color: 'secondary' as const }
       ]
     },
     {
       key: "herdHealthStatus",
-      label: "الحالة الصحية للقطيع",
+      label: "Herd Health Status",
       type: "multiselect" as const,
       options: [
-        { value: "Healthy", label: "صحي", color: "default" as const },
-        { value: "Sick", label: "مريض", color: "destructive" as const },
-        { value: "Sporadic cases", label: "حالات متفرقة", color: "secondary" as const }
+        { value: "Healthy", label: "Healthy", color: "default" as const },
+        { value: "Sick", label: "Sick", color: "destructive" as const },
+        { value: "Sporadic-cases", label: "Sporadic-cases", color: "secondary" as const }
       ]
     },
     {
       key: "complyingToInstructions",
-      label: "الامتثال للتعليمات",
+      label: "Compliance to Instructions",
       type: "select" as const,
-      placeholder: "اختر حالة الامتثال",
+      placeholder: "Select compliance status",
       options: [
-        { value: "Comply", label: "ملتزم", color: "default" as const },
-        { value: "Not Comply", label: "غير ملتزم", color: "destructive" as const },
-        { value: "Partially Comply", label: "ملتزم جزئياً", color: "secondary" as const }
+        { value: "Comply", label: "Comply", color: "default" as const },
+        { value: "Not-Comply", label: "Not-Comply", color: "destructive" as const },
+        { value: "Partially-Comply", label: "Partially-Comply", color: "secondary" as const }
       ]
     },
     {
       key: "request.situation",
-      label: "حالة الطلب",
+      label: "Request Status",
       type: "select" as const,
-      placeholder: "اختر حالة الطلب",
+      placeholder: "Select request status",
       options: [
-        { value: "Ongoing", label: "جاري", color: "outline" as const },
-        { value: "Closed", label: "مغلق", color: "secondary" as const }
+        { value: "Ongoing", label: "Ongoing", color: "outline" as const },
+        { value: "Closed", label: "Closed", color: "secondary" as const }
       ]
     }
   ],
@@ -91,79 +87,78 @@ export const TABLE_FILTER_CONFIGS: Record<string, FieldFilter[]> = {
   vaccination: [
     {
       key: "vaccine.type",
-      label: "نوع اللقاح",
+      label: "Vaccine Type",
       type: "multiselect" as const,
       options: [
-        { value: "FMD", label: "الحمى القلاعية", color: "default" as const },
-        { value: "PPR", label: "طاعون المجترات الصغيرة", color: "destructive" as const },
-        { value: "Anthrax", label: "الجمرة الخبيثة", color: "secondary" as const },
-        { value: "Blackleg", label: "الساق السوداء", color: "outline" as const },
-        { value: "Rabies", label: "داء الكلب", color: "destructive" as const },
-        { value: "Brucellosis", label: "البروسيلا", color: "default" as const },
-        { value: "Enterotoxemia", label: "التسمم المعوي", color: "secondary" as const },
-        { value: "Pasteurellosis", label: "الباستوريلا", color: "outline" as const }
+   { value: 'FMD', label: 'FMD', color: 'default' as const },
+      { value: 'PPR', label: 'PPR', color: 'destructive' as const },
+      { value: 'SG-POX', label: 'SG-POX', color: 'secondary' as const },
+      { value: 'ET', label: 'ET', color: 'outline' as const },
+      { value: 'No-Vaccination', label: 'No Vaccination', color: 'destructive' as const },
+      { value: 'HS', label: 'HS', color: 'default' as const },
+      { value: 'CCPP', label: 'CCPP', color: 'secondary' as const },
       ]
     },
     {
       key: "vaccine.category",
-      label: "فئة اللقاح",
+      label: "Vaccine Category",
       type: "select" as const,
-      placeholder: "اختر فئة اللقاح",
+      placeholder: "Select vaccine category",
       options: [
-        { value: "Preventive", label: "وقائي", color: "default" as const },
-        { value: "Emergency", label: "طارئ", color: "destructive" as const }
+        { value: "Preventive", label: "Preventive", color: "default" as const },
+        { value: "Emergency", label: "Emergency", color: "destructive" as const }
       ]
     },
     {
       key: "herdHealthStatus",
-      label: "الحالة الصحية للقطيع",
+      label: "Herd Health Status",
       type: "multiselect" as const,
       options: [
-        { value: "Healthy", label: "صحي", color: "default" as const },
-        { value: "Sick", label: "مريض", color: "destructive" as const },
-        { value: "Sporadic Cases", label: "حالات متفرقة", color: "secondary" as const }
+        { value: "Healthy", label: "Healthy", color: "default" as const },
+        { value: "Sick", label: "Sick", color: "destructive" as const },
+        { value: "Sporadic Cases", label: "Sporadic Cases", color: "secondary" as const }
       ]
     },
     {
       key: "animalsHandling",
-      label: "سهولة التعامل مع الحيوانات",
+      label: "Animals Handling",
       type: "select" as const,
-      placeholder: "اختر سهولة التعامل",
+      placeholder: "Select animals handling",
       options: [
-        { value: "Easy", label: "سهل", color: "default" as const },
-        { value: "Difficult", label: "صعب", color: "destructive" as const }
+        { value: "Easy", label: "Easy Handling", color: "default" as const },
+        { value: "Difficult", label: "Difficult Handling", color: "destructive" as const }
       ]
     },
     {
       key: "labours",
-      label: "توفر العمالة",
+      label: "Labour Availability",
       type: "select" as const,
-      placeholder: "اختر توفر العمالة",
+      placeholder: "Select labour availability",
       options: [
-        { value: "Available", label: "متوفرة", color: "default" as const },
-        { value: "Not Available", label: "غير متوفرة", color: "destructive" as const },
-        { value: "Not Helpful", label: "غير مفيدة", color: "secondary" as const }
+        { value: "Available", label: "Available", color: "default" as const },
+        { value: "Not-Available", label: "Not Available", color: "destructive" as const },
+        { value: "Not-Helpful", label: "Not Helpful", color: "secondary" as const }
       ]
     },
     {
       key: "reachableLocation",
-      label: "إمكانية الوصول للموقع",
+      label: "Location Accessibility",
       type: "select" as const,
-      placeholder: "اختر إمكانية الوصول",
+      placeholder: "Select location accessibility",
       options: [
-        { value: "Easy", label: "سهل الوصول", color: "default" as const },
-        { value: "Hard to reach", label: "صعب الوصول", color: "destructive" as const },
-        { value: "Moderate", label: "متوسط", color: "secondary" as const }
+        { value: "Easy", label: "Easy", color: "default" as const },
+        { value: "Hard-to-reach", label: "Hard to reach", color: "destructive" as const },
+        { value: "Moderate", label: "Moderate", color: "secondary" as const }
       ]
     },
     {
       key: "request.situation",
-      label: "حالة الطلب",
+      label: "Request Status",
       type: "select" as const,
-      placeholder: "اختر حالة الطلب",
+      placeholder: "Select request status",
       options: [
-        { value: "Ongoing", label: "جاري", color: "outline" as const },
-        { value: "Closed", label: "مغلق", color: "secondary" as const }
+        { value: "Ongoing", label: "Ongoing", color: "outline" as const },
+        { value: "Closed", label: "Closed", color: "secondary" as const }
       ]
     }
   ],
@@ -172,63 +167,63 @@ export const TABLE_FILTER_CONFIGS: Record<string, FieldFilter[]> = {
   laboratories: [
     {
       key: "sampleType",
-      label: "نوع العينة",
+      label: "Sample Type",
       type: "multiselect" as const,
       options: [
-        { value: "Serum", label: "مصل", color: "default" as const },
-        { value: "Whole Blood", label: "دم كامل", color: "secondary" as const },
-        { value: "Fecal Sample", label: "عينة براز", color: "outline" as const },
-        { value: "Skin Scrape", label: "كشط جلدي", color: "destructive" as const }
+        { value: "Serum", label: "Serum", color: "default" as const },
+        { value: "Whole-Blood", label: "Whole Blood", color: "secondary" as const },
+        { value: "Fecal-Sample", label: "Fecal Sample", color: "outline" as const },
+        { value: "Skin-Scrape", label: "Skin Scrape", color: "destructive" as const }
       ]
     },
     {
       key: "testResult",
-      label: "نتيجة الفحص",
+      label: "Test Result",
       type: "select" as const,
-      placeholder: "اختر نتيجة الفحص",
+      placeholder: "Select test result",
       options: [
-        { value: "Normal", label: "طبيعي", color: "default" as const },
-        { value: "Abnormal", label: "غير طبيعي", color: "destructive" as const },
-        { value: "Positive", label: "إيجابي", color: "secondary" as const },
-        { value: "Negative", label: "سلبي", color: "outline" as const },
-        { value: "Inconclusive", label: "غير حاسم", color: "default" as const }
+        { value: "Normal", label: "Normal", color: "default" as const },
+        { value: "Abnormal", label: "Abnormal", color: "destructive" as const },
+        { value: "Positive", label: "Positive", color: "secondary" as const },
+        { value: "Negative", label: "Negative", color: "outline" as const },
+        { value: "Inconclusive", label: "Inconclusive", color: "default" as const }
       ]
     },
     {
       key: "testStatus",
-      label: "حالة الفحص",
+      label: "Test Status",
       type: "select" as const,
-      placeholder: "اختر حالة الفحص",
+      placeholder: "Select test status",
       options: [
-        { value: "Pending", label: "في الانتظار", color: "outline" as const },
-        { value: "In Progress", label: "قيد التنفيذ", color: "secondary" as const },
-        { value: "Completed", label: "مكتمل", color: "default" as const },
-        { value: "Failed", label: "فاشل", color: "destructive" as const }
+        { value: "Pending", label: "Pending", color: "outline" as const },
+        { value: "In-Progress", label: "In Progress", color: "secondary" as const },
+        { value: "Completed", label: "Completed", color: "default" as const },
+        { value: "Failed", label: "Failed", color: "destructive" as const }
       ]
     },
     {
       key: "testType",
-      label: "نوع الفحص",
+      label: "Test Type",
       type: "multiselect" as const,
       options: [
-        { value: "PCR", label: "تفاعل البوليميراز المتسلسل", color: "default" as const },
-        { value: "ELISA", label: "إليزا", color: "secondary" as const },
-        { value: "Culture", label: "زراعة", color: "outline" as const },
-        { value: "Microscopy", label: "فحص مجهري", color: "destructive" as const },
-        { value: "Serology", label: "فحص مصلي", color: "default" as const },
-        { value: "Biochemistry", label: "كيمياء حيوية", color: "secondary" as const }
+        { value: "PCR", label: "PCR", color: "default" as const },
+        { value: "ELISA", label: "ELISA", color: "secondary" as const },
+        { value: "Culture", label: "Culture", color: "outline" as const },
+        { value: "Microscopy", label: "Microscopy", color: "destructive" as const },
+        { value: "Serology", label: "Serology", color: "default" as const },
+        { value: "Biochemistry", label: "Biochemistry", color: "secondary" as const }
       ]
     },
     {
       key: "priority",
-      label: "الأولوية",
+      label: "Priority",
       type: "select" as const,
-      placeholder: "اختر الأولوية",
+      placeholder: "Select priority",
       options: [
-        { value: "Low", label: "منخفضة", color: "outline" as const },
-        { value: "Normal", label: "عادية", color: "default" as const },
-        { value: "High", label: "عالية", color: "secondary" as const },
-        { value: "Urgent", label: "عاجلة", color: "destructive" as const }
+        { value: "Low", label: "Low", color: "outline" as const },
+        { value: "Normal", label: "Normal", color: "default" as const },
+        { value: "High", label: "High", color: "secondary" as const },
+        { value: "Urgent", label: "Urgent", color: "destructive" as const }
       ]
     }
   ],
@@ -236,57 +231,47 @@ export const TABLE_FILTER_CONFIGS: Record<string, FieldFilter[]> = {
   // فلاتر جدول العيادات المتنقلة
   mobileClinics: [
     {
-      key: "diagnosis",
-      label: "التشخيص",
+      key: "interventionCategory",
+      label: "Intervention Category",
       type: "multiselect" as const,
       options: [
-        { value: "Respiratory Infection", label: "التهاب تنفسي", color: "destructive" as const },
-        { value: "Digestive Disorder", label: "اضطراب هضمي", color: "secondary" as const },
-        { value: "Skin Disease", label: "مرض جلدي", color: "outline" as const },
-        { value: "Parasitic Infection", label: "عدوى طفيلية", color: "destructive" as const },
-        { value: "Nutritional Deficiency", label: "نقص غذائي", color: "default" as const },
-        { value: "Reproductive Disorder", label: "اضطراب تناسلي", color: "secondary" as const },
-        { value: "Musculoskeletal Injury", label: "إصابة عضلية هيكلية", color: "outline" as const },
-        { value: "Eye Infection", label: "التهاب العين", color: "destructive" as const },
-        { value: "Wound Treatment", label: "علاج الجروح", color: "default" as const },
-        { value: "Vaccination", label: "تطعيم", color: "secondary" as const }
+        { value: "clinical-examination", label: "Clinical Examination", color: "destructive" as const },
+        { value: "surgical-operation", label: "Surgical Operation", color: "default" as const },
+        { value: "ultrasonography", label: "Ultrasonography", color: "secondary" as const },
+        { value: "lab-analysis", label: "Lab Analysis", color: "outline" as const }
       ]
     },
-    {
-      key: "interventionCategory",
-      label: "فئة التدخل",
-      type: "select" as const,
-      placeholder: "اختر فئة التدخل",
-      options: [
-        { value: "Emergency", label: "طارئ", color: "destructive" as const },
-        { value: "Routine", label: "روتيني", color: "default" as const },
-        { value: "Preventive", label: "وقائي", color: "secondary" as const },
-        { value: "Follow-up", label: "متابعة", color: "outline" as const },
-        { value: "Clinical Examination", label: "فحص سريري", color: "default" as const },
-        { value: "Ultrasonography", label: "تصوير بالموجات فوق الصوتية", color: "secondary" as const },
-        { value: "Lab Analysis", label: "تحليل مختبري", color: "outline" as const },
-        { value: "Surgical Operation", label: "عملية جراحية", color: "destructive" as const },
-        { value: "Farriery", label: "بيطرة", color: "default" as const }
-      ]
-    },
-    {
-      key: "followUpRequired",
-      label: "يتطلب متابعة",
-      type: "select" as const,
-      placeholder: "اختر متطلبات المتابعة",
-      options: [
-        { value: "true", label: "نعم", color: "secondary" as const },
-        { value: "false", label: "لا", color: "default" as const }
-      ]
-    },
+    // {
+    //   key: "interventionCategory",
+    //   label: "فئة التدخل",
+    //   type: "select" as const,
+    //   placeholder: "اختر فئة التدخل",
+    //   options: [
+    //     { value: "clinical-examination", label: "Clinical Examination", color: "destructive" as const },
+    //     { value: "surgical-operation", label: "Surgical Operation", color: "default" as const },
+    //     { value: "ultrasonography", label: "Ultrasonography", color: "secondary" as const },
+    //     { value: "lab-analysis", label: "Lab Analysis", color: "outline" as const },
+    //     { value: "surgical-operation", label: "Surgical Operation", color: "destructive" as const }
+    //   ]
+    // },
+    // {
+    //   key: "followUpRequired",
+    //   label: "يتطلب متابعة",
+    //   type: "select" as const,
+    //   placeholder: "اختر متطلبات المتابعة",
+    //   options: [
+    //     { value: "true", label: "نعم", color: "secondary" as const },
+    //     { value: "false", label: "لا", color: "default" as const }
+    //   ]
+    // },
     {
       key: "request.situation",
-      label: "حالة الطلب",
+      label: "Request Status",
       type: "select" as const,
-      placeholder: "اختر حالة الطلب",
+      placeholder: "Select request status",
       options: [
-        { value: "Ongoing", label: "جاري", color: "outline" as const },
-        { value: "Closed", label: "مغلق", color: "secondary" as const }
+        { value: "Ongoing", label: "Ongoing", color: "outline" as const },
+        { value: "Closed", label: "Closed", color: "secondary" as const }
       ]
     }
   ],
@@ -357,6 +342,32 @@ export const TABLE_FILTER_CONFIGS: Record<string, FieldFilter[]> = {
         { value: "51-100", label: "51-100 حيوان", color: "outline" as const },
         { value: "101-500", label: "101-500 حيوان", color: "destructive" as const },
         { value: "500+", label: "أكثر من 500 حيوان", color: "default" as const }
+      ]
+    }
+  ],
+
+  // فلاتر جدول صحة الخيول
+  equineHealth: [
+    {
+      key: "request.situation",
+      label: "Request Status",
+      type: "select" as const,
+      placeholder: "Select request status",
+      options: [
+        { value: "Ongoing", label: "Ongoing", color: "outline" as const },
+        { value: "Closed", label: "Closed", color: "secondary" as const }
+      ]
+    },
+    {
+      key: "interventionCategory",
+      label: "Intervention Category",
+      type: "multiselect" as const,
+      options: [
+        { value: "clinical-examination", label: "Clinical Examination", color: "destructive" as const },
+        { value: "surgical-operation", label: "Surgical Operation", color: "default" as const },
+        { value: "ultrasonography", label: "Ultrasonography", color: "secondary" as const },
+        { value: "lab-analysis", label: "Lab Analysis", color: "outline" as const },
+        { value: "farriery", label: "Farriery", color: "default" as const }
       ]
     }
   ]

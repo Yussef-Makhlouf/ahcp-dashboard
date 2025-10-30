@@ -964,6 +964,7 @@ export function MobileClinicDialog({ open, onOpenChange, clinic, onSave }: Mobil
                     placeholder="اختر نوع التدخل"
                     required
                     error={errors.interventionCategory}
+                    language="en"
                   />
                 </div>
               </div>
@@ -1083,6 +1084,7 @@ export function MobileClinicDialog({ open, onOpenChange, clinic, onSave }: Mobil
                         label="حالة الطلب"
                         placeholder="اختر حالة الطلب"
                         required
+                        language="en"
                       />
                     </div>
 

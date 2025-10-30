@@ -127,6 +127,50 @@ export const holdingCodesApi = {
     }
   },
 
+  // Bulk delete holding codes
+  bulkDelete: async (ids: string[]): Promise<{
+    success: boolean;
+    message: string;
+    results: {
+      deleted: number;
+      failed: number;
+      errors: Array<{
+        id: string;
+        code?: string;
+        error: string;
+      }>;
+    };
+  }> => {
+    try {
+      const response = await api.delete('/holding-codes/bulk-delete', {
+        data: { ids }
+      });
+      return response as any;
+    } catch (error) {
+      console.error('Error bulk deleting holding codes:', error);
+      throw error;
+    }
+  },
+
+  // Delete all holding codes
+  deleteAll: async (): Promise<{
+    success: boolean;
+    message: string;
+    deletedCount: number;
+    usageDetails?: Array<{
+      model: string;
+      count: number;
+    }>;
+  }> => {
+    try {
+      const response = await api.delete('/holding-codes/delete-all');
+      return response as any;
+    } catch (error) {
+      console.error('Error deleting all holding codes:', error);
+      throw error;
+    }
+  },
+
   // Get statistics
   getStats: async () => {
     try {

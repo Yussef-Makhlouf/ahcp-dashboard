@@ -3,9 +3,12 @@
 import { useState } from "react";
 import { MainLayout } from "@/components/layout/main-layout";
 import { DataTable } from "@/components/data-table/data-table";
+import { TableFilters } from "@/components/data-table/table-filters";
+import { TABLE_FILTER_CONFIGS, filtersToApiParams } from "@/lib/table-filter-configs";
 
 import { Button } from "@/components/ui/button";
-import { Plus, Heart, FileSpreadsheet } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Plus, Heart, FileSpreadsheet, Search } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { equineHealthApi } from "@/lib/api/equine-health";
 import { EquineHealthDialog } from "./components/equine-health-dialog";
@@ -25,16 +28,18 @@ export default function EquineHealthPage() {
   const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
+  const [filters, setFilters] = useState<Record<string, any>>({});
   const { checkPermission } = usePermissions();
   const queryClient = useQueryClient();
 
   const { data, isLoading, refetch } = useQuery({
-    queryKey: ["equineHealth", page, search],
+    queryKey: ["equineHealth", page, search, filters],
     queryFn: () =>
       equineHealthApi.getList({
         page,
         limit: 30,
         search,
+        filter: filtersToApiParams(filters),
       }),
   });
 
@@ -229,6 +234,31 @@ export default function EquineHealthPage() {
             <p className="text-sm text-muted-foreground">نسبة العمليات الجراحية</p>
             <p className="text-2xl font-bold">{totalRecords > 0 ? ((surgicalOps / totalRecords) * 100).toFixed(1) + '%' : '0%'}</p>
           </div>
+        </div>
+
+        {/* Search */}
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            placeholder="البحث في سجلات صحة الخيول..."
+            value={search}
+            onChange={(e) => {
+              setSearch(e.target.value);
+              setPage(1); // Reset to first page when search changes
+            }}
+            className="pl-10"
+          />
+        </div>
+
+        {/* Filters */}
+        <div className="rounded-lg border bg-card p-4">
+          <TableFilters
+            fieldFilters={TABLE_FILTER_CONFIGS.equineHealth}
+            onFiltersChange={(newFilters) => {
+              setFilters(newFilters);
+              setPage(1); // Reset to first page when filters change
+            }}
+          />
         </div>
 
         {/* Data Table */}

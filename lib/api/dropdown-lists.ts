@@ -113,8 +113,9 @@ class DropdownListsAPI {
   /**
    * Get options by category
    */
-  async getByCategory(category: string): Promise<DropdownListsResponse> {
-    const response = await apiClient.get<DropdownListsResponse>(`${this.basePath}/by-category/${category}`);
+  async getByCategory(category: string, activeOnly: boolean = true): Promise<DropdownListsResponse> {
+    const params = activeOnly ? '' : '?includeInactive=true';
+    const response = await apiClient.get<DropdownListsResponse>(`${this.basePath}/by-category/${category}${params}`);
     return response.data;
   }
 
@@ -228,8 +229,8 @@ export const DROPDOWN_CATEGORIES = {
   INSECTICIDE_CATEGORIES: 'insecticide_categories',
   SPRAY_STATUS: 'spray_status',
   HERD_HEALTH_STATUS: 'herd_health_status',
-  COMPLIANCE_STATUS: 'compliance_status',
-  BREEDING_SITES_STATUS: 'breeding_sites_status',
+  COMPLIANCE_STATUS: 'compliance',
+  BREEDING_SITES_STATUS: 'breeding_sites',
   
   // Equine Health categories
   INTERVENTION_CATEGORIES: 'intervention_categories',

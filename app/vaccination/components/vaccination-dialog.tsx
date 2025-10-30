@@ -831,6 +831,7 @@ export function VaccinationDialog({
                       placeholder="اختر نوع المصل"
                       error={getFieldError("vaccineType")}
                       className={getFieldError("vaccineType") ? 'border-red-500' : ''}
+                      language="en"
                     />
                   </div>
 
@@ -849,6 +850,7 @@ export function VaccinationDialog({
                       placeholder="اختر حالة القطيع"
                       error={getFieldError("herdHealth")}
                       className={getFieldError("herdHealth") ? 'border-red-500' : ''}
+                      language="en"
                     />
                   </div>
 
@@ -866,6 +868,7 @@ export function VaccinationDialog({
                       placeholder="اختر معاملة الحيوانات"
                       error={getFieldError("animalsHandling")}
                       className={getFieldError("animalsHandling") ? 'border-red-500' : ''}
+                      language="en"
                     />
                   </div>
 
@@ -883,6 +886,7 @@ export function VaccinationDialog({
                       placeholder="اختر حالة العمال"
                       error={getFieldError("labours")}
                       className={getFieldError("labours") ? 'border-red-500' : ''}
+                      language="en"
                     />
                   </div>
 
@@ -900,6 +904,7 @@ export function VaccinationDialog({
                       placeholder="اختر سهولة الوصول للموقع"
                       error={getFieldError("reachableLocation")}
                       className={getFieldError("reachableLocation") ? 'border-red-500' : ''}
+                      language="en"
                     />
                   </div>
                 </div>
@@ -962,6 +967,7 @@ export function VaccinationDialog({
                           placeholder="اختر حالة الطلب"
                           error={getFieldError("request.situation")}
                           className={getFieldError("request.situation") ? 'border-red-500' : ''}
+                          language="en"
                         />
                       </div>
                       

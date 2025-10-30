@@ -2,7 +2,7 @@ import { useAuthStore } from '@/lib/store/auth-store';
 import { toast } from 'sonner';
 
 export interface PermissionConfig {
-  module: 'parasite-control' | 'vaccination' | 'mobile-clinics' | 'laboratories' | 'equine-health' | 'clients';
+  module: 'parasite-control' | 'vaccination' | 'mobile-clinics' | 'laboratories' | 'equine-health' | 'clients' | 'holding-codes';
   action: 'view' | 'create' | 'edit' | 'delete';
 }
 
@@ -54,7 +54,19 @@ export const usePermissions = () => {
 
     // العملاء: يمكن للجميع التعديل عليهم
     if (module === 'clients') {
-      console.log('Module is clients, granting permission');
+      console.log(`Module is ${module}, granting permission`);
+      return true;
+    }
+
+    // رموز الحيازة: الحذف للمدير العام فقط، باقي العمليات للجميع
+    if (module === 'holding-codes') {
+      if (action === 'delete') {
+        // الحذف متاح للمدير العام فقط (تم التحقق منه أعلاه)
+        console.log(`Holding codes delete permission check: role=${user.role}, hasPermission=false (not super_admin)`);
+        return false;
+      }
+      // باقي العمليات (view, create, edit) متاحة للجميع
+      console.log(`Module is ${module}, action is ${action}, granting permission`);
       return true;
     }
 
