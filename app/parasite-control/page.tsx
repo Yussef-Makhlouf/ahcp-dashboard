@@ -264,15 +264,14 @@ export default function ParasiteControlPage() {
 
 
   const handleDelete = async (id: string | number) => {
-    if (confirm("هل أنت متأكد من حذف هذا السجل؟")) {
-      try {
-        await parasiteControlApi.delete(id);
-        refetch(); // Refresh data after deletion
-        alert('تم حذف السجل بنجاح');
-      } catch (error) {
-        console.error('Delete failed:', error);
-        alert('فشل في حذف السجل');
-      }
+    try {
+      await parasiteControlApi.delete(id);
+      queryClient.invalidateQueries({ queryKey: ['parasite-control'] });
+      queryClient.invalidateQueries({ queryKey: ['parasite-control-stats'] });
+      toast.success('تم حذف السجل بنجاح');
+    } catch (error) {
+      console.error('Delete failed:', error);
+      toast.error('فشل في حذف السجل');
     }
   };
 
@@ -386,6 +385,8 @@ export default function ParasiteControlPage() {
             queryKey="parasite-control"
             acceptedFormats={[".csv", ".xlsx"]}
             maxFileSize={10}
+            currentFilters={filters}
+            currentDateRange={dateRange}
             onImportSuccess={() => {
               queryClient.invalidateQueries({ queryKey: ['parasite-control'] });
             }}
@@ -431,6 +432,10 @@ export default function ParasiteControlPage() {
           onPageChange={setCurrentPage}
           pageSize={pageSize}
           showPagination={true}
+          exportEndpoint="/api/parasite-control/export"
+          exportFilename="مكافحة_الطفيليات"
+          currentFilters={filters}
+          currentDateRange={dateRange}
         />
 
         {/* Parasite Control Dialog */}

@@ -178,33 +178,33 @@ export function useDynamicSelectOptions(category: keyof typeof DROPDOWN_CATEGORI
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const loadOptions = async () => {
-      if (!category) return;
+  const loadOptions = async () => {
+    if (!category) return;
 
-      setLoading(true);
-      setError(null);
+    setLoading(true);
+    setError(null);
+    
+    try {
+      const categoryValue = DROPDOWN_CATEGORIES[category];
+      const response = await dropdownListsApi.getByCategory(categoryValue, activeOnly);
       
-      try {
-        const categoryValue = DROPDOWN_CATEGORIES[category];
-        const response = await dropdownListsApi.getByCategory(categoryValue, activeOnly);
-        
-        // Ensure response.data is an array
-        const optionsData = Array.isArray(response.data) ? response.data : [];
-        setOptions(optionsData);
-      } catch (err: any) {
-        console.error('Error loading dropdown options:', err);
-        setError('فشل في تحميل الخيارات');
-        setOptions([]);
-      } finally {
-        setLoading(false);
-      }
-    };
+      // Ensure response.data is an array
+      const optionsData = Array.isArray(response.data) ? response.data : [];
+      setOptions(optionsData);
+    } catch (err: any) {
+      console.error('Error loading dropdown options:', err);
+      setError('فشل في تحميل الخيارات');
+      setOptions([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  useEffect(() => {
     loadOptions();
   }, [category, activeOnly]);
 
-  return { options, loading, error, reload: () => loadOptions() };
+  return { options, loading, error, reload: loadOptions };
 }
 
 // Utility function to get option label by value

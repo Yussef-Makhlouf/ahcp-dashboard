@@ -37,6 +37,8 @@ interface ImportExportManagerProps {
   onImportSuccess?: () => void;
   onExportSuccess?: () => void;
   onRefresh?: () => void;
+  currentFilters?: Record<string, any>; // Add support for passing current filters
+  currentDateRange?: { from?: Date; to?: Date } | null; // Add support for date range
 }
 
 interface ImportResult {
@@ -96,7 +98,9 @@ export function ImportExportManager({
   maxFileSize = 10,
   onImportSuccess,
   onExportSuccess,
-  onRefresh
+  onRefresh,
+  currentFilters = {},
+  currentDateRange = null
 }: ImportExportManagerProps) {
   const [isImporting, setIsImporting] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
@@ -212,8 +216,36 @@ export function ImportExportManager({
         throw new Error('لم يتم العثور على رمز المصادقة. يرجى تسجيل الدخول مرة أخرى.');
       }
 
-      // Add format parameter to the endpoint
-      const exportUrl = `${exportEndpoint}?format=${format}`;
+      // Build query parameters with current filters
+      const queryParams = new URLSearchParams({ format });
+      
+      // Add date range filters if present
+      if (currentDateRange?.from && currentDateRange?.to) {
+        queryParams.append('startDate', currentDateRange.from.toISOString().split('T')[0]);
+        queryParams.append('endDate', currentDateRange.to.toISOString().split('T')[0]);
+        console.log('📅 Export with date range:', { 
+          from: currentDateRange.from.toISOString().split('T')[0], 
+          to: currentDateRange.to.toISOString().split('T')[0] 
+        });
+      }
+      
+      // Add other filters (excluding undefined, null, empty strings, and '__all__')
+      Object.entries(currentFilters).forEach(([key, value]) => {
+        if (value !== undefined && value !== null && value !== '' && value !== '__all__') {
+          // Handle array values (multiselect filters)
+          if (Array.isArray(value)) {
+            queryParams.append(key, value.join(','));
+            console.log(`🔍 Export filter: ${key} = ${value.join(',')}`);
+          } else {
+            queryParams.append(key, String(value));
+            console.log(`🔍 Export filter: ${key} = ${value}`);
+          }
+        }
+      });
+      
+      // Add format parameter to the endpoint with filters
+      const exportUrl = `${exportEndpoint}?${queryParams.toString()}`;
+      console.log('📤 Export URL with filters:', exportUrl);
       
       const response = await fetch(exportUrl, {
         method: 'GET',

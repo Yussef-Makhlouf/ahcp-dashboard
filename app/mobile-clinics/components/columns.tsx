@@ -20,6 +20,19 @@ interface GetColumnsProps {
   onView?: (item: MobileClinic) => void;
 }
 
+const formatInterventionCategory = (value?: string | null) => {
+  if (value === undefined || value === null) {
+    return "غير محدد";
+  }
+
+  const stringValue = value.toString().trim();
+  if (!stringValue) {
+    return "غير محدد";
+  }
+
+  return stringValue;
+};
+
 export function getColumns({
   onEdit,
   onDelete,
@@ -55,7 +68,7 @@ export function getColumns({
         const phone = row.original.clientPhone || client?.phone || '';
         const birthDate = row.original.clientBirthDate || (client as any)?.birthDate;
         const village = row.original.clientVillage || 
-          (typeof client?.village === 'object' ? 
+          (typeof client?.village === 'object' && client.village !== null ? 
             (client.village as any).nameArabic || (client.village as any).nameEnglish : 
             client?.village) || '';
         
@@ -171,6 +184,44 @@ export function getColumns({
         );
       },
     },
+    // Intervention Categories
+    {
+      id: "interventionCategories",
+      header: "Intervention Categories",
+      cell: ({ row }) => {
+        const rawCategories = (row.original as any).interventionCategories;
+        const fallbackCategory = row.original.interventionCategory;
+
+        const categories = Array.isArray(rawCategories)
+          ? rawCategories
+          : fallbackCategory
+            ? [fallbackCategory]
+            : [];
+
+        if (categories.length === 0) {
+          return <span className="text-xs text-muted-foreground">غير محدد</span>;
+        }
+
+        return (
+          <div className="flex flex-wrap gap-1 max-w-[220px]">
+            {categories.map((category) => {
+              const label = formatInterventionCategory(category);
+              const key = typeof category === "string" ? category : JSON.stringify(category);
+              return (
+                <Badge
+                  key={key}
+                  variant="outline"
+                  className="bg-blue-50 text-blue-700 border-blue-200"
+                >
+                  {label}
+                </Badge>
+              );
+            })}
+          </div>
+        );
+      },
+      size: 220,
+    },
     // Supervisor
     {
       accessorKey: "supervisor",
@@ -211,7 +262,7 @@ export function getColumns({
         // Handle both string and object types
         const code = typeof holdingCode === 'object' ? holdingCode.code : holdingCode;
         const village = typeof holdingCode === 'object' ? 
-          (typeof holdingCode.village === 'object' ? (holdingCode.village as any).nameArabic || (holdingCode.village as any).nameEnglish : holdingCode.village) : '';
+          (typeof holdingCode.village === 'object' && holdingCode.village !== null ? (holdingCode.village as any).nameArabic || (holdingCode.village as any).nameEnglish : holdingCode.village) : '';
         const isActive = typeof holdingCode === 'object' ? (holdingCode as any).isActive !== false : true;
         
         return (
@@ -263,20 +314,10 @@ export function getColumns({
       cell: ({ row }) => {
         const diagnosis = row.original.diagnosis;
         const treatment = row.original.treatment;
-        const category = row.original.interventionCategory;
-        
-        const categoryColors = {
-          "Emergency": "bg-red-500 text-white",
-          "Routine": "bg-blue-500 text-white",
-          "Preventive": "bg-green-500 text-white",
-          "Follow-up": "bg-yellow-500 text-white",
-        };
-        
+        const hasDetails = Boolean(diagnosis) || Boolean(treatment);
+
         return (
-          <div className="text-xs space-y-1 max-w-[200px]">
-            <Badge className={categoryColors[category as keyof typeof categoryColors] || "bg-gray-500 text-white"}>
-              {category}
-            </Badge>
+          <div className="text-xs space-y-1 max-w-[220px]">
             {diagnosis && (
               <div className="truncate" title={diagnosis}>
                 <strong>Diagnosis:</strong> {diagnosis}
@@ -286,6 +327,9 @@ export function getColumns({
               <div className="truncate" title={treatment}>
                 <strong>Treatment:</strong> {treatment}
               </div>
+            )}
+            {!hasDetails && (
+              <span className="text-muted-foreground">لا توجد بيانات طبية متاحة</span>
             )}
           </div>
         );

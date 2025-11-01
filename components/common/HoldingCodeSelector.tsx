@@ -49,13 +49,21 @@ export function HoldingCodeSelector({
   const resolvedVillageName = React.useMemo(() => {
     if (!village) return '';
     
+    // Handle village object directly passed (e.g., from populated data)
+    if (typeof village === 'object' && village !== null) {
+      const villageObj = village as any;
+      const name = villageObj.nameArabic || villageObj.name || villageObj.nameEnglish;
+      return name && typeof name === 'string' ? name : '';
+    }
+    
     // If it's already a village name (string), return it
     if (typeof village === 'string') {
       // Check if it's an ObjectId (24 hex characters)
       if (/^[0-9a-fA-F]{24}$/.test(village)) {
         // Find village by ObjectId
         const foundVillage = villages.find(v => v._id === village);
-        return foundVillage ? foundVillage.nameArabic : '';
+        const name = foundVillage?.nameArabic || foundVillage?.nameEnglish;
+        return name && typeof name === 'string' ? name : '';
       } else {
         // It's already a village name
         return village;
@@ -111,7 +119,29 @@ export function HoldingCodeSelector({
       console.log('📋 Processed holding codes:', holdingCodesData);
       console.log('📊 Number of holding codes found:', holdingCodesData.length);
       
-      setHoldingCodes(holdingCodesData);
+      // تنظيف البيانات للتأكد من عدم وجود كائنات معقدة في العرض
+      const cleanedData = holdingCodesData.map(item => {
+        // Handle village field - ensure it's a string
+        let villageStr = '';
+        if (item.village) {
+          if (typeof item.village === 'object' && item.village !== null) {
+            const villageObj = item.village as any;
+            villageStr = villageObj.nameArabic || villageObj.name || villageObj.nameEnglish || '';
+          } else if (typeof item.village === 'string') {
+            villageStr = item.village;
+          }
+        }
+        
+        return {
+          ...item,
+          _id: String(item._id || ''),
+          code: String(item.code || ''),
+          village: villageStr, // Always a string now
+          description: String(item.description || '')
+        };
+      });
+      
+      setHoldingCodes(cleanedData);
     } catch (error: any) {
       console.error('❌ Error fetching holding codes:', error);
       console.error('❌ Error details:', {
@@ -160,7 +190,32 @@ export function HoldingCodeSelector({
 
   // Get display text for holding code
   const getHoldingCodeDisplay = (holdingCode: HoldingCode) => {
-    return `${holdingCode.code} - ${holdingCode.village}`;
+    try {
+      // Handle both simple string and complex object for village
+      let villageText = 'غير محدد';
+      
+      if (holdingCode.village) {
+        if (typeof holdingCode.village === 'object' && holdingCode.village !== null) {
+          // Extract text from village object, ensuring it's a string
+          const villageObj = holdingCode.village as any;
+          const potentialName = villageObj.nameArabic || villageObj.name || villageObj.nameEnglish;
+          villageText = potentialName && typeof potentialName === 'string' ? potentialName : 'غير محدد';
+        } else if (typeof holdingCode.village === 'string') {
+          villageText = holdingCode.village;
+        }
+      }
+      
+      // Ensure code is a string
+      const codeText = holdingCode.code && typeof holdingCode.code === 'string' 
+        ? holdingCode.code 
+        : String(holdingCode.code || 'غير محدد');
+      
+      // Return plain string concatenation
+      return codeText + ' - ' + villageText;
+    } catch (error) {
+      console.error('Error in getHoldingCodeDisplay:', error, holdingCode);
+      return 'خطأ في عرض البيانات';
+    }
   };
 
   const canCreateNew = resolvedVillageName && !disabled;
@@ -188,14 +243,27 @@ export function HoldingCodeSelector({
                 {loading ? "جاري التحميل..." : "لا توجد رموز حيازة متاحة"}
               </SelectItem>
             ) : (
-              holdingCodes.map((holdingCode) => (
-                <SelectItem key={holdingCode._id} value={holdingCode._id || ''}>
-                  <div className="flex items-center gap-2">
-                    <MapPin className="h-4 w-4 text-gray-500" />
-                    <span>{getHoldingCodeDisplay(holdingCode)}</span>
-                  </div>
-                </SelectItem>
-              ))
+              holdingCodes.map((holdingCode) => {
+                try {
+                  const displayText = getHoldingCodeDisplay(holdingCode);
+                  const itemValue = String(holdingCode._id || '');
+                  
+                  // Ensure displayText is a primitive string
+                  const safeDisplayText = typeof displayText === 'string' ? displayText : String(displayText || '');
+                  
+                  return (
+                    <SelectItem key={itemValue} value={itemValue}>
+                      <div className="flex items-center gap-2">
+                        <MapPin className="h-4 w-4 text-gray-500" />
+                        <span>{safeDisplayText}</span>
+                      </div>
+                    </SelectItem>
+                  );
+                } catch (error) {
+                  console.error('Error rendering holding code item:', error, holdingCode);
+                  return null;
+                }
+              })
             )}
           </SelectContent>
         </Select>
@@ -242,7 +310,7 @@ export function HoldingCodeSelector({
                 <div className="bg-gray-50 p-3 rounded-md">
                   <div className="flex items-center gap-2 text-sm text-gray-600">
                     <MapPin className="h-4 w-4" />
-                    <span>القرية: {resolvedVillageName || 'غير محددة'}</span>
+                    <span>القرية: {String(resolvedVillageName || 'غير محددة')}</span>
                   </div>
                   <div className="text-xs text-gray-500 mt-1">
                     سيتم إنشاء رمز حيازة جديد لهذه القرية
@@ -285,7 +353,7 @@ export function HoldingCodeSelector({
       {/* Debug info */}
       {process.env.NODE_ENV === 'development' && (
         <div className="text-xs text-gray-400 mt-1">
-          Debug: village={village}, resolved={resolvedVillageName}, codes={holdingCodes.length}
+          Debug: village={String(village || 'none')}, resolved={String(resolvedVillageName || 'none')}, codes={holdingCodes.length}
         </div>
       )}
 

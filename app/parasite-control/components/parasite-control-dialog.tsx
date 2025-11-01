@@ -106,15 +106,17 @@ const formSchema = z.object({
   }),
   insecticide: z.object({
     type: z.string().min(1, "نوع المبيد مطلوب").default(""),
-    method: z.string().min(1, "طريقة الرش مطلوبة").default("Pour on"),
-    volumeMl: z.number().min(1, "يجب أن تكون الكمية أكبر من 0").default(100),
-    status: z.enum(["Sprayed", "Not Sprayed"]).default("Not Sprayed"),
+    method: z.enum(["Pour on", "Spraying", "Dipping", "Injection", "Oral", "Other"]).default("Pour on"),
+    volumeMl: z.number().min(0, "يجب أن تكون الكمية أكبر من أو تساوي 0").max(50000, "الكمية لا يمكن أن تتجاوز 50,000 مل").default(100),
+    status: z.enum(["Sprayed", "Not Sprayed", "Partially Sprayed"]).default("Not Sprayed"),
     category: z.string().min(1, "فئة المبيد مطلوبة").default("Pour-on"),
+    concentration: z.string().optional(),
+    manufacturer: z.string().optional(),
   }),
   animalBarnSizeSqM: z.number().min(0, "يجب أن يكون الحجم أكبر من أو يساوي 0").default(0),
-  breedingSites: z.enum(["Sprayed", "Not Available", "Not Applicable"]).default("Not Available"),
+  breedingSites: z.string().max(500, "وصف مواقع التكاثر لا يمكن أن يتجاوز 500 حرف").default(""),
   holdingCode: z.string().optional(),
-  herdHealthStatus: z.enum(["Healthy", "Sick", "Under Treatment"]).default("Healthy"),
+  herdHealthStatus: z.enum(["Healthy", "Sick", "Sporadic cases"]).default("Healthy"),
   complyingToInstructions: z.enum(["Comply", "Not Comply", "Partially Comply"]).default("Comply"),
   request: z.object({
     date: z.string().min(1, "تاريخ الطلب مطلوب").default(() => new Date().toISOString().split('T')[0]),
@@ -210,14 +212,16 @@ export function ParasiteControlDialog({
         horse: { total: 0, young: 0, female: 0, treated: 0 },
       },
       insecticide: {
-        type: "Ivermectin",
+        type: "Ultra-Pour 1%",
         method: "Pour on",
-        volumeMl: 100, // قيمة افتراضية أكبر
+        volumeMl: 100,
         status: "Not Sprayed",
         category: "Pour-on",
+        concentration: "",
+        manufacturer: "",
       },
       animalBarnSizeSqM: 0,
-      breedingSites: "Not Available",
+      breedingSites: "",
       holdingCode: "",
       herdHealthStatus: "Healthy",
       complyingToInstructions: "Comply",
@@ -291,15 +295,38 @@ export function ParasiteControlDialog({
           horse: item.herdCounts?.horse || { total: 0, young: 0, female: 0, treated: 0 },
         },
         insecticide: {
-          type: item.insecticide?.type || '',
-          method: item.insecticide?.method || 'Pour on',
+          type: item.insecticide?.type || 'Ultra-Pour 1%',
+          method: (() => {
+            const method = item.insecticide?.method || 'Pour on';
+            const validMethods: ('Pour on' | 'Spraying' | 'Dipping' | 'Injection' | 'Oral' | 'Other')[] = 
+              ['Pour on', 'Spraying', 'Dipping', 'Injection', 'Oral', 'Other'];
+            return validMethods.includes(method as any) ? (method as any) : 'Pour on';
+          })(),
           volumeMl: item.insecticide?.volumeMl || 0,
-          status: item.insecticide?.status || 'Not Sprayed',
+          status: (() => {
+            const status = item.insecticide?.status || 'Not Sprayed';
+            const validStatuses: ('Sprayed' | 'Not Sprayed' | 'Partially Sprayed')[] = 
+              ['Sprayed', 'Not Sprayed', 'Partially Sprayed'];
+            return validStatuses.includes(status as any) ? (status as any) : 'Not Sprayed';
+          })(),
           category: item.insecticide?.category || 'Pour-on',
+          concentration: item.insecticide?.concentration || '',
+          manufacturer: item.insecticide?.manufacturer || '',
         },
         animalBarnSizeSqM: item.animalBarnSizeSqM || 0,
-        breedingSites: (item.breedingSites as 'Sprayed' | 'Not Available' | 'Not Applicable') || 'Not Available',
-        herdHealthStatus: item.herdHealthStatus || 'Healthy',
+        breedingSites: item.breedingSites || '',
+        herdHealthStatus: (() => {
+          // Handle backward compatibility: convert "Under Treatment" to "Sporadic cases"
+          const status = item.herdHealthStatus || 'Healthy';
+          if (status === 'Under Treatment') {
+            return 'Sporadic cases';
+          }
+          // Validate that the status is one of the allowed values
+          const validValues: ('Healthy' | 'Sick' | 'Sporadic cases')[] = ['Healthy', 'Sick', 'Sporadic cases'];
+          return validValues.includes(status as any) 
+            ? (status as 'Healthy' | 'Sick' | 'Sporadic cases')
+            : 'Healthy';
+        })(),
         complyingToInstructions: (() => {
           // Handle both boolean and string types for backward compatibility
           if (typeof item.complyingToInstructions === 'boolean') {
@@ -380,8 +407,8 @@ export function ParasiteControlDialog({
           category: 'Pour-on',
         },
         animalBarnSizeSqM: 0,
-        breedingSites: 'Not Available' as 'Sprayed' | 'Not Available' | 'Not Applicable',
-        herdHealthStatus: 'Healthy' as 'Healthy' | 'Sick' | 'Under Treatment',
+        breedingSites: '',
+        herdHealthStatus: 'Healthy' as 'Healthy' | 'Sick' | 'Sporadic cases',
         complyingToInstructions: 'Comply' as 'Comply' | 'Not Comply' | 'Partially Comply',
         request: {
           date: new Date().toISOString().split('T')[0],
@@ -1397,14 +1424,11 @@ export function ParasiteControlDialog({
                     render={({ field }) => (
                       <FormItem>
                         <FormControl>
-                          <DynamicSelect
-                            category="BREEDING_SITES_STATUS"
-                            value={field.value || ""}
-                            onValueChange={field.onChange}
-                            label="مواقع التكاثر"
-                            placeholder="اختر حالة مواقع التكاثر"
-                            required
-                            language="en"
+                          <Textarea
+                            {...field}
+                            placeholder="وصف مواقع التكاثر (اختياري)"
+                            className="min-h-[80px] resize-none"
+                            maxLength={500}
                           />
                         </FormControl>
                         <FormMessage className="text-red-500 text-sm font-medium" />

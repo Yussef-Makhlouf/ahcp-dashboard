@@ -3,8 +3,8 @@
 import { useState } from "react";
 import { MainLayout } from "@/components/layout/main-layout";
 import { DataTable } from "@/components/data-table/data-table";
-import { TableFilters } from "@/components/data-table/table-filters";
-import { TABLE_FILTER_CONFIGS, filtersToApiParams } from "@/lib/table-filter-configs";
+import { TableFilters, useTableFilters } from "@/components/data-table/table-filters";
+import { getTableFilterConfig, filtersToApiParams } from "@/lib/table-filter-configs";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,6 +21,7 @@ import { ImportExportManager } from "@/components/import-export";
 import { ImportDialog } from "@/components/common/ImportDialog";
 import { ResponsiveActions, createActions } from "@/components/ui/responsive-actions";
 import { apiConfig } from "@/lib/api-config";
+import { DateRange } from "react-day-picker";
 
 export default function EquineHealthPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -28,19 +29,41 @@ export default function EquineHealthPage() {
   const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
-  const [filters, setFilters] = useState<Record<string, any>>({});
   const { checkPermission } = usePermissions();
   const queryClient = useQueryClient();
 
+  // إعداد الفلاتر
+  const {
+    filters,
+    dateRange,
+    updateFilters,
+    updateDateRange,
+    clearFilters,
+    hasActiveFilters
+  } = useTableFilters({}, (newFilters) => {
+    // إعادة تعيين الصفحة عند تغيير الفلاتر
+    setPage(1);
+  });
+
   const { data, isLoading, refetch } = useQuery({
-    queryKey: ["equineHealth", page, search, filters],
-    queryFn: () =>
-      equineHealthApi.getList({
+    queryKey: ["equineHealth", page, search, filters, dateRange],
+    queryFn: () => {
+      const apiParams = filtersToApiParams({ ...filters, dateRange });
+      console.log('🔍 Current filters:', filters);
+      console.log('🔄 API params:', apiParams);
+      console.log('📡 Final request params:', {
         page,
         limit: 30,
         search,
-        filter: filtersToApiParams(filters),
-      }),
+        ...apiParams,
+      });
+      return equineHealthApi.getList({
+        page,
+        limit: 30,
+        search,
+        ...apiParams,
+      });
+    },
   });
 
 
@@ -83,7 +106,7 @@ export default function EquineHealthPage() {
     console.log('🗑️ handleBulkDelete called with:', selectedRows.length, 'rows');
     try {
       const ids: (string | number)[] = selectedRows
-        .map(row => row.serialNo || row._id)
+        .map(row => row._id || row.serialNo)
         .filter(id => id !== undefined && id !== null && id !== '') as (string | number)[];
       const result = await equineHealthApi.bulkDelete(ids);
       console.log('✅ Bulk delete result:', result);
@@ -98,12 +121,60 @@ export default function EquineHealthPage() {
   // Calculate statistics
   const totalRecords = data?.total || 0;
   const totalHorses = data?.data?.reduce((sum, item) => sum + (item.horseCount || 0), 0) || 0;
-  const emergencyCases = data?.data?.filter(item => item.interventionCategory === "Emergency").length || 0;
-  const routineCases = data?.data?.filter(item => item.interventionCategory === "Routine").length || 0;
-  const preventiveCases = data?.data?.filter(item => item.interventionCategory === "Preventive").length || 0;
+  const clinicalExaminations = data?.data?.filter(item => item.interventionCategory === "Clinical Examination").length || 0;
+  const surgicalOperations = data?.data?.filter(item => item.interventionCategory === "Surgical Operation").length || 0;
+  const ultrasonographyCases = data?.data?.filter(item => item.interventionCategory === "Ultrasonography").length || 0;
+  const labAnalysisCases = data?.data?.filter(item => item.interventionCategory === "Lab Analysis").length || 0;
+  const farrieryCases = data?.data?.filter(item => item.interventionCategory === "Farriery").length || 0;
   const followUpRequired = data?.data?.filter(item => item.followUpRequired).length || 0;
   const closedRequests = data?.data?.filter(item => item.request?.situation === "Closed").length || 0;
-  const surgicalOps = data?.data?.filter(item => item.interventionCategory === "Performance").length || 0;
+  const surgicalShare = totalRecords > 0 ? ((surgicalOperations / totalRecords) * 100).toFixed(1) : '0.0';
+  const averageHorses = totalRecords > 0 ? (totalHorses / totalRecords).toFixed(1) : '0.0';
+  const activeCategories = [
+    clinicalExaminations,
+    surgicalOperations,
+    ultrasonographyCases,
+    labAnalysisCases,
+    farrieryCases
+  ].filter(count => count > 0).length;
+
+  const interventionStats = [
+    {
+      key: 'clinical-examination',
+      title: 'الفحص السريري',
+      value: clinicalExaminations,
+      background: 'bg-orange-100',
+      accent: 'text-orange-600'
+    },
+    {
+      key: 'surgical-operation',
+      title: 'العمليات الجراحية',
+      value: surgicalOperations,
+      background: 'bg-red-100',
+      accent: 'text-red-600'
+    },
+    {
+      key: 'ultrasonography',
+      title: 'التصوير بالموجات فوق الصوتية',
+      value: ultrasonographyCases,
+      background: 'bg-purple-100',
+      accent: 'text-purple-600'
+    },
+    {
+      key: 'lab-analysis',
+      title: 'التحاليل المخبرية',
+      value: labAnalysisCases,
+      background: 'bg-blue-100',
+      accent: 'text-blue-600'
+    },
+    {
+      key: 'farriery',
+      title: 'خدمات الحدادة',
+      value: farrieryCases,
+      background: 'bg-emerald-100',
+      accent: 'text-emerald-600'
+    }
+  ];
 
   return (
     <MainLayout>
@@ -138,6 +209,8 @@ export default function EquineHealthPage() {
             queryKey="equineHealth"
             acceptedFormats={[".csv", ".xlsx"]}
             maxFileSize={10}
+            currentFilters={filters}
+            currentDateRange={dateRange}
             onImportSuccess={() => {
               queryClient.invalidateQueries({ queryKey: ['equineHealth'] });
             }}
@@ -150,8 +223,8 @@ export default function EquineHealthPage() {
           />
         </div>
 
-        {/* Stats Cards */}
-        <div className="grid gap-4 md:grid-cols-4">
+        {/* Overview Cards */}
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           <div className="rounded-xl border bg-card p-4">
             <div className="flex items-center gap-2">
               <div className="rounded-lg bg-blue-100 p-2">
@@ -176,63 +249,58 @@ export default function EquineHealthPage() {
           </div>
           <div className="rounded-xl border bg-card p-4">
             <div className="flex items-center gap-2">
-              <div className="rounded-lg bg-red-100 p-2">
-                <Heart className="h-4 w-4 text-red-600" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">حالات الطوارئ</p>
-                <p className="text-2xl font-bold">{emergencyCases}</p>
-              </div>
-            </div>
-          </div>
-          <div className="rounded-xl border bg-card p-4">
-            <div className="flex items-center gap-2">
-              <div className="rounded-lg bg-blue-100 p-2">
-                <Heart className="h-4 w-4 text-blue-600" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">الفحوصات الروتينية</p>
-                <p className="text-2xl font-bold">{routineCases}</p>
-              </div>
-            </div>
-          </div>
-          <div className="rounded-xl border bg-card p-4">
-            <div className="flex items-center gap-2">
-              <div className="rounded-lg bg-green-100 p-2">
-                <Heart className="h-4 w-4 text-green-600" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">الفحوصات الوقائية</p>
-                <p className="text-2xl font-bold">{preventiveCases}</p>
-              </div>
-            </div>
-          </div>
-          <div className="rounded-xl border bg-card p-4">
-            <div className="flex items-center gap-2">
               <div className="rounded-lg bg-yellow-100 p-2">
                 <Heart className="h-4 w-4 text-yellow-600" />
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">تتطلب متابعة</p>
+                <p className="text-sm text-muted-foreground">سجلات تتطلب متابعة</p>
                 <p className="text-2xl font-bold">{followUpRequired}</p>
+              </div>
+            </div>
+          </div>
+          <div className="rounded-xl border bg-card p-4">
+            <div className="flex items-center gap-2">
+              <div className="rounded-lg bg-emerald-100 p-2">
+                <Heart className="h-4 w-4 text-emerald-600" />
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">الطلبات المغلقة</p>
+                <p className="text-2xl font-bold">{closedRequests}</p>
               </div>
             </div>
           </div>
         </div>
 
+        {/* Intervention Breakdown */}
+        <div className="grid gap-4 grid-cols-1 md:grid-cols-3 lg:grid-cols-5">
+          {interventionStats.map((stat) => (
+            <div key={stat.key} className="rounded-xl border bg-card p-4">
+              <div className="flex items-center gap-2">
+                <div className={`rounded-lg p-2 ${stat.background}`}>
+                  <Heart className={`h-4 w-4 ${stat.accent}`} />
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">{stat.title}</p>
+                  <p className="text-2xl font-bold">{stat.value}</p>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+
         {/* Additional Stats */}
         <div className="grid gap-4 grid-cols-1 md:grid-cols-3">
           <div className="rounded-xl border bg-card p-4">
-            <p className="text-sm text-muted-foreground">الطلبات المغلقة</p>
-            <p className="text-2xl font-bold text-green-600">{closedRequests}</p>
+            <p className="text-sm text-muted-foreground">متوسط عدد الخيول لكل سجل</p>
+            <p className="text-2xl font-bold">{averageHorses}</p>
           </div>
           <div className="rounded-xl border bg-card p-4">
-            <p className="text-sm text-muted-foreground">متوسط عدد الخيول لكل سجل</p>
-            <p className="text-2xl font-bold">{totalRecords > 0 ? (totalHorses / totalRecords).toFixed(1) : 0}</p>
+            <p className="text-sm text-muted-foreground">عدد الفئات النشطة</p>
+            <p className="text-2xl font-bold">{activeCategories}</p>
           </div>
           <div className="rounded-xl border bg-card p-4">
             <p className="text-sm text-muted-foreground">نسبة العمليات الجراحية</p>
-            <p className="text-2xl font-bold">{totalRecords > 0 ? ((surgicalOps / totalRecords) * 100).toFixed(1) + '%' : '0%'}</p>
+            <p className="text-2xl font-bold">{`${surgicalShare}%`}</p>
           </div>
         </div>
 
@@ -253,11 +321,13 @@ export default function EquineHealthPage() {
         {/* Filters */}
         <div className="rounded-lg border bg-card p-4">
           <TableFilters
-            fieldFilters={TABLE_FILTER_CONFIGS.equineHealth}
+            fieldFilters={getTableFilterConfig("equineHealth")}
+            filterValues={filters}
             onFiltersChange={(newFilters) => {
-              setFilters(newFilters);
+              updateFilters(newFilters);
               setPage(1); // Reset to first page when filters change
             }}
+            defaultExpanded={hasActiveFilters}
           />
         </div>
 

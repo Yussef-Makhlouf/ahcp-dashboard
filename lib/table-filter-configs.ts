@@ -363,11 +363,11 @@ export const TABLE_FILTER_CONFIGS: Record<string, FieldFilter[]> = {
       label: "Intervention Category",
       type: "multiselect" as const,
       options: [
-        { value: "clinical-examination", label: "Clinical Examination", color: "destructive" as const },
-        { value: "surgical-operation", label: "Surgical Operation", color: "default" as const },
-        { value: "ultrasonography", label: "Ultrasonography", color: "secondary" as const },
-        { value: "lab-analysis", label: "Lab Analysis", color: "outline" as const },
-        { value: "farriery", label: "Farriery", color: "default" as const }
+        { value: "Clinical Examination", label: "Clinical Examination", color: "destructive" as const },
+        { value: "Surgical Operation", label: "Surgical Operation", color: "default" as const },
+        { value: "Ultrasonography", label: "Ultrasonography", color: "secondary" as const },
+        { value: "Lab Analysis", label: "Lab Analysis", color: "outline" as const },
+        { value: "Farriery", label: "Farriery", color: "default" as const }
       ]
     }
   ]

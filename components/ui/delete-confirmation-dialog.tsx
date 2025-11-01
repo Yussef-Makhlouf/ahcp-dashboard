@@ -21,7 +21,6 @@ interface DeleteConfirmationDialogProps {
   cancelText?: string;
   isDestructive?: boolean;
   isLoading?: boolean;
-  itemCount?: number;
 }
 
 export const DeleteConfirmationDialog: React.FC<DeleteConfirmationDialogProps> = ({
@@ -33,8 +32,7 @@ export const DeleteConfirmationDialog: React.FC<DeleteConfirmationDialogProps> =
   confirmText = "حذف",
   cancelText = "إلغاء",
   isDestructive = true,
-  isLoading = false,
-  itemCount
+  isLoading = false
 }) => {
   const handleConfirm = () => {
     onConfirm();
@@ -55,13 +53,6 @@ export const DeleteConfirmationDialog: React.FC<DeleteConfirmationDialogProps> =
           </AlertDialogTitle>
           <AlertDialogDescription className="text-right">
             {description}
-            {itemCount && itemCount > 0 && (
-              <div className="mt-2 p-2 bg-red-50 border border-red-200 rounded-md">
-                <span className="text-red-700 font-medium">
-                  سيتم حذف {itemCount} عنصر
-                </span>
-              </div>
-            )}
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter className="flex gap-2">
@@ -115,40 +106,11 @@ export const BulkDeleteDialog: React.FC<BulkDeleteDialogProps> = ({
       title="حذف العناصر المحددة"
       description={`هل أنت متأكد من حذف ${selectedCount} عنصر؟ هذا الإجراء لا يمكن التراجع عنه.`}
       confirmText="حذف المحدد"
-      itemCount={selectedCount}
       isLoading={isLoading}
     />
   );
 };
 
-// مكون خاص للحذف الكلي
-interface DeleteAllDialogProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  onConfirm: () => void;
-  entityName: string;
-  isLoading?: boolean;
-}
-
-export const DeleteAllDialog: React.FC<DeleteAllDialogProps> = ({
-  open,
-  onOpenChange,
-  onConfirm,
-  entityName,
-  isLoading = false
-}) => {
-  return (
-    <DeleteConfirmationDialog
-      open={open}
-      onOpenChange={onOpenChange}
-      onConfirm={onConfirm}
-      title={`حذف جميع ${entityName}`}
-      description={`هل أنت متأكد من حذف جميع ${entityName}؟ هذا الإجراء لا يمكن التراجع عنه وسيؤثر على جميع السجلات المرتبطة.`}
-      confirmText="حذف الكل"
-      isLoading={isLoading}
-    />
-  );
-};
 
 // مكون خاص للحذف الفردي
 interface SingleDeleteDialogProps {

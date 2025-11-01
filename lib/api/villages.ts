@@ -135,6 +135,41 @@ class VillagesApi {
     return api.post<VillageResponse>('/villages/bulk', { villages });
   }
 
+  /**
+   * Bulk delete villages
+   */
+  async bulkDelete(ids: string[]): Promise<{
+    success: boolean;
+    message: string;
+    results: {
+      deleted: number;
+      failed: number;
+      errors: Array<{
+        id: string;
+        error: string;
+      }>;
+    };
+  }> {
+    return api.delete('/villages/bulk-delete', {
+      data: { ids }
+    });
+  }
+
+  /**
+   * Delete all villages
+   */
+  async deleteAll(): Promise<{
+    success: boolean;
+    message: string;
+    deletedCount: number;
+    usageDetails?: Array<{
+      model: string;
+      count: number;
+    }>;
+  }> {
+    return api.delete('/villages/delete-all');
+  }
+
 }
 
 export const villagesApi = new VillagesApi();

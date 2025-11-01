@@ -261,17 +261,15 @@ export default function LaboratoriesPage() {
 
 
   const handleDelete = async (item: Laboratory) => {
-    if (confirm("هل أنت متأكد من حذف هذا السجل؟")) {
-      try {
-        await laboratoriesApi.delete((item as any)._id || item.sampleCode);
-        refetch(); // Refresh data after deletion
-        // Refresh statistics as well
-        queryClient.invalidateQueries({ queryKey: ['laboratories-stats'] });
-        alert('تم حذف السجل بنجاح');
-      } catch (error) {
-        console.error('Delete failed:', error);
-        alert('فشل في حذف السجل');
-      }
+    try {
+      await laboratoriesApi.delete((item as any)._id || item.sampleCode);
+      refetch(); // Refresh data after deletion
+      // Refresh statistics as well
+      queryClient.invalidateQueries({ queryKey: ['laboratories-stats'] });
+      toast.success('تم حذف السجل بنجاح');
+    } catch (error) {
+      console.error('Delete failed:', error);
+      toast.error('فشل في حذف السجل');
     }
   };
 
@@ -392,6 +390,8 @@ export default function LaboratoriesPage() {
             queryKey="laboratories"
             acceptedFormats={[".csv", ".xlsx"]}
             maxFileSize={10}
+            currentFilters={filters}
+            currentDateRange={dateRange}
             onImportSuccess={() => {
               queryClient.invalidateQueries({ queryKey: ['laboratories'] });
             }}

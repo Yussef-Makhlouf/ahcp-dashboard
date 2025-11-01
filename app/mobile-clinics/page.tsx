@@ -294,17 +294,15 @@ export default function MobileClinicsPage() {
 
 
   const handleDelete = async (item: MobileClinic) => {
-    if (confirm("هل أنت متأكد من حذف هذا السجل؟")) {
-      try {
-        // استخدام _id أو serialNo للحذف
-        const deleteId = item._id || item.serialNo;
-        await mobileClinicsApi.delete(deleteId);
-        refetch(); // Refresh data after deletion
-        alert('تم حذف السجل بنجاح');
-      } catch (error) {
-        console.error('Delete failed:', error);
-        alert('فشل في حذف السجل');
-      }
+    try {
+      // استخدام _id أو serialNo للحذف
+      const deleteId = item._id || item.serialNo;
+      await mobileClinicsApi.delete(deleteId);
+      refetch(); // Refresh data after deletion
+      toast.success('تم حذف السجل بنجاح');
+    } catch (error) {
+      console.error('Delete failed:', error);
+      toast.error('فشل في حذف السجل');
     }
   };
 
@@ -419,6 +417,8 @@ export default function MobileClinicsPage() {
             queryKey="mobile-clinics"
             acceptedFormats={[".csv", ".xlsx"]}
             maxFileSize={10}
+            currentFilters={filters}
+            currentDateRange={dateRange}
             onImportSuccess={() => {
               queryClient.invalidateQueries({ queryKey: ['mobile-clinics'] });
             }}

@@ -465,6 +465,8 @@ export default function ClientsPage() {
             queryKey="clients"
             acceptedFormats={[".csv", ".xlsx"]}
             maxFileSize={10}
+            currentFilters={filters}
+            currentDateRange={dateRange}
             onImportSuccess={() => {
               queryClient.invalidateQueries({ queryKey: ['clients'] });
               queryClient.invalidateQueries({ queryKey: ['clients-stats'] });

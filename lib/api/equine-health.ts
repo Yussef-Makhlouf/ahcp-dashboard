@@ -43,7 +43,7 @@ export const equineHealthApi = {
     page?: number;
     limit?: number;
     search?: string;
-    filter?: Record<string, any>;
+    [key: string]: any; // Allow any additional filter parameters
   }): Promise<PaginatedResponse<EquineHealth>> => {
     try {
       // Filter out empty search parameters to avoid validation errors
@@ -56,14 +56,18 @@ export const equineHealthApi = {
         cleanParams.search = params.search.trim();
       }
       
-      if (params?.filter) {
-        Object.entries(params.filter).forEach(([key, value]) => {
-          if (value !== undefined && value !== null && value !== '') {
+      // Add all other parameters as filters
+      if (params) {
+        Object.entries(params).forEach(([key, value]) => {
+          if (key !== 'page' && key !== 'limit' && key !== 'search' && 
+              value !== undefined && value !== null && value !== '') {
             cleanParams[key] = value;
           }
         });
       }
 
+      console.log('🌐 Sending API request with params:', cleanParams);
+      
       const response = await api.get('/equine-health', {
         params: cleanParams,
         timeout: 30000,

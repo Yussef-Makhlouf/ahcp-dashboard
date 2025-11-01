@@ -269,6 +269,10 @@ export function VaccinationDialog({
               ? item.request.fulfillingDate.split("T")[0] 
               : undefined,
           },
+          // Handle holdingCode - extract _id if it's an object
+          holdingCode: (typeof item.holdingCode === 'object' 
+            ? (item.holdingCode as any)?._id 
+            : item.holdingCode) || "",
         };
         form.reset(formattedItem);
       } else {
@@ -717,7 +721,11 @@ export function VaccinationDialog({
                       رمز الحيازة
                     </label>
                     <HoldingCodeSelector
-                      value={form.watch("holdingCode") || ""}
+                      value={
+                        typeof form.watch("holdingCode") === 'object' 
+                          ? (form.watch("holdingCode") as any)?._id || ""
+                          : form.watch("holdingCode") || ""
+                      }
                       onValueChange={(value) => form.setValue("holdingCode", value)}
                       village={form.watch("client.village")}
                       placeholder="اختر رمز الحيازة"
@@ -733,7 +741,7 @@ export function VaccinationDialog({
                     </label>
                     <SimpleDatePicker
                       placeholder="اختر تاريخ الميلاد"
-                      value={form.watch("client.birthDate") ? new Date(form.watch("client.birthDate")) : undefined}
+                      value={form.watch("client.birthDate") ? new Date(form.watch("client.birthDate")!) : undefined}
                       onChange={(date) => {
                         const dateString = date ? date.toISOString().split('T')[0] : '';
                         form.setValue("client.birthDate", dateString);
@@ -823,7 +831,7 @@ export function VaccinationDialog({
                       category="VACCINE_TYPES"
                       value={form.watch("vaccineType") || ""}
                       onValueChange={(value) => {
-                        form.setValue("vaccineType", value);
+                        form.setValue("vaccineType", value ?? undefined);
                         clearFieldError("vaccineType");
                       }}
                       label="نوع المصل"
@@ -842,7 +850,7 @@ export function VaccinationDialog({
                       category="HERD_HEALTH"
                       value={form.watch("herdHealth") || ""}
                       onValueChange={(value) => {
-                        form.setValue("herdHealth", value);
+                        form.setValue("herdHealth", value ?? undefined);
                         clearFieldError("herdHealth");
                       }}
                       label="حالة القطيع"
@@ -860,7 +868,7 @@ export function VaccinationDialog({
                       category="ANIMALS_HANDLING"
                       value={form.watch("animalsHandling") || ""}
                       onValueChange={(value) => {
-                        form.setValue("animalsHandling", value as "Easy" | "Difficult");
+                        form.setValue("animalsHandling", value ?? undefined);
                         clearFieldError("animalsHandling");
                       }}
                       label="معاملة الحيوانات"
@@ -878,7 +886,7 @@ export function VaccinationDialog({
                       category="LABOURS"
                       value={form.watch("labours") || ""}
                       onValueChange={(value) => {
-                        form.setValue("labours", value);
+                        form.setValue("labours", value ?? undefined);
                         clearFieldError("labours");
                       }}
                       label="حالة العمال"
@@ -896,7 +904,7 @@ export function VaccinationDialog({
                       category="REACHABLE_LOCATION"
                       value={form.watch("reachableLocation") || ""}
                       onValueChange={(value) => {
-                        form.setValue("reachableLocation", value);
+                        form.setValue("reachableLocation", value ?? undefined);
                         clearFieldError("reachableLocation");
                       }}
                       label="سهولة الوصول للموقع"
@@ -959,7 +967,7 @@ export function VaccinationDialog({
                           category="REQUEST_SITUATION"
                           value={form.watch("request.situation") || ""}
                           onValueChange={(value) => {
-                            form.setValue("request.situation", value);
+                            form.setValue("request.situation", value ?? undefined);
                             clearFieldError("request.situation");
                           }}
                           label="حالة الطلب"
@@ -978,12 +986,12 @@ export function VaccinationDialog({
                           </label>
                           <SimpleDatePicker
                             placeholder="اختر تاريخ الإنجاز"
-                            value={form.watch("request.fulfillingDate") ? new Date(form.watch("request.fulfillingDate")) : undefined}
+                            value={form.watch("request.fulfillingDate") ? new Date(form.watch("request.fulfillingDate")!) : undefined}
                             onChange={(date) => {
                               const dateString = date ? date.toISOString().split('T')[0] : '';
                               form.setValue("request.fulfillingDate", dateString);
                             }}
-                            minDate={form.watch("request.date") ? new Date(form.watch("request.date")) : undefined}
+                            minDate={form.watch("request.date") ? new Date(form.watch("request.date")!) : undefined}
                             variant="modern"
                             size="md"
                           />

@@ -130,18 +130,10 @@ export function getColumns({
           "Farriery": "bg-orange-500 text-white border-orange-600",
         };
 
-        const categoryLabels: Record<string, string> = {
-          "Clinical Examination": "طوارئ",
-          "Surgical Operation": "روتيني",
-          "Ultrasonography": "وقائي",
-          "Preventive": "متابعة",
-          "Lab Analysis": "تربية",
-          "Farriery": "أداء",
-        };
-
+        // عرض القيمة الإنجليزية الحقيقية
         return (
           <Badge className={categoryColors[category] || "bg-gray-500 text-white border-gray-600"}>
-            {categoryLabels[category] || category}
+            {category || "غير محدد"}
           </Badge>
         );
       },
@@ -190,6 +182,9 @@ export function getColumns({
       header: "Request Fulfilling Date",
       cell: ({ row }) => {
         const fulfillingDate = row.original.request?.fulfillingDate;
+        if (!fulfillingDate) {
+          return <span className="text-gray-400 text-xs">غير محدد</span>;
+        }
         return <SimpleDateCell date={fulfillingDate} />;
       },
     },

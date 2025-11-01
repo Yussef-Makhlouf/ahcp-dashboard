@@ -204,24 +204,44 @@ export function VillageManagement({ onRefresh }: VillageManagementProps) {
 
   // Handle bulk delete selected villages
   const handleBulkDelete = async (selectedVillages: Village[]) => {
-    if (!confirm(`هل أنت متأكد من حذف ${selectedVillages.length} قرية محدد؟`)) {
+    const selectedIds = selectedVillages.map(village => village._id).filter(Boolean);
+    
+    if (selectedIds.length === 0) {
+      toast.error("يرجى اختيار القرى المراد حذفها");
+      return;
+    }
+
+    if (!confirm(`هل أنت متأكد من حذف ${selectedIds.length} قرية محددة؟`)) {
       return;
     }
 
     try {
       setIsLoading(true);
-      const deletePromises = selectedVillages.map(village => 
-        villagesApi.delete(village._id)
-      );
+      const response = await villagesApi.bulkDelete(selectedIds);
       
-      await Promise.all(deletePromises);
-      
-      toast.success(`تم حذف ${selectedVillages.length} قرية بنجاح`);
-      loadVillages();
-      onRefresh?.();
-    } catch (error) {
-      console.error('Error deleting villages:', error);
-      toast.error('حدث خطأ أثناء حذف القرى');
+      if (response.success) {
+        toast.success(response.message);
+        
+        // Show detailed results if there were errors
+        if (response.results.failed > 0) {
+          const errorMessages = response.results.errors.map(err => 
+            `${err.id}: ${err.error}`
+          ).join('\n');
+          toast.error(`فشل في حذف ${response.results.failed} قرية:\n${errorMessages}`);
+        }
+        
+        loadVillages();
+        onRefresh?.();
+      } else {
+        toast.error(response.message || "حدث خطأ أثناء الحذف المحدد");
+      }
+    } catch (error: any) {
+      console.error('Bulk delete error:', error);
+      if (error.response?.data?.message) {
+        toast.error(error.response.data.message);
+      } else {
+        toast.error("حدث خطأ أثناء الحذف المحدد");
+      }
     } finally {
       setIsLoading(false);
     }
@@ -235,22 +255,38 @@ export function VillageManagement({ onRefresh }: VillageManagementProps) {
 
     try {
       setIsLoading(true);
-      const response = await villagesApi.getList({ page: 1, limit: 1000 });
+      const response = await villagesApi.deleteAll();
       
-      if (response.success && response.data) {
-        const deletePromises = response.data.map(village => 
-          villagesApi.delete(village._id)
-        );
-        
-        await Promise.all(deletePromises);
-        
-        toast.success("تم حذف جميع القرى بنجاح");
+      if (response.success) {
+        toast.success(response.message);
         loadVillages();
         onRefresh?.();
+      } else {
+        toast.error(response.message || "حدث خطأ أثناء الحذف الكلي");
+        
+        // Show usage details if available
+        if (response.usageDetails && response.usageDetails.length > 0) {
+          const usageInfo = response.usageDetails.map(usage => 
+            `${usage.model}: ${usage.count} سجل`
+          ).join('\n');
+          toast.error(`القرى مستخدمة في:\n${usageInfo}`);
+        }
       }
-    } catch (error) {
-      console.error('Error deleting all villages:', error);
-      toast.error('حدث خطأ أثناء حذف جميع القرى');
+    } catch (error: any) {
+      console.error('Delete all error:', error);
+      if (error.response?.data?.message) {
+        toast.error(error.response.data.message);
+        
+        // Show usage details from error response
+        if (error.response.data.usageDetails) {
+          const usageInfo = error.response.data.usageDetails.map((usage: any) => 
+            `${usage.model}: ${usage.count} سجل`
+          ).join('\n');
+          toast.error(`القرى مستخدمة في:\n${usageInfo}`);
+        }
+      } else {
+        toast.error("حدث خطأ أثناء الحذف الكلي");
+      }
     } finally {
       setIsLoading(false);
     }

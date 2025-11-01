@@ -253,17 +253,18 @@ export interface ParasiteControl {
   };
   insecticide: {
     type: string;
-    method: string;
-    volume_ml?: number; // Legacy support
-    volumeMl?: number; // Backend field
-    status: "Sprayed" | "Not Sprayed";
+    method: "Pour on" | "Spraying" | "Oral Drenching";
+    volumeMl: number; // Backend field (required)
+    status: "Sprayed" | "Not Sprayed" | "Partially Sprayed";
     category: string;
+    concentration?: string;
+    manufacturer?: string;
   };
   barns?: Barn[]; // Legacy support
   // Backend fields
   animalBarnSizeSqM: number;
-  breedingSites: string; // Backend expects string
-  herdHealthStatus: "Healthy" | "Sick" | "Under Treatment";
+  breedingSites?: string; // Backend expects string, optional field
+  herdHealthStatus: "Healthy" | "Sick" | "Sporadic cases";
   complying?: "Comply" | "Not Comply"; // Legacy support
   complyingToInstructions: "Comply" | "Not Comply" | "Partially Comply"; // Updated to match backend enum
   request: Request;
@@ -271,8 +272,14 @@ export interface ParasiteControl {
   remarks?: string;
   // Virtual fields from backend
   totalHerdCount?: number;
+  totalYoung?: number;
+  totalFemale?: number;
   totalTreated?: number;
   treatmentEfficiency?: number;
+  // Additional tracking fields
+  activityType?: string;
+  importSource?: "manual" | "excel" | "csv" | "api";
+  importDate?: string;
   // Timestamps
   createdAt?: string;
   updatedAt?: string;
@@ -411,7 +418,8 @@ export interface MobileClinic {
     cattle: number;
   };
   diagnosis: string;
-  interventionCategory: "Emergency" | "Routine" | "Preventive" | "Follow-up";
+  interventionCategory: string;
+  interventionCategories?: string[];
   treatment: string;
   medicationsUsed?: {
     name: string;
@@ -475,7 +483,7 @@ export interface EquineHealth {
   vehicleNo: string;
   horseCount: number;
   diagnosis: string;
-  interventionCategory: "Emergency" | "Routine" | "Preventive" | "Follow-up" | "Breeding" | "Performance";
+  interventionCategory: "Clinical Examination" | "Surgical Operation" | "Ultrasonography" | "Lab Analysis" | "Farriery";
   treatment: string;
   holdingCode?: string | {
     _id: string;

@@ -48,8 +48,6 @@ import {
   Hash,
   Clock,
   FileText,
-  Trash2,
-  AlertTriangle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -60,17 +58,8 @@ import {
 } from "@/components/ui/dialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 import { ProtectedDeleteButtons } from "@/components/ui/protected-delete-buttons";
+import { FilteredExportButton } from "./filtered-export-button";
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
@@ -92,6 +81,11 @@ interface DataTableProps<TData, TValue> {
   onPageChange?: (page: number) => void;
   onPageSizeChange?: (pageSize: number) => void;
   showPagination?: boolean;
+  // Export with filters props
+  exportEndpoint?: string;
+  exportFilename?: string;
+  currentFilters?: Record<string, any>;
+  currentDateRange?: { from?: Date; to?: Date } | null;
 }
 
 export function DataTable<TData, TValue>({
@@ -110,10 +104,13 @@ export function DataTable<TData, TValue>({
   totalCount,
   currentPage = 1,
   totalPages,
-
   onPageChange,
   onPageSizeChange,
   showPagination = true,
+  exportEndpoint,
+  exportFilename,
+  currentFilters,
+  currentDateRange,
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
@@ -122,8 +119,6 @@ export function DataTable<TData, TValue>({
   const [globalFilter, setGlobalFilter] = React.useState("");
   const [viewModalOpen, setViewModalOpen] = React.useState(false);
   const [selectedViewItem, setSelectedViewItem] = React.useState<TData | null>(null);
-  const [deleteDialogOpen, setDeleteDialogOpen] = React.useState(false);
-  const [deleteType, setDeleteType] = React.useState<'selected' | 'all'>('selected');
   const [isDeleting, setIsDeleting] = React.useState(false);
 
   // Add selection column to columns
@@ -247,55 +242,6 @@ export function DataTable<TData, TValue>({
     }
   };
 
-  // Handle bulk delete
-  const handleBulkDelete = async () => {
-    if (!enableBulkDelete) return;
-    
-    console.log('🗑️ DataTable handleBulkDelete called, deleteType:', deleteType);
-    console.log('🔍 selectedRows length:', selectedRows.length);
-    
-    setIsDeleting(true);
-    try {
-      if (deleteType === 'selected' && onDeleteSelected) {
-        console.log('📤 Calling onDeleteSelected with:', selectedRows.length, 'rows');
-        await onDeleteSelected(selectedRows);
-        console.log('✅ onDeleteSelected completed successfully');
-      } else if (deleteType === 'all' && onDeleteAll) {
-        console.log('📤 Calling onDeleteAll');
-        await onDeleteAll();
-        console.log('✅ onDeleteAll completed successfully');
-      }
-      setRowSelection({});
-      setDeleteDialogOpen(false);
-    } catch (error) {
-      console.error('❌ Delete failed:', error);
-      // إظهار رسالة خطأ للمستخدم
-      alert('فشل في حذف العناصر المحددة. يرجى المحاولة مرة أخرى.');
-    } finally {
-      setIsDeleting(false);
-    }
-  };
-
-  // Open delete dialog
-  const openDeleteDialog = (type: 'selected' | 'all') => {
-    console.log('🔘 openDeleteDialog called with type:', type);
-    console.log('🔘 selectedRows length:', selectedRows.length);
-    
-    if (!enableBulkDelete) {
-      console.log('❌ Bulk delete not enabled');
-      return;
-    }
-    
-    if (type === 'selected' && selectedRows.length === 0) {
-      console.log('❌ No rows selected');
-      alert('يرجى تحديد عناصر للحذف');
-      return;
-    }
-    
-    setDeleteType(type);
-    setDeleteDialogOpen(true);
-    console.log('✅ Delete dialog opened');
-  };
 
   // Helper function to get field icon
   const getFieldIcon = (key: string, value: any) => {
@@ -423,18 +369,50 @@ export function DataTable<TData, TValue>({
               <ProtectedDeleteButtons
                 module={module}
                 selectedRowsCount={selectedRows.length}
-                onDeleteSelected={() => {
+                onDeleteSelected={async () => {
                   console.log('🔘 Delete selected button clicked');
                   console.log('🔘 selectedRows length:', selectedRows.length);
-                  openDeleteDialog('selected');
+                  if (onDeleteSelected && selectedRows.length > 0) {
+                    setIsDeleting(true);
+                    try {
+                      await onDeleteSelected(selectedRows);
+                      setRowSelection({});
+                    } catch (error) {
+                      console.error('❌ Delete failed:', error);
+                    } finally {
+                      setIsDeleting(false);
+                    }
+                  }
                 }}
-                onDeleteAll={onDeleteAll ? () => openDeleteDialog('all') : undefined}
+                onDeleteAll={onDeleteAll ? async () => {
+                  console.log('🔘 Delete all button clicked');
+                  setIsDeleting(true);
+                  try {
+                    await onDeleteAll();
+                    setRowSelection({});
+                  } catch (error) {
+                    console.error('❌ Delete all failed:', error);
+                  } finally {
+                    setIsDeleting(false);
+                  }
+                } : undefined}
                 isDeleting={isDeleting}
                 showToast={true}
               />
             )}
 
             {/* Export buttons */}
+            {exportEndpoint && (
+              <FilteredExportButton
+                exportEndpoint={exportEndpoint}
+                filters={currentFilters}
+                dateRange={currentDateRange || undefined}
+                filename={exportFilename || module || 'export'}
+                buttonText="تصدير مفلتر"
+                variant="outline"
+                size="sm"
+              />
+            )}
             {onExport && (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -729,39 +707,6 @@ export function DataTable<TData, TValue>({
         </DialogContent>
       </Dialog>
 
-      {/* Delete Confirmation Dialog */}
-      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <AlertDialogContent className="bg-white">
-          <AlertDialogHeader>
-            <AlertDialogTitle className="text-right ">
-              {deleteType === 'selected' ? 'حذف العناصر المحددة' : 'حذف جميع العناصر'}
-            </AlertDialogTitle>
-            <AlertDialogDescription className="text-right">
-              {deleteType === 'selected' 
-                ? `هل أنت متأكد من حذف ${selectedRows.length} عنصر محدد؟ لا يمكن التراجع عن هذا الإجراء.`
-                : 'هل أنت متأكد من حذف جميع العناصر؟ لا يمكن التراجع عن هذا الإجراء.'
-              }
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter className="flex-row-reverse">
-            <AlertDialogCancel disabled={isDeleting}>
-              إلغاء
-            </AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => {
-                console.log('🔘 AlertDialogAction clicked');
-                console.log('🔘 deleteType:', deleteType);
-                console.log('🔘 selectedRows length:', selectedRows.length);
-                handleBulkDelete();
-              }}
-              disabled={isDeleting}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              {isDeleting ? 'جاري الحذف...' : 'حذف'}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   );
 }

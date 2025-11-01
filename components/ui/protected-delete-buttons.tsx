@@ -1,8 +1,7 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Trash2, AlertTriangle } from 'lucide-react';
 import { usePermissions, PermissionConfig } from '@/lib/hooks/usePermissions';
-import { BulkDeleteDialog } from './delete-confirmation-dialog';
 
 interface ProtectedDeleteButtonsProps {
   module: 'parasite-control' | 'vaccination' | 'mobile-clinics' | 'laboratories' | 'equine-health' | 'clients' | 'holding-codes';
@@ -22,8 +21,6 @@ export const ProtectedDeleteButtons: React.FC<ProtectedDeleteButtonsProps> = ({
   showToast = true
 }) => {
   const { checkPermission, checkPermissionWithToast } = usePermissions();
-  const [showBulkDeleteDialog, setShowBulkDeleteDialog] = useState(false);
-  const [showDeleteAllDialog, setShowDeleteAllDialog] = useState(false);
 
   const deletePermission: PermissionConfig = { module, action: 'delete' };
   const hasDeletePermission = checkPermission(deletePermission);
@@ -32,11 +29,11 @@ export const ProtectedDeleteButtons: React.FC<ProtectedDeleteButtonsProps> = ({
     if (showToast) {
       const allowed = checkPermissionWithToast(deletePermission);
       if (allowed) {
-        setShowBulkDeleteDialog(true);
+        onDeleteSelected();
       }
     } else {
       if (hasDeletePermission) {
-        setShowBulkDeleteDialog(true);
+        onDeleteSelected();
       }
     }
   };
@@ -45,26 +42,15 @@ export const ProtectedDeleteButtons: React.FC<ProtectedDeleteButtonsProps> = ({
     if (showToast) {
       const allowed = checkPermissionWithToast(deletePermission);
       if (allowed && onDeleteAll) {
-        setShowDeleteAllDialog(true);
+        onDeleteAll();
       }
     } else {
       if (hasDeletePermission && onDeleteAll) {
-        setShowDeleteAllDialog(true);
+        onDeleteAll();
       }
     }
   };
 
-  const confirmBulkDelete = () => {
-    onDeleteSelected();
-    setShowBulkDeleteDialog(false);
-  };
-
-  const confirmDeleteAll = () => {
-    if (onDeleteAll) {
-      onDeleteAll();
-    }
-    setShowDeleteAllDialog(false);
-  };
 
   // إذا لم تكن هناك صلاحية حذف، لا تظهر الأزرار
   if (!hasDeletePermission) {
@@ -101,16 +87,6 @@ export const ProtectedDeleteButtons: React.FC<ProtectedDeleteButtonsProps> = ({
         </Button>
       )}
 
-      {/* Dialog للحذف المحدد */}
-      <BulkDeleteDialog
-        open={showBulkDeleteDialog}
-        onOpenChange={setShowBulkDeleteDialog}
-        onConfirm={confirmBulkDelete}
-        selectedCount={selectedRowsCount}
-        isLoading={isDeleting}
-      />
-
-      {/* Dialog للحذف الكلي */}
     
     </>
   );
@@ -147,7 +123,6 @@ export const ProtectedDeleteSelectedButton: React.FC<ProtectedDeleteSelectedButt
   showToast = true
 }) => {
   const { checkPermission, checkPermissionWithToast } = usePermissions();
-  const [showBulkDeleteDialog, setShowBulkDeleteDialog] = useState(false);
 
   const deletePermission: PermissionConfig = { module, action: 'delete' };
   const hasDeletePermission = checkPermission(deletePermission);
@@ -156,18 +131,13 @@ export const ProtectedDeleteSelectedButton: React.FC<ProtectedDeleteSelectedButt
     if (showToast) {
       const allowed = checkPermissionWithToast(deletePermission);
       if (allowed) {
-        setShowBulkDeleteDialog(true);
+        onDeleteSelected();
       }
     } else {
       if (hasDeletePermission) {
-        setShowBulkDeleteDialog(true);
+        onDeleteSelected();
       }
     }
-  };
-
-  const confirmBulkDelete = () => {
-    onDeleteSelected();
-    setShowBulkDeleteDialog(false);
   };
 
   // إذا لم تكن هناك صلاحية حذف أو لا توجد عناصر محددة، لا تظهر الزر
@@ -188,13 +158,6 @@ export const ProtectedDeleteSelectedButton: React.FC<ProtectedDeleteSelectedButt
         حذف المحدد ({selectedRowsCount})
       </Button>
 
-      <BulkDeleteDialog
-        open={showBulkDeleteDialog}
-        onOpenChange={setShowBulkDeleteDialog}
-        onConfirm={confirmBulkDelete}
-        selectedCount={selectedRowsCount}
-        isLoading={isDeleting}
-      />
     </>
   );
 };
@@ -214,8 +177,6 @@ export const ProtectedDeleteAllButton: React.FC<ProtectedDeleteAllButtonProps> =
   showToast = true
 }) => {
   const { checkPermission, checkPermissionWithToast } = usePermissions();
-  const [showDeleteAllDialog, setShowDeleteAllDialog] = useState(false);
-
   const deletePermission: PermissionConfig = { module, action: 'delete' };
   const hasDeletePermission = checkPermission(deletePermission);
 
@@ -223,18 +184,13 @@ export const ProtectedDeleteAllButton: React.FC<ProtectedDeleteAllButtonProps> =
     if (showToast) {
       const allowed = checkPermissionWithToast(deletePermission);
       if (allowed) {
-        setShowDeleteAllDialog(true);
+        onDeleteAll();
       }
     } else {
       if (hasDeletePermission) {
-        setShowDeleteAllDialog(true);
+        onDeleteAll();
       }
     }
-  };
-
-  const confirmDeleteAll = () => {
-    onDeleteAll();
-    setShowDeleteAllDialog(false);
   };
 
   // إذا لم تكن هناك صلاحية حذف، لا تظهر الزر

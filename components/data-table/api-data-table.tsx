@@ -36,6 +36,7 @@ import {
 import { toast } from "sonner";
 import type { PaginatedResponse } from '@/types';
 import { TableDateFilter } from './date-filter';
+import { FilteredExportButton } from './filtered-export-button';
 
 interface Column<T> {
   key: keyof T | string;
@@ -66,6 +67,10 @@ interface ApiDataTableProps<T> {
   enableImport?: boolean;
   enableDelete?: boolean;
   
+  // Export configuration
+  exportEndpoint?: string;
+  exportFilename?: string;
+  
   // Custom filters
   filters?: Array<{
     key: string;
@@ -88,6 +93,8 @@ export function ApiDataTable<T extends { id?: string | number; _id?: string }>({
   enableExport = true,
   enableImport = false,
   enableDelete = true,
+  exportEndpoint,
+  exportFilename,
   filters = []
 }: ApiDataTableProps<T>) {
   const [page, setPage] = useState(1);
@@ -239,7 +246,24 @@ export function ApiDataTable<T extends { id?: string | number; _id?: string }>({
                 إضافة جديد
               </Button>
             )}
-            {enableExport && exportData && (
+            {enableExport && exportEndpoint && (
+              <FilteredExportButton
+                exportEndpoint={exportEndpoint}
+                filters={selectedFilters}
+                dateRange={
+                  dateFilter.startDate && dateFilter.endDate
+                    ? {
+                        from: new Date(dateFilter.startDate),
+                        to: new Date(dateFilter.endDate),
+                      }
+                    : undefined
+                }
+                filename={exportFilename || queryKey}
+                buttonText="تصدير"
+                variant="outline"
+              />
+            )}
+            {enableExport && exportData && !exportEndpoint && (
               <Button variant="outline" onClick={handleExport}>
                 <Download className="h-4 w-4 mr-2" />
                 تصدير {hasSelection ? `(${selectedItems.size})` : ''}

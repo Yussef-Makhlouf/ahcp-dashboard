@@ -67,18 +67,18 @@ export default function VaccinationPage() {
 
 
   const handleDelete = async (item: Vaccination) => {
-    if (confirm("هل أنت متأكد من حذف هذا السجل؟")) {
-      try {
-        // Use _id for deletion, fallback to serialNo if _id is not available
-        const deleteId = item._id || item.id || item.serialNo;
-        await vaccinationApi.delete(deleteId);
-        queryClient.invalidateQueries({ queryKey: ['vaccination'] });
-        queryClient.invalidateQueries({ queryKey: ['vaccination-stats'] });
-        toast.success('تم حذف السجل بنجاح');
-      } catch (error) {
-        console.error('Delete failed:', error);
-        toast.error('فشل في حذف السجل');
-      }
+    try {
+      // Use _id for deletion, fallback to serialNo if _id is not available
+      const deleteId = item._id || item.serialNo;
+      console.log('🗑️ Deleting vaccination with ID:', deleteId);
+      
+      await vaccinationApi.delete(deleteId);
+      queryClient.invalidateQueries({ queryKey: ['vaccination'] });
+      queryClient.invalidateQueries({ queryKey: ['vaccination-stats'] });
+      toast.success('تم حذف السجل بنجاح');
+    } catch (error) {
+      console.error('Delete failed:', error);
+      toast.error('فشل في حذف السجل');
     }
   };
 
@@ -173,6 +173,8 @@ export default function VaccinationPage() {
             queryKey="vaccination"
             acceptedFormats={[".csv", ".xlsx"]}
             maxFileSize={10}
+            currentFilters={filters}
+            currentDateRange={dateRange}
             onImportSuccess={() => {
               queryClient.invalidateQueries({ queryKey: ['vaccination'] });
             }}

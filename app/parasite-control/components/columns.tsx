@@ -277,20 +277,36 @@ export function getColumns({
         if (!herdCounts) return <span className="text-gray-400">-</span>;
         
         const totalHerd = row.original.totalHerdCount || 0;
-        const totalYoung = (herdCounts.sheep?.young || 0) + (herdCounts.goats?.young || 0) + 
-                          (herdCounts.camel?.young || 0) + (herdCounts.cattle?.young || 0);
-        const totalFemale = (herdCounts.sheep?.female || 0) + (herdCounts.goats?.female || 0) + 
-                           (herdCounts.camel?.female || 0) + (herdCounts.cattle?.female || 0);
+        const totalYoung = row.original.totalYoung || 0;
+        const totalFemale = row.original.totalFemale || 0;
         const totalTreated = row.original.totalTreated || 0;
+        const treatmentEfficiency = row.original.treatmentEfficiency || 0;
         
         return (
-          <div className="text-xs space-y-1">
-            <Badge variant="secondary">Total: {totalHerd}</Badge>
-            <div>Young: {totalYoung}</div>
-            <div>Female: {totalFemale}</div>
-            <Badge variant="outline" className="text-green-600 border-green-600">
+          <div className="text-xs space-y-1 min-w-[120px]">
+            <Badge variant="secondary" className="w-full justify-center">
+              Total: {totalHerd}
+            </Badge>
+            <div className="flex justify-between">
+              <span className="text-gray-500">Young:</span>
+              <span className="font-medium">{totalYoung}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-gray-500">Female:</span>
+              <span className="font-medium">{totalFemale}</span>
+            </div>
+            <Badge variant="outline" className="text-green-600 border-green-600 w-full justify-center">
               Treated: {totalTreated}
             </Badge>
+            {treatmentEfficiency > 0 && (
+              <div className={`text-center px-2 py-1 rounded text-xs font-medium ${
+                treatmentEfficiency >= 80 ? 'bg-green-100 text-green-800' :
+                treatmentEfficiency >= 50 ? 'bg-yellow-100 text-yellow-800' :
+                'bg-red-100 text-red-800'
+              }`}>
+                {treatmentEfficiency}% Efficiency
+              </div>
+            )}
           </div>
         );
       },
@@ -324,14 +340,35 @@ export function getColumns({
         }
         
         return (
-          <div className="text-xs space-y-1">
-            <div className="font-medium">{parsedInsecticide.type || '-'}</div>
-            <div>Method: {parsedInsecticide.method || '-'}</div>
-            <div>Volume: {parsedInsecticide.volumeMl || 0} ml</div>
-            <div>Category: {parsedInsecticide.category || '-'}</div>
-            <Badge className={parsedInsecticide.status === 'Sprayed' ? 'bg-green-500 text-white' : 'bg-red-500 text-white'}>
-              {parsedInsecticide.status === 'Sprayed' ? 'Sprayed' : 'Not Sprayed'}
-            </Badge>
+          <div className="text-xs space-y-1 min-w-[200px]">
+            <div className="font-medium text-blue-600">{parsedInsecticide.type || 'N/A'}</div>
+            <div className="flex items-center gap-1">
+              <span className="text-gray-500">Method:</span>
+              <span className="font-medium">{parsedInsecticide.method || 'N/A'}</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <span className="text-gray-500">Volume:</span>
+              <span className="font-medium">{parsedInsecticide.volumeMl || parsedInsecticide.volume_ml || 0} ml</span>
+            </div>
+            {parsedInsecticide.concentration && (
+              <div className="flex items-center gap-1">
+                <span className="text-gray-500">Concentration:</span>
+                <span className="font-medium text-orange-600">{parsedInsecticide.concentration}</span>
+              </div>
+            )}
+            {parsedInsecticide.manufacturer && (
+              <div className="flex items-center gap-1">
+                <span className="text-gray-500">Manufacturer:</span>
+                <span className="font-medium text-purple-600">{parsedInsecticide.manufacturer}</span>
+              </div>
+            )}
+            <div className={`inline-block px-2 py-1 rounded text-xs font-medium ${
+              parsedInsecticide.status === 'Sprayed' ? 'bg-green-100 text-green-800' : 
+              parsedInsecticide.status === 'Partially Sprayed' ? 'bg-yellow-100 text-yellow-800' :
+              'bg-red-100 text-red-800'
+            }`}>
+              {parsedInsecticide.status || 'N/A'}
+            </div>
           </div>
         );
       },
@@ -461,6 +498,8 @@ export function getColumns({
         const statusColors = {
           "Healthy": "bg-green-500 text-white",
           "Sick": "bg-red-500 text-white",
+          "Sporadic cases": "bg-yellow-500 text-white",
+          // Backward compatibility
           "Under Treatment": "bg-yellow-500 text-white",
         };
         
