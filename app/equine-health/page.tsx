@@ -50,6 +50,7 @@ export default function EquineHealthPage() {
     queryFn: () => {
       const apiParams = filtersToApiParams({ ...filters, dateRange });
       console.log('🔍 Current filters:', filters);
+      console.log('📅 Current dateRange:', dateRange);
       console.log('🔄 API params:', apiParams);
       console.log('📡 Final request params:', {
         page,
@@ -321,6 +322,12 @@ export default function EquineHealthPage() {
         {/* Filters */}
         <div className="rounded-lg border bg-card p-4">
           <TableFilters
+            dateFilter={{
+              enabled: true,
+              label: "Filter by Date",
+              value: dateRange,
+              onChange: updateDateRange,
+            }}
             fieldFilters={getTableFilterConfig("equineHealth")}
             filterValues={filters}
             onFiltersChange={(newFilters) => {

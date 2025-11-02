@@ -279,34 +279,6 @@ export const TABLE_FILTER_CONFIGS: Record<string, FieldFilter[]> = {
   // فلاتر جدول المربيين (العملاء)
   clients: [
     {
-      key: "status",
-      label: "الحالة",
-      type: "select" as const,
-      placeholder: "اختر الحالة",
-      options: [
-        { value: "نشط", label: "نشط", color: "default" as const },
-        { value: "غير نشط", label: "غير نشط", color: "destructive" as const }
-      ]
-    },
-    {
-      key: "village",
-      label: "القرية",
-      type: "select" as const,
-      placeholder: "اختر القرية",
-      options: [
-        { value: "الرياض", label: "الرياض", color: "default" as const },
-        { value: "جدة", label: "جدة", color: "secondary" as const },
-        { value: "الدمام", label: "الدمام", color: "outline" as const },
-        { value: "مكة المكرمة", label: "مكة المكرمة", color: "default" as const },
-        { value: "المدينة المنورة", label: "المدينة المنورة", color: "secondary" as const },
-        { value: "الطائف", label: "الطائف", color: "outline" as const },
-        { value: "تبوك", label: "تبوك", color: "default" as const },
-        { value: "بريدة", label: "بريدة", color: "secondary" as const },
-        { value: "خميس مشيط", label: "خميس مشيط", color: "outline" as const },
-        { value: "حائل", label: "حائل", color: "default" as const }
-      ]
-    },
-    {
       key: "servicesReceived",
       label: "الخدمات المستلمة",
       type: "multiselect" as const,
@@ -316,32 +288,6 @@ export const TABLE_FILTER_CONFIGS: Record<string, FieldFilter[]> = {
         { value: "mobile_clinic", label: "العيادة المتنقلة", color: "outline" as const },
         { value: "laboratory", label: "المختبر", color: "destructive" as const },
         { value: "equine_health", label: "صحة الخيول", color: "default" as const }
-      ]
-    },
-    {
-      key: "animals.animalType",
-      label: "نوع الحيوان",
-      type: "multiselect" as const,
-      options: [
-        { value: "Sheep", label: "أغنام", color: "default" as const },
-        { value: "Goats", label: "ماعز", color: "secondary" as const },
-        { value: "Cattle", label: "أبقار", color: "outline" as const },
-        { value: "Camels", label: "إبل", color: "destructive" as const },
-        { value: "Horses", label: "خيول", color: "default" as const },
-        { value: "Poultry", label: "دواجن", color: "secondary" as const }
-      ]
-    },
-    {
-      key: "totalAnimals",
-      label: "عدد الحيوانات",
-      type: "select" as const,
-      placeholder: "اختر نطاق عدد الحيوانات",
-      options: [
-        { value: "1-10", label: "1-10 حيوانات", color: "default" as const },
-        { value: "11-50", label: "11-50 حيوان", color: "secondary" as const },
-        { value: "51-100", label: "51-100 حيوان", color: "outline" as const },
-        { value: "101-500", label: "101-500 حيوان", color: "destructive" as const },
-        { value: "500+", label: "أكثر من 500 حيوان", color: "default" as const }
       ]
     }
   ],

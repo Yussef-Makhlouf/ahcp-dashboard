@@ -24,12 +24,8 @@ export const clientsApi = {
     page?: number;
     limit?: number;
     search?: string;
-    status?: string;
-    village?: string;
     includeServices?: boolean;
     servicesReceived?: string;
-    'animals.animalType'?: string;
-    totalAnimals?: string;
     startDate?: string;
     endDate?: string;
   }): Promise<PaginatedResponse<Client>> => {
@@ -44,20 +40,8 @@ export const clientsApi = {
       if (params?.search && params.search.trim()) {
         cleanParams.search = params.search.trim();
       }
-      if (params?.status) {
-        cleanParams.status = params.status;
-      }
-      if (params?.village) {
-        cleanParams.village = params.village;
-      }
       if (params?.servicesReceived) {
         cleanParams.servicesReceived = params.servicesReceived;
-      }
-      if (params?.['animals.animalType']) {
-        cleanParams['animals.animalType'] = params['animals.animalType'];
-      }
-      if (params?.totalAnimals) {
-        cleanParams.totalAnimals = params.totalAnimals;
       }
       if (params?.startDate) {
         cleanParams.startDate = params.startDate;
