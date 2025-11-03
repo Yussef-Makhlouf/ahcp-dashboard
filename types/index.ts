@@ -558,6 +558,7 @@ export interface Laboratory {
   collector: string; // Sample Collector column
   sampleType: string; // Sample Type column (Drop List)
   sampleNumber: string; // Collector Code column (جامع العينة رمز)
+  testType?: string; // Test Type column (Drop List)
   positiveCases: number; // positive cases column (Mandatory)
   negativeCases: number; // Negative Cases column (Mandatory)
   remarks: string; // Remarks column

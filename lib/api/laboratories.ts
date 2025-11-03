@@ -28,9 +28,7 @@ export const laboratoriesApi = {
     startDate?: string;
     endDate?: string;
     sampleType?: string;
-    testResult?: string;
     testType?: string;
-    priority?: string;
     collector?: string;
     [key: string]: any; // Allow any additional filter parameters
   }): Promise<PaginatedResponse<Laboratory>> => {

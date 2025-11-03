@@ -66,13 +66,12 @@ const sampleTypes = [
 // Removed static collectors array - now using API
 
 const testTypes = [
-  { value: "Parasitology", label: "فحص طفيليات" },
-  { value: "Bacteriology", label: "فحص بكتيري" },
-  { value: "Virology", label: "فحص فيروسي" },
-  { value: "Serology", label: "فحص مصلي" },
-  { value: "Biochemistry", label: "فحص كيمياء حيوية" },
-  { value: "Hematology", label: "فحص دم شامل" },
-  { value: "Pathology", label: "فحص نسيجي" },
+  { value: "Brucella ICT", label: "Brucella ICT" },
+  { value: "Trypanosoma CATT", label: "Trypanosoma CATT" },
+  { value: "Blood Parasite Smear", label: "Blood Parasite Smear" },
+  { value: "Internal Parasite Microscopic Examination", label: "Internal Parasite Microscopic Examination" },
+  { value: "CBC", label: "CBC" },
+  { value: "Chemistry Analysis", label: "Chemistry Analysis" },
 ];
 
 interface TestResult {
@@ -147,6 +146,7 @@ export function LaboratoryDialog({ open, onOpenChange, laboratory, onSave }: Lab
     supervisor: "",
     sampleType: "",
     sampleNumber: "",
+    testType: "",
     positiveCases: 0,
     negativeCases: 0,
     remarks: "",
@@ -222,6 +222,7 @@ export function LaboratoryDialog({ open, onOpenChange, laboratory, onSave }: Lab
         supervisor: (laboratory as any).supervisor || "",
         sampleType: laboratory.sampleType || "",
         sampleNumber: laboratory.sampleNumber || "",
+        testType: (laboratory as any).testType || "",
         positiveCases: laboratory.positiveCases || 0,
         negativeCases: laboratory.negativeCases || 0,
         remarks: laboratory.remarks || "",
@@ -260,6 +261,7 @@ export function LaboratoryDialog({ open, onOpenChange, laboratory, onSave }: Lab
         supervisor: "",
         sampleType: "",
         sampleNumber: "",
+        testType: "",
         positiveCases: 0,
         negativeCases: 0,
         remarks: "",
@@ -389,6 +391,7 @@ export function LaboratoryDialog({ open, onOpenChange, laboratory, onSave }: Lab
       collector: formData.collector,
       sampleType: formData.sampleType,
       sampleNumber: formData.sampleNumber,
+      testType: formData.testType,
       positiveCases: formData.positiveCases,
       negativeCases: formData.negativeCases,
       remarks: formData.remarks,
@@ -861,6 +864,32 @@ export function LaboratoryDialog({ open, onOpenChange, laboratory, onSave }: Lab
                     error={getFieldError('sampleType') || undefined}
                     language="en"
                   />
+                </div>
+
+                {/* Test Type */}
+                <div className="space-y-2">
+                  <Label>نوع الفحص</Label>
+                  <Select
+                    value={formData.testType}
+                    onValueChange={(value) => {
+                      setFormData({ ...formData, testType: value });
+                      clearFieldError('testType');
+                    }}
+                  >
+                    <SelectTrigger className={getFieldError('testType') ? 'border-red-500' : ''}>
+                      <SelectValue placeholder="اختر نوع الفحص" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {testTypes.map((type) => (
+                        <SelectItem key={type.value} value={type.value}>
+                          {type.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {getFieldError('testType') && (
+                    <p className="text-red-500 text-sm font-medium mt-1">{getFieldError('testType')}</p>
+                  )}
                 </div>
 
                 {/* Collector Code */}

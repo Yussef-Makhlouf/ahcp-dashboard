@@ -119,39 +119,14 @@ export const ACTUAL_FILTER_VALUES = {
       { value: 'Skin-Scrape', label: 'Skin Scrape', color: 'destructive' as const }
     ],
     
-    // حالة الفحص - من testResultSchema.status
-    testResult: [
-      { value: 'Normal', label: 'Normal', color: 'default' as const },
-      { value: 'Abnormal', label: 'Abnormal', color: 'destructive' as const },
-      { value: 'Positive', label: 'Positive', color: 'secondary' as const },
-      { value: 'Negative', label: 'Negative', color: 'outline' as const },
-      { value: 'Inconclusive', label: 'Inconclusive', color: 'default' as const }
-    ],
-    
-    // حالة الفحص - من laboratorySchema (إذا كان موجود)
-    testStatus: [
-      { value: 'Pending', label: 'Pending', color: 'outline' as const },
-      { value: 'In-Progress', label: 'In Progress', color: 'secondary' as const },
-      { value: 'Completed', label: 'Completed', color: 'default' as const },
-      { value: 'Failed', label: 'Failed', color: 'destructive' as const }
-    ],
-    
-    // نوع الفحص - قيم شائعة من الواقع العملي
+    // نوع الفحص - قيم من الواقع العملي
     testType: [
-      { value: 'PCR', label: 'PCR', color: 'default' as const },
-      { value: 'ELISA', label: 'ELISA', color: 'secondary' as const },
-      { value: 'Culture', label: 'Culture', color: 'outline' as const },
-      { value: 'Microscopy', label: 'Microscopy', color: 'destructive' as const },
-      { value: 'Serology', label: 'Serology', color: 'default' as const },
-      { value: 'Biochemistry', label: 'Biochemistry', color: 'secondary' as const }
-    ],
-    
-    // الأولوية - قيم شائعة
-    priority: [
-      { value: 'Low', label: 'Low', color: 'outline' as const },
-      { value: 'Normal', label: 'Normal', color: 'default' as const },
-      { value: 'High', label: 'High', color: 'secondary' as const },
-      { value: 'Urgent', label: 'Urgent', color: 'destructive' as const }
+      { value: 'Brucella ICT', label: 'Brucella ICT', color: 'default' as const },
+      { value: 'Trypanosoma CATT', label: 'Trypanosoma CATT', color: 'secondary' as const },
+      { value: 'Blood Parasite Smear', label: 'Blood Parasite Smear', color: 'outline' as const },
+      { value: 'Internal Parasite Microscopic Examination', label: 'Internal Parasite Microscopic Examination', color: 'destructive' as const },
+      { value: 'CBC', label: 'CBC', color: 'default' as const },
+      { value: 'Chemistry Analysis', label: 'Chemistry Analysis', color: 'secondary' as const }
     ]
   },
 
@@ -313,31 +288,10 @@ export const UPDATED_TABLE_FILTER_CONFIGS = {
       options: ACTUAL_FILTER_VALUES.laboratory.sampleType
     },
     {
-      key: 'testResult',
-      label: 'نتيجة الفحص',
-      type: 'select' as const,
-      placeholder: 'اختر نتيجة الفحص',
-      options: ACTUAL_FILTER_VALUES.laboratory.testResult
-    },
-    {
-      key: 'testStatus',
-      label: 'حالة الفحص',
-      type: 'select' as const,
-      placeholder: 'اختر حالة الفحص',
-      options: ACTUAL_FILTER_VALUES.laboratory.testStatus
-    },
-    {
       key: 'testType',
       label: 'نوع الفحص',
       type: 'multiselect' as const,
       options: ACTUAL_FILTER_VALUES.laboratory.testType
-    },
-    {
-      key: 'priority',
-      label: 'الأولوية',
-      type: 'select' as const,
-      placeholder: 'اختر الأولوية',
-      options: ACTUAL_FILTER_VALUES.laboratory.priority
     }
   ],
 
