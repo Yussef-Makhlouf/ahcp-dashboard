@@ -32,9 +32,9 @@ export const ACTUAL_FILTER_VALUES = {
     
     // طريقة الرش - قيم شائعة من الواقع العملي
     'insecticide.method': [
-      { value: 'Spray', label: 'Spray', color: 'default' as const },
-      { value: 'Oral-Drenching', label: 'Oral-Drenching', color: 'secondary' as const },
-      { value: 'Pour-on', label: 'Pour-on', color: 'outline' as const },
+      { value: 'Pour on', label: 'Pour on', color: 'default' as const },
+      { value: 'Spraying', label: 'Spraying', color: 'secondary' as const },
+      { value: 'Oral Drenching', label: 'Oral Drenching', color: 'outline' as const },
     ],
     
     // فئة المبيد - قيم شائعة من الواقع العملي

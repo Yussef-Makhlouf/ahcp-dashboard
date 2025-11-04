@@ -9,9 +9,9 @@ export const TABLE_FILTER_CONFIGS: Record<string, FieldFilter[]> = {
       label: "Spray Method",
       type: "multiselect" as const,
       options: [
-      { value: 'Spray', label: 'Spray', color: 'default' as const },
-      { value: 'Oral-Drenching', label: 'Oral-Drenching', color: 'secondary' as const },
-      { value: 'Pour-on', label: 'Pour-on', color: 'outline' as const },
+      { value: 'Pour on', label: 'Pour on', color: 'default' as const },
+      { value: 'Spraying', label: 'Spraying', color: 'secondary' as const },
+      { value: 'Oral Drenching', label: 'Oral Drenching', color: 'outline' as const },
       ]
     },
     {

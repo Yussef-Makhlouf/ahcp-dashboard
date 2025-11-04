@@ -137,9 +137,9 @@ export interface HoldingCode {
 // Parasite Control Types
 export interface Insecticide {
   type: string;
-  method: string;
+  method: "Pour on" | "Spraying" | "Oral Drenching";
   volume_ml: number;
-  status: "Sprayed" | "Not Sprayed";
+  status: "Sprayed" | "Not Sprayed" | "Partially Sprayed";
   category: string; // Pour-on / Spray etc
 }
 
