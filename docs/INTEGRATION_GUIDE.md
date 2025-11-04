@@ -292,7 +292,7 @@ const formFields = [
 // lib/config.ts
 export const config = {
   api: {
-    baseUrl: 'https://ahcp-backend-production.up.railway.app/api',
+    baseUrl: 'https://ahcp-backend.vercel.app/api',
     timeout: 30000,
   },
   pagination: {
@@ -348,7 +348,7 @@ const dashboardStats = await reportsApi.getDashboardStats();
 ```javascript
 // backend server.js
 const corsOptions = {
-  origin: ['http://localhost:3000', 'https://ahcp-backend-production.up.railway.app'],
+  origin: ['http://localhost:3000', 'http://https://ahcp-backend.vercel.app'],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
 };

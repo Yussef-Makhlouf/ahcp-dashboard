@@ -297,7 +297,7 @@ export async function runIntegrationTests(): Promise<void> {
 export async function quickHealthCheck(): Promise<boolean> {
   try {
     // اختبار الاتصال بالخادم
-    const response = await fetch('https://ahcp-backend-production.up.railway.app/api/health');
+    const response = await fetch('http://https://ahcp-backend.vercel.app/health');
     
     if (response.ok) {
       const data = await response.json();

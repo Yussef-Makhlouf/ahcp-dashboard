@@ -2,7 +2,7 @@ import axios, { AxiosInstance, AxiosRequestConfig } from 'axios';
 import { useAuthStore } from '@/lib/store/auth-store';
 
 // Base API configuration - إنتاج
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://ahcp-backend-production.up.railway.app/api';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://ahcp-backend.vercel.app/api';
 
 // Create axios instance
 const apiClient: AxiosInstance = axios.create({
@@ -22,7 +22,7 @@ apiClient.interceptors.request.use(
     
     // تأكد من أن BASE URL صحيح
     if (!config.baseURL || config.baseURL.includes('undefined')) {
-      config.baseURL = 'https://ahcp-backend-production.up.railway.app/api';
+      config.baseURL = 'https://ahcp-backend.vercel.app/api';
       console.log('🔧 Fixed BASE URL to:', config.baseURL);
     }
     

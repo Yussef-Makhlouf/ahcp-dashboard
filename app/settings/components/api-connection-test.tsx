@@ -17,7 +17,7 @@ export function ApiConnectionTest() {
     // Test 1: Basic API connection
     try {
       console.log('🧪 Testing: Basic API connection');
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://ahcp-backend-production.up.railway.app/api'}/dropdown-lists`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://ahcp-backend.vercel.app/api'}/dropdown-lists`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -45,7 +45,7 @@ export function ApiConnectionTest() {
     // Test 2: Categories endpoint
     try {
       console.log('🧪 Testing: Categories endpoint');
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://ahcp-backend-production.up.railway.app/api'}/dropdown-lists/categories`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://ahcp-backend.vercel.app/api'}/dropdown-lists/categories`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',

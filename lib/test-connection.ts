@@ -6,7 +6,7 @@ export const testBackendConnection = async () => {
     console.log('🔄 Testing backend connection...');
     
     // Test health endpoint
-    const healthResponse = await fetch('https://ahcp-backend-production.up.railway.app/api/health');
+    const healthResponse = await fetch('https://ahcp-backend.vercel.app/api/health');
     const healthData = await healthResponse.json();
     
     if (healthResponse.ok) {
@@ -44,7 +44,7 @@ export const testApiEndpoints = async () => {
 
   try {
     // Test health endpoint
-    const healthResponse = await fetch('https://ahcp-backend-production.up.railway.app/api/health');
+    const healthResponse = await fetch('https://ahcp-backend.vercel.app/api/health');
     results.health = healthResponse.ok;
 
     // Test API endpoints (these might fail due to authentication)
@@ -61,7 +61,7 @@ export const testApiEndpoints = async () => {
 
     for (const endpoint of endpoints) {
       try {
-        const response = await fetch(`https://ahcp-backend-production.up.railway.app/api${endpoint.url}`);
+        const response = await fetch(`https://ahcp-backend.vercel.app/api${endpoint.url}`);
         // Even 401 (unauthorized) means the endpoint exists
         results[endpoint.name as keyof typeof results] = response.status !== 404;
       } catch (error) {

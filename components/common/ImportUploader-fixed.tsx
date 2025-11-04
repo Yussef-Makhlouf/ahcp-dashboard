@@ -261,7 +261,7 @@ export const ImportUploader: React.FC<ImportUploaderProps> = ({
       // دالة الحصول على webhook URL
       const getWebhookUrl = (type: string): string => {
         const ngrokUrl = process.env.NEXT_PUBLIC_NGROK_URL;
-        let baseUrl = ngrokUrl || process.env.NEXT_PUBLIC_API_URL || 'https://ahcp-backend-production.up.railway.app/api';
+        let baseUrl = ngrokUrl || process.env.NEXT_PUBLIC_API_URL || 'http://https://ahcp-backend.vercel.app';
         
         if (!baseUrl.startsWith('http')) {
           baseUrl = `https://${baseUrl}`;
@@ -339,9 +339,9 @@ export const ImportUploader: React.FC<ImportUploaderProps> = ({
 
         // إرسال البيانات إلى الخادم
         const ngrokUrl = process.env.NEXT_PUBLIC_NGROK_URL;
-        let baseUrl = ngrokUrl || process.env.NEXT_PUBLIC_API_URL || 'https://ahcp-backend-production.up.railway.app/api';
+        let baseUrl = ngrokUrl || process.env.NEXT_PUBLIC_API_URL || 'http://https://ahcp-backend.vercel.app';
         if (!baseUrl) {
-          baseUrl = 'https://ahcp-backend-production.up.railway.app/api';
+          baseUrl = 'http://https://ahcp-backend.vercel.app';
         }
 
         const getWebhookUrl = (type: string): string => {

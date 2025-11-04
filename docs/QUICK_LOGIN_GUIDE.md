@@ -22,7 +22,7 @@
 ```
 
 ### 2. التحقق من حالة النظام
-- ✅ الباك إند يعمل على: `https://ahcp-backend-production.up.railway.app/api`
+- ✅ الباك إند يعمل على: `http://https://ahcp-backend.vercel.app`
 - ✅ الفرونت إند يعمل على: `http://localhost:3000`
 - ✅ API صحة الخيول يعمل بشكل صحيح
 - ✅ فلترة المشرفين تعمل بشكل صحيح
