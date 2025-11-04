@@ -106,7 +106,7 @@ const formSchema = z.object({
   }),
   insecticide: z.object({
     type: z.string().min(1, "نوع المبيد مطلوب").default(""),
-    method: z.enum(["Pour on", "Spraying", "Dipping", "Injection", "Oral", "Other"]).default("Pour on"),
+    method: z.enum(["Pour on", "Spraying", "Oral Drenching"]).default("Pour on"),
     volumeMl: z.number().min(0, "يجب أن تكون الكمية أكبر من أو تساوي 0").max(50000, "الكمية لا يمكن أن تتجاوز 50,000 مل").default(100),
     status: z.enum(["Sprayed", "Not Sprayed", "Partially Sprayed"]).default("Not Sprayed"),
     category: z.string().min(1, "فئة المبيد مطلوبة").default("Pour-on"),
@@ -298,8 +298,8 @@ export function ParasiteControlDialog({
           type: item.insecticide?.type || 'Ultra-Pour 1%',
           method: (() => {
             const method = item.insecticide?.method || 'Pour on';
-            const validMethods: ('Pour on' | 'Spraying' | 'Dipping' | 'Injection' | 'Oral' | 'Other')[] = 
-              ['Pour on', 'Spraying', 'Dipping', 'Injection', 'Oral', 'Other'];
+            const validMethods: ('Pour on' | 'Spraying' | 'Oral Drenching')[] = 
+              ['Pour on', 'Spraying', 'Oral Drenching'];
             return validMethods.includes(method as any) ? (method as any) : 'Pour on';
           })(),
           volumeMl: item.insecticide?.volumeMl || 0,
