@@ -37,7 +37,7 @@ JWT_SECRET=ahcp_super_secret_key_2024_development_only_change_in_production_1234
 ### الواجهة الأمامية (.env.local)
 ```env
 NODE_ENV=development
-NEXT_PUBLIC_API_URL=http://localhost:3001/api
+NEXT_PUBLIC_API_URL=https://ahcp-backend.vercel.app/api
 NEXT_PUBLIC_APP_URL=http://localhost:3000
 NEXT_PUBLIC_DEV_MODE=true
 ```
@@ -58,9 +58,9 @@ NEXT_PUBLIC_DEV_MODE=true
 | الخدمة | الرابط | الوصف |
 |---------|--------|--------|
 | لوحة التحكم | http://localhost:3000 | الواجهة الرئيسية |
-| API الخادم | http://localhost:3001 | الخادم الخلفي |
-| توثيق API | http://localhost:3001/api-docs | Swagger Documentation |
-| فحص الصحة | http://localhost:3001/health | Health Check |
+| API الخادم | http://https://ahcp-backend.vercel.app | الخادم الخلفي |
+| توثيق API | https://ahcp-backend.vercel.app/api-docs | Swagger Documentation |
+| فحص الصحة | http://https://ahcp-backend.vercel.app/health | Health Check |
 
 ## 👤 بيانات تسجيل الدخول
 

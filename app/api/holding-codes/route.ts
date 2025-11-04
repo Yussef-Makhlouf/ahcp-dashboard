@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || 'http://https://ahcp-backend.vercel.app';
 
 // GET /api/holding-codes - Get all holding codes with filtering
 export async function GET(request: NextRequest) {
