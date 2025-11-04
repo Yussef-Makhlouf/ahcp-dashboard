@@ -86,9 +86,9 @@
 ### 🔗 **URLs الرئيسية:**
 ```
 الواجهة الأمامية: http://localhost:3000
-الخادم الخلفي: http://https://ahcp-backend.vercel.app
-توثيق API: https://ahcp-backend.vercel.app/api-docs
-فحص الصحة: http://https://ahcp-backend.vercel.app/health
+الخادم الخلفي: https://ahcp-backend-production.up.railway.app/api
+توثيق API: https://ahcp-backend-production.up.railway.app/api-docs
+فحص الصحة: https://ahcp-backend-production.up.railway.app/health
 ```
 
 ### 🚀 **كيفية التشغيل:**

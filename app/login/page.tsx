@@ -163,7 +163,7 @@ export default function LoginPage() {
       
       // اختبار الاتصال بالخادم أولاً
       try {
-        const testResponse = await fetch('http://https://ahcp-backend.vercel.app/health');
+        const testResponse = await fetch('https://ahcp-backend-production.up.railway.app/api/health');
         console.log('🏥 Server health check:', testResponse.status);
       } catch (testError) {
         console.warn('⚠️ Server health check failed:', testError);

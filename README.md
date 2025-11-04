@@ -19,7 +19,7 @@
 
 ```env
 # API Configuration
-NEXT_PUBLIC_API_URL=https://ahcp-backend.vercel.app/api
+NEXT_PUBLIC_API_URL=https://ahcp-backend-production.up.railway.app/api
 
 # Database Configuration (for future backend integration)
 # DATABASE_URL=postgresql://username:password@localhost:5432/ahcp_db

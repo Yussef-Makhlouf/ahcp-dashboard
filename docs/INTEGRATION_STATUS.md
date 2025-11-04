@@ -94,9 +94,9 @@ npm run dev
 ## 🔗 **الروابط المهمة:**
 
 - **لوحة التحكم:** http://localhost:3000
-- **API الخادم:** http://https://ahcp-backend.vercel.app
-- **فحص الصحة:** http://https://ahcp-backend.vercel.app/health
-- **توثيق API:** https://ahcp-backend.vercel.app/api-docs
+- **API الخادم:** https://ahcp-backend-production.up.railway.app/api
+- **فحص الصحة:** https://ahcp-backend-production.up.railway.app/health
+- **توثيق API:** https://ahcp-backend-production.up.railway.app/api-docs
 
 ## 👤 **معلومات المصادقة:**
 

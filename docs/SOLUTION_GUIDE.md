@@ -56,7 +56,7 @@
 ## التحقق من النظام ✅
 
 ### الباك إند
-- ✅ يعمل على: `http://https://ahcp-backend.vercel.app`
+- ✅ يعمل على: `https://ahcp-backend-production.up.railway.app/api`
 - ✅ APIs صحة الخيول تعمل
 - ✅ المصادقة تعمل
 - ✅ فلترة المشرفين تعمل

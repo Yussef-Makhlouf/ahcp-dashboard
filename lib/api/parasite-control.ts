@@ -333,7 +333,7 @@ export const parasiteControlApi = {
       
       const endpoint = '/parasite-control/';
       console.log('🌐 Making POST request to endpoint:', endpoint);
-      console.log('🔍 Full URL will be:', `${process.env.NEXT_PUBLIC_API_URL || 'https://ahcp-backend.vercel.app/api'}${endpoint}`);
+      console.log('🔍 Full URL will be:', `${process.env.NEXT_PUBLIC_API_URL || 'https://ahcp-backend-production.up.railway.app/api'}${endpoint}`);
       
       const response = await api.post(endpoint, apiData, {
         timeout: 30000,
@@ -371,7 +371,7 @@ export const parasiteControlApi = {
       
       const endpoint = `/parasite-control/${id}`;
       console.log('🌐 Making PUT request to endpoint:', endpoint);
-      console.log('🔍 Full URL will be:', `${process.env.NEXT_PUBLIC_API_URL || 'https://ahcp-backend.vercel.app/api'}${endpoint}`);
+      console.log('🔍 Full URL will be:', `${process.env.NEXT_PUBLIC_API_URL || 'https://ahcp-backend-production.up.railway.app/api'}${endpoint}`);
       
       const response = await api.put(endpoint, apiData, {
         timeout: 30000,
