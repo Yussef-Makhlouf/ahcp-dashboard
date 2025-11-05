@@ -10,7 +10,8 @@ export const mobileClinicsApi = {
     search?: string;
     startDate?: string;
     endDate?: string;
-    diagnosis?: string;
+    diagnosis?: string; // فلتر التشخيص (من القائمة المنسدلة)
+    medications?: string; // فلتر الأدوية (من القائمة المنسدلة)
     interventionCategory?: string;
     followUpRequired?: string;
     'request.situation'?: string;

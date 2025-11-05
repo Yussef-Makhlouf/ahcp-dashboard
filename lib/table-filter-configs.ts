@@ -194,39 +194,39 @@ export const TABLE_FILTER_CONFIGS: Record<string, FieldFilter[]> = {
   // فلاتر جدول العيادات المتنقلة
   mobileClinics: [
     {
+      key: "diagnosis",
+      label: "Diagnosis",
+      type: "multiselect" as const,
+      options: [] // سيتم ملؤها ديناميكياً من dropdown-lists API
+    },
+    {
+      key: "medications",
+      label: "Medications",
+      type: "multiselect" as const,
+      options: [] // سيتم ملؤها ديناميكياً من dropdown-lists API
+    },
+    {
       key: "interventionCategory",
       label: "Intervention Category",
       type: "multiselect" as const,
       options: [
-        { value: "clinical-examination", label: "Clinical Examination", color: "destructive" as const },
-        { value: "surgical-operation", label: "Surgical Operation", color: "default" as const },
-        { value: "ultrasonography", label: "Ultrasonography", color: "secondary" as const },
-        { value: "lab-analysis", label: "Lab Analysis", color: "outline" as const }
+        { value: "Clinical Examination", label: "Clinical Examination", color: "default" as const },
+        { value: "Surgical Operation", label: "Surgical Operation", color: "destructive" as const },
+        { value: "Ultrasonography", label: "Ultrasonography", color: "secondary" as const },
+        { value: "Lab Analysis", label: "Lab Analysis", color: "outline" as const },
+        { value: "Farriery", label: "Farriery", color: "secondary" as const }
       ]
     },
-    // {
-    //   key: "interventionCategory",
-    //   label: "فئة التدخل",
-    //   type: "select" as const,
-    //   placeholder: "اختر فئة التدخل",
-    //   options: [
-    //     { value: "clinical-examination", label: "Clinical Examination", color: "destructive" as const },
-    //     { value: "surgical-operation", label: "Surgical Operation", color: "default" as const },
-    //     { value: "ultrasonography", label: "Ultrasonography", color: "secondary" as const },
-    //     { value: "lab-analysis", label: "Lab Analysis", color: "outline" as const },
-    //     { value: "surgical-operation", label: "Surgical Operation", color: "destructive" as const }
-    //   ]
-    // },
-    // {
-    //   key: "followUpRequired",
-    //   label: "يتطلب متابعة",
-    //   type: "select" as const,
-    //   placeholder: "اختر متطلبات المتابعة",
-    //   options: [
-    //     { value: "true", label: "نعم", color: "secondary" as const },
-    //     { value: "false", label: "لا", color: "default" as const }
-    //   ]
-    // },
+    {
+      key: "followUpRequired",
+      label: "Follow-up Required",
+      type: "select" as const,
+      placeholder: "Select follow-up status",
+      options: [
+        { value: "true", label: "Yes", color: "secondary" as const },
+        { value: "false", label: "No", color: "default" as const }
+      ]
+    },
     {
       key: "request.situation",
       label: "Request Status",

@@ -232,8 +232,12 @@ export const DROPDOWN_CATEGORIES = {
   COMPLIANCE_STATUS: 'compliance',
   BREEDING_SITES_STATUS: 'breeding_sites',
   
-  // Equine Health categories
+  // Mobile Clinics categories
+  DIAGNOSIS: 'diagnosis',
+  MEDICATIONS: 'medications',
   INTERVENTION_CATEGORIES: 'intervention_categories',
+  
+  // Equine Health categories
   HORSE_GENDER: 'horse_gender',
   HEALTH_STATUS: 'health_status',
   ADMINISTRATION_ROUTES: 'administration_routes',
@@ -271,6 +275,8 @@ export const CATEGORY_LABELS = {
   [DROPDOWN_CATEGORIES.HERD_HEALTH_STATUS]: { en: 'Herd Health Status', ar: 'حالة القطيع الصحية' },
   [DROPDOWN_CATEGORIES.COMPLIANCE_STATUS]: { en: 'Compliance Status', ar: 'الامتثال للتعليمات' },
   [DROPDOWN_CATEGORIES.BREEDING_SITES_STATUS]: { en: 'Breeding Sites Status', ar: 'حالة مواقع التكاثر' },
+  [DROPDOWN_CATEGORIES.DIAGNOSIS]: { en: 'Diagnosis', ar: 'التشخيص' },
+  [DROPDOWN_CATEGORIES.MEDICATIONS]: { en: 'Medications', ar: 'الأدوية' },
   [DROPDOWN_CATEGORIES.INTERVENTION_CATEGORIES]: { en: 'Intervention Categories', ar: 'فئات التدخل' },
   [DROPDOWN_CATEGORIES.HORSE_GENDER]: { en: 'Horse Gender', ar: 'جنس الخيل' },
   [DROPDOWN_CATEGORIES.HEALTH_STATUS]: { en: 'Health Status', ar: 'حالة الصحة' },

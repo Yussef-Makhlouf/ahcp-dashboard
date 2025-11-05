@@ -67,9 +67,12 @@ const interventionCategories = [
   { value: "Lab Analysis", label: "Lab Analysis" },
 ];
 
-interface Treatment {
+interface Medication {
   id: string;
-  medicine: string;
+  name: string;
+  dosage?: string;
+  quantity?: number;
+  route?: string;
 }
 
 export function MobileClinicDialog({ open, onOpenChange, clinic, onSave }: MobileClinicDialogProps) {
@@ -150,12 +153,16 @@ export function MobileClinicDialog({ open, onOpenChange, clinic, onSave }: Mobil
     camel: 0,
     horse: 0,
     cattle: 0,
-    treatments: [] as Treatment[],
+    treatments: [] as Medication[],
+    medicationsUsed: [] as Medication[],
   });
 
-  const [newTreatment, setNewTreatment] = useState<Treatment>({
+  const [newMedication, setNewMedication] = useState<Medication>({
     id: "",
-    medicine: "",
+    name: "",
+    dosage: "",
+    quantity: 0,
+    route: "",
   });
 
 
@@ -219,6 +226,15 @@ export function MobileClinicDialog({ open, onOpenChange, clinic, onSave }: Mobil
         horse: clinic.animalCounts?.horse || clinic.horse || 0,
         cattle: clinic.animalCounts?.cattle || clinic.cattle || 0,
         treatments: [],
+        medicationsUsed: Array.isArray(clinic.medicationsUsed) 
+          ? clinic.medicationsUsed.map((med: any, index: number) => ({
+              id: med._id || `med-${index}`,
+              name: med.name || '',
+              dosage: med.dosage || '',
+              quantity: med.quantity || 0,
+              route: med.administrationRoute || med.route || ''
+            }))
+          : [],
       });
     } else {
       // Generate new serial number
@@ -276,6 +292,7 @@ export function MobileClinicDialog({ open, onOpenChange, clinic, onSave }: Mobil
         horse: 0,
         cattle: 0,
         treatments: [],
+        medicationsUsed: [],
       });
     }
     
@@ -306,9 +323,9 @@ export function MobileClinicDialog({ open, onOpenChange, clinic, onSave }: Mobil
       return false;
     }
     
-    if (formData.treatments.length === 0 && !formData.treatment.trim()) {
-      setFieldError('treatment', 'يجب إدخال تفاصيل العلاج');
-      return false;
+    // Allow empty medications, just show warning in logs
+    if (formData.medicationsUsed.length === 0 && !formData.treatment.trim()) {
+      console.warn('⚠️ No medications or treatment details provided');
     }
     
     return isValid;
@@ -344,8 +361,16 @@ export function MobileClinicDialog({ open, onOpenChange, clinic, onSave }: Mobil
     setIsSubmitting(true);
     
     try {
+      // تحويل الأدوية إلى البنية المطلوبة من الباك إند
+      const medicationsUsed = formData.medicationsUsed.map(med => ({
+        name: med.name,
+        dosage: med.dosage || '',
+        quantity: med.quantity || 0,
+        administrationRoute: med.route || ''
+      }));
+      
       const treatmentText = formData.treatments.length > 0
-        ? formData.treatments.map(t => t.medicine).join(", ")
+        ? formData.treatments.map(t => t.name).join(", ")
         : formData.treatment;
 
       // Debug client data
@@ -388,6 +413,7 @@ export function MobileClinicDialog({ open, onOpenChange, clinic, onSave }: Mobil
         diagnosis: formData.diagnosis,
         interventionCategory: formData.interventionCategory,
         treatment: treatmentText,
+        medicationsUsed: medicationsUsed,
         request: {
           date: formData.request.date || format(new Date(), "yyyy-MM-dd"),
           situation: formData.request.situation,
@@ -430,14 +456,18 @@ export function MobileClinicDialog({ open, onOpenChange, clinic, onSave }: Mobil
   };
 
   const addTreatment = () => {
-    if (newTreatment.medicine) {
+    if (newMedication.name) {
       setFormData({
         ...formData,
-        treatments: [...formData.treatments, { ...newTreatment, id: Date.now().toString() }],
+        treatments: [...formData.treatments, { ...newMedication, id: Date.now().toString() }],
+        medicationsUsed: [...formData.medicationsUsed, { ...newMedication, id: Date.now().toString() }],
       });
-      setNewTreatment({
+      setNewMedication({
         id: "",
-        medicine: "",
+        name: "",
+        dosage: "",
+        quantity: 0,
+        route: "",
       });
     }
   };
@@ -445,6 +475,33 @@ export function MobileClinicDialog({ open, onOpenChange, clinic, onSave }: Mobil
   const removeTreatment = (id: string) => {
     setFormData({
       ...formData,
+      treatments: formData.treatments.filter(t => t.id !== id),
+      medicationsUsed: formData.medicationsUsed.filter(m => m.id !== id),
+    });
+  };
+
+  const addMedication = () => {
+    if (newMedication.name) {
+      const newMed = { ...newMedication, id: Date.now().toString() };
+      setFormData({
+        ...formData,
+        medicationsUsed: [...formData.medicationsUsed, newMed],
+        treatments: [...formData.treatments, newMed],
+      });
+      setNewMedication({
+        id: "",
+        name: "",
+        dosage: "",
+        quantity: 0,
+        route: "",
+      });
+    }
+  };
+
+  const removeMedication = (id: string) => {
+    setFormData({
+      ...formData,
+      medicationsUsed: formData.medicationsUsed.filter(m => m.id !== id),
       treatments: formData.treatments.filter(t => t.id !== id),
     });
   };
@@ -928,28 +985,19 @@ export function MobileClinicDialog({ open, onOpenChange, clinic, onSave }: Mobil
             <TabsContent value="diagnosis" className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label className="after:content-['*'] after:text-red-500 after:ml-1">التشخيص</Label>
-                  <Textarea
-                    value={formData.diagnosis}
-                    onChange={(e) => {
-                      setFormData({ ...formData, diagnosis: e.target.value });
-                      // Clear error when user starts typing
+                  <DynamicSelect
+                    category="DIAGNOSIS"
+                    value={formData.diagnosis || ""}
+                    onValueChange={(value) => {
+                      setFormData({ ...formData, diagnosis: value });
                       clearFieldError('diagnosis');
                     }}
-                    onBlur={() => {
-                      const error = validateField('diagnosis', formData.diagnosis);
-                      if (error) {
-                        setFieldError('diagnosis', error);
-                      }
-                    }}
-                    placeholder="أدخل التشخيص (مثال: التهاب رئوي، طفيليات معوية، جروح وإصابات، إلخ)"
-                    rows={3}
-                    className={getFieldError('diagnosis') ? 'border-red-500' : ''}
+                    label="التشخيص"
+                    placeholder="اختر التشخيص"
                     required
+                    error={getFieldError('diagnosis') || undefined}
+                    language="en"
                   />
-                  {getFieldError('diagnosis') && (
-                    <p className="text-red-500 text-sm font-medium mt-1">{getFieldError('diagnosis')}</p>
-                  )}
                 </div>
 
                 <div className="space-y-2">
@@ -963,7 +1011,7 @@ export function MobileClinicDialog({ open, onOpenChange, clinic, onSave }: Mobil
                     label="نوع التدخل"
                     placeholder="اختر نوع التدخل"
                     required
-                    error={errors.interventionCategory}
+                    error={errors.interventionCategory || undefined}
                     language="en"
                   />
                 </div>
@@ -981,47 +1029,96 @@ export function MobileClinicDialog({ open, onOpenChange, clinic, onSave }: Mobil
                   {/* إضافة دواء جديد */}
                   <div className="space-y-4">
                     <Label className="text-base font-semibold">إضافة دواء جديد:</Label>
-                    <div className="space-y-2">
-                      <Label>اسم الدواء</Label>
-                      <Input
-                        value={newTreatment.medicine}
-                        onChange={(e) => setNewTreatment({ ...newTreatment, medicine: e.target.value })}
-                        placeholder="مثال: أموكسيسيلين"
-                      />
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div className="space-y-2">
+                        <Label>اسم الدواء *</Label>
+                        <DynamicSelect
+                          category="MEDICATIONS"
+                          value={newMedication.name || ""}
+                          onValueChange={(value) => setNewMedication({ ...newMedication, name: value })}
+                          placeholder="اختر الدواء"
+                          language="en"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>الجرعة</Label>
+                        <Input
+                          value={newMedication.dosage || ""}
+                          onChange={(e) => setNewMedication({ ...newMedication, dosage: e.target.value })}
+                          placeholder="مثال: 10 مل"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>الكمية</Label>
+                        <Input
+                          type="number"
+                          min="0"
+                          value={newMedication.quantity || 0}
+                          onChange={(e) => setNewMedication({ ...newMedication, quantity: parseInt(e.target.value) || 0 })}
+                          placeholder="العدد"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>طريقة الإعطاء</Label>
+                        <Select
+                          value={newMedication.route || ""}
+                          onValueChange={(value) => setNewMedication({ ...newMedication, route: value })}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="اختر الطريقة" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="Oral">فموي</SelectItem>
+                            <SelectItem value="Injection">حقن</SelectItem>
+                            <SelectItem value="Topical">موضعي</SelectItem>
+                            <SelectItem value="Intravenous">وريدي</SelectItem>
+                            <SelectItem value="Intramuscular">عضلي</SelectItem>
+                            <SelectItem value="Subcutaneous">تحت الجلد</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
                     </div>
                   </div>
 
                   <Button
                     type="button"
-                    onClick={addTreatment}
+                    onClick={addMedication}
                     variant="secondary"
                     className="w-full"
-                    disabled={!newTreatment.medicine}
+                    disabled={!newMedication.name}
                   >
                     <Plus className="ml-2 h-4 w-4" />
                     إضافة دواء
                   </Button>
 
-                  <ScrollArea className="h-[150px] w-full rounded-md border p-4">
-                    {formData.treatments.length === 0 ? (
+                  <ScrollArea className="h-[200px] w-full rounded-md border p-4">
+                    {formData.medicationsUsed.length === 0 ? (
                       <p className="text-center text-muted-foreground">لا توجد أدوية مضافة</p>
                     ) : (
                       <div className="space-y-2">
-                        {formData.treatments.map((treatment) => (
+                        {formData.medicationsUsed.map((medication) => (
                           <div
-                            key={treatment.id}
-                            className="flex items-center justify-between p-2 rounded-lg bg-muted/50"
+                            key={medication.id}
+                            className="flex items-center justify-between p-3 rounded-lg bg-muted/50 border"
                           >
-                            <div className="flex-1">
-                              <div className="font-medium">{treatment.medicine}</div>
+                            <div className="flex-1 space-y-1">
+                              <div className="font-medium flex items-center gap-2">
+                                <Heart className="h-4 w-4 text-primary" />
+                                {medication.name}
+                              </div>
+                              <div className="text-xs text-muted-foreground space-y-0.5">
+                                {medication.dosage && <div>الجرعة: {medication.dosage}</div>}
+                                {medication.quantity && <div>الكمية: {medication.quantity}</div>}
+                                {medication.route && <div>الطريقة: {medication.route}</div>}
+                              </div>
                             </div>
                             <Button
                               type="button"
                               variant="ghost"
                               size="sm"
-                              onClick={() => removeTreatment(treatment.id)}
+                              onClick={() => removeMedication(medication.id)}
                             >
-                              <Trash2 className="h-4 w-4" />
+                              <Trash2 className="h-4 w-4 text-destructive" />
                             </Button>
                           </div>
                         ))}
@@ -1043,10 +1140,10 @@ export function MobileClinicDialog({ open, onOpenChange, clinic, onSave }: Mobil
                   }}
                   placeholder="أدخل تفاصيل العلاج والملاحظات"
                   rows={3}
-                  className={errors.treatment ? 'border-red-500' : ''}
+                  className={getFieldError('treatment') ? 'border-red-500' : ''}
                 />
-                {errors.treatment && (
-                  <p className="text-red-500 text-sm font-medium mt-1">{errors.treatment}</p>
+                {getFieldError('treatment') && (
+                  <p className="text-red-500 text-sm font-medium mt-1">{getFieldError('treatment')}</p>
                 )}
               </div>
             </TabsContent>

@@ -417,16 +417,16 @@ export interface MobileClinic {
     horse: number;
     cattle: number;
   };
-  diagnosis: string;
+  diagnosis: string; // من قائمة منسدلة ديناميكية
   interventionCategory: string;
   interventionCategories?: string[];
   treatment: string;
-  medicationsUsed?: {
-    name: string;
-    dosage: string;
-    quantity: number;
-    route: "Oral" | "Injection" | "Topical" | "Intravenous" | "Intramuscular" | "Subcutaneous";
-  }[];
+  medicationsUsed?: Array<{
+    name: string; // من قائمة منسدلة ديناميكية
+    dosage?: string;
+    quantity?: number;
+    administrationRoute?: "Oral" | "Injection" | "Topical" | "Intravenous" | "Intramuscular" | "Subcutaneous";
+  }>;
   request: {
     date: string;
     situation: "Open" | "Closed" | "Pending";
