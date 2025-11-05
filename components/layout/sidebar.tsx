@@ -24,6 +24,7 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   LogOut,
+  Trash2,
 } from "lucide-react";
 
 const menuItems = [
@@ -61,6 +62,11 @@ const menuItems = [
     title: "المربيين",
     href: "/clients",
     icon: Users,
+  },
+  {
+    title: "سجل المحذوفات",
+    href: "/trash",
+    icon: Trash2,
   },
   // {
   //   title: "التقارير",
