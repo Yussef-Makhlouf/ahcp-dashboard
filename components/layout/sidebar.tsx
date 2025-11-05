@@ -63,11 +63,11 @@ const menuItems = [
     href: "/clients",
     icon: Users,
   },
-  {
-    title: "سجل المحذوفات",
-    href: "/trash",
-    icon: Trash2,
-  },
+  // {
+  //   title: "سجل المحذوفات",
+  //   href: "/trash",
+  //   icon: Trash2,
+  // },
   // {
   //   title: "التقارير",
   //   href: "/reports",
