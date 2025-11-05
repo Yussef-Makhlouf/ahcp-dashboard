@@ -144,9 +144,12 @@ export function LaboratoryDialog({ open, onOpenChange, laboratory, onSave }: Lab
     },
     collector: "",
     supervisor: "",
+    vehicleNo: "",
     sampleType: "",
     sampleNumber: "",
     testType: "",
+    causeOfSample: "",
+    animalCategory: "",
     positiveCases: 0,
     negativeCases: 0,
     remarks: "",
@@ -220,9 +223,12 @@ export function LaboratoryDialog({ open, onOpenChange, laboratory, onSave }: Lab
         },
         collector: laboratory.collector || "",
         supervisor: (laboratory as any).supervisor || "",
+        vehicleNo: (laboratory as any).vehicleNo || "",
         sampleType: laboratory.sampleType || "",
         sampleNumber: laboratory.sampleNumber || "",
         testType: (laboratory as any).testType || "",
+        causeOfSample: (laboratory as any).causeOfSample || "",
+        animalCategory: (laboratory as any).animalCategory || "",
         positiveCases: laboratory.positiveCases || 0,
         negativeCases: laboratory.negativeCases || 0,
         remarks: laboratory.remarks || "",
@@ -259,9 +265,12 @@ export function LaboratoryDialog({ open, onOpenChange, laboratory, onSave }: Lab
         },
         collector: "",
         supervisor: "",
+        vehicleNo: "",
         sampleType: "",
         sampleNumber: "",
         testType: "",
+        causeOfSample: "",
+        animalCategory: "",
         positiveCases: 0,
         negativeCases: 0,
         remarks: "",
@@ -389,9 +398,13 @@ export function LaboratoryDialog({ open, onOpenChange, laboratory, onSave }: Lab
       coordinates: formData.coordinates,
       speciesCounts: formData.speciesCounts,
       collector: formData.collector,
+      supervisor: formData.supervisor,
+      vehicleNo: formData.vehicleNo,
       sampleType: formData.sampleType,
       sampleNumber: formData.sampleNumber,
       testType: formData.testType,
+      causeOfSample: formData.causeOfSample,
+      animalCategory: formData.animalCategory,
       positiveCases: formData.positiveCases,
       negativeCases: formData.negativeCases,
       remarks: formData.remarks,
@@ -849,6 +862,30 @@ export function LaboratoryDialog({ open, onOpenChange, laboratory, onSave }: Lab
                   )}
                 </div>
 
+                {/* Supervisor */}
+                <div className="space-y-2">
+                  <Label>المشرف</Label>
+                  <Input
+                    value={formData.supervisor}
+                    onChange={(e) => {
+                      setFormData({ ...formData, supervisor: e.target.value });
+                    }}
+                    placeholder="اسم المشرف"
+                  />
+                </div>
+
+                {/* Vehicle Number */}
+                <div className="space-y-2">
+                  <Label>رقم المركبة</Label>
+                  <Input
+                    value={formData.vehicleNo}
+                    onChange={(e) => {
+                      setFormData({ ...formData, vehicleNo: e.target.value });
+                    }}
+                    placeholder="رقم المركبة (مثل: V001)"
+                  />
+                </div>
+
                 {/* Sample Type */}
                 <div className="space-y-2">
                   <DynamicSelect
@@ -1048,6 +1085,38 @@ export function LaboratoryDialog({ open, onOpenChange, laboratory, onSave }: Lab
                         onChange={(e) => setFormData({ ...formData, negativeCases: parseInt(e.target.value) || 0 })}
                         className="border-green-200"
                         required
+                      />
+                    </div>
+
+                    {/* Animal Category */}
+                    <div className="space-y-2">
+                      <Label>فئة الحيوان</Label>
+                      <Select
+                        value={formData.animalCategory}
+                        onValueChange={(value) => setFormData({ ...formData, animalCategory: value })}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="اختر فئة الحيوان" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Sheep">Sheep (أغنام)</SelectItem>
+                          <SelectItem value="Goat">Goat (ماعز)</SelectItem>
+                          <SelectItem value="Cattle">Cattle (أبقار)</SelectItem>
+                          <SelectItem value="Camel">Camel (إبل)</SelectItem>
+                          <SelectItem value="Horse">Horse (خيول)</SelectItem>
+                          <SelectItem value="Mixed">Mixed (مختلط)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {/* Cause of Sample */}
+                    <div className="space-y-2 sm:col-span-1">
+                      <Label>سبب أخذ العينة</Label>
+                      <Textarea
+                        value={formData.causeOfSample}
+                        onChange={(e) => setFormData({ ...formData, causeOfSample: e.target.value })}
+                        placeholder="سبب أخذ العينة..."
+                        rows={2}
                       />
                     </div>
                   </div>

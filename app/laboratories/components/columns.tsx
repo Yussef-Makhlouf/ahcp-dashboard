@@ -292,6 +292,24 @@ export function getColumns({
       ),
       size: 140,
     },
+    // Supervisor
+    {
+      accessorKey: "supervisor",
+      header: "Supervisor",
+      cell: ({ row }) => (
+        <div className="font-medium text-sm">{row.getValue("supervisor") || 'N/A'}</div>
+      ),
+      size: 130,
+    },
+    // Vehicle Number
+    {
+      accessorKey: "vehicleNo",
+      header: "Vehicle No",
+      cell: ({ row }) => (
+        <div className="font-mono text-sm">{row.getValue("vehicleNo") || 'N/A'}</div>
+      ),
+      size: 110,
+    },
     // Sample Type
     {
       accessorKey: "sampleType",
@@ -350,6 +368,41 @@ export function getColumns({
       ),
       size: 130,
     },
+    // Cause of Sample
+    {
+      accessorKey: "causeOfSample",
+      header: "Cause of Sample",
+      cell: ({ row }) => {
+        const cause = row.getValue("causeOfSample") as string;
+        return (
+          <div className="max-w-[200px] truncate text-sm" title={cause}>
+            {cause || 'N/A'}
+          </div>
+        );
+      },
+      size: 150,
+    },
+    // Animal Category
+    {
+      accessorKey: "animalCategory",
+      header: "Animal Category",
+      cell: ({ row }) => {
+        const category = row.getValue("animalCategory") as string;
+        const categoryColors: Record<string, string> = {
+          "Sheep": "bg-blue-100 text-blue-800 border-blue-200",
+          "Goat": "bg-green-100 text-green-800 border-green-200",
+          "Cattle": "bg-purple-100 text-purple-800 border-purple-200",
+          "Camel": "bg-yellow-100 text-yellow-800 border-yellow-200",
+          "Horse": "bg-indigo-100 text-indigo-800 border-indigo-200",
+        };
+        return (
+          <Badge className={categoryColors[category] || "bg-gray-100 text-gray-800 border-gray-200"}>
+            {category || 'N/A'}
+          </Badge>
+        );
+      },
+      size: 130,
+    },
     // Positive Cases
     {
       accessorKey: "positiveCases",
@@ -377,6 +430,22 @@ export function getColumns({
         );
       },
       size: 120,
+    },
+    // Total Samples
+    {
+      id: "totalSamples",
+      header: "Total Samples",
+      cell: ({ row }) => {
+        const positive = row.getValue("positiveCases") as number || 0;
+        const negative = row.getValue("negativeCases") as number || 0;
+        const total = positive + negative;
+        return (
+          <Badge className="bg-purple-100 text-purple-800 border-purple-200 font-semibold">
+            {total}
+          </Badge>
+        );
+      },
+      size: 110,
     },
     // Remarks
     {

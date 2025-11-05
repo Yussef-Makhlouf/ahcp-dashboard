@@ -56,9 +56,6 @@ interface MobileClinicDialogProps {
   onSave: (data: any) => void;
 }
 
-// Removed static supervisors array - now using API
-// Removed vehicles array - now using free text input for vehicle number
-// Removed diagnoses array - now using free text input for diagnosis
 
 const interventionCategories = [
   { value: "Clinical Examination", label: "Clinical Examination" },

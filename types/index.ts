@@ -556,9 +556,13 @@ export interface Laboratory {
     other?: string; // Other (Species) column
   };
   collector: string; // Sample Collector column
+  supervisor?: string; // Supervisor column
+  vehicleNo?: string; // Vehicle Number column
   sampleType: string; // Sample Type column (Drop List)
   sampleNumber: string; // Collector Code column (جامع العينة رمز)
   testType?: string; // Test Type column (Drop List)
+  causeOfSample?: string; // Cause of Sample column
+  animalCategory?: string; // Animal Category column
   positiveCases: number; // positive cases column (Mandatory)
   negativeCases: number; // Negative Cases column (Mandatory)
   remarks: string; // Remarks column
