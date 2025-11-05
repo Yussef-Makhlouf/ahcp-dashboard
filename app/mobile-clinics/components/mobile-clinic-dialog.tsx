@@ -1044,7 +1044,7 @@ export function MobileClinicDialog({ open, onOpenChange, clinic, onSave }: Mobil
                             key={medication.id}
                             className="flex items-center justify-between p-3 rounded-lg bg-muted/50 border"
                           >
-                            <div className="flex-1 space-y-1">
+                            <div className="flex-1">
                               <div className="font-medium flex items-center gap-2">
                                 <Heart className="h-4 w-4 text-primary" />
                                 {medication.name}
