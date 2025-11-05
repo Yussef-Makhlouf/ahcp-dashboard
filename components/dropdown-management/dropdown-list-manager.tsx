@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Plus, Edit, Trash2, Eye, Search, Filter, Download, Upload, MoreHorizontal } from 'lucide-react';
+import { Plus, Edit, Trash2, Eye, Search, Filter, Download, Upload, MoreHorizontal, Grid3x3, List, CheckCircle, XCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { LoadingButton } from '@/components/ui/button-modern';
 import { Input } from '@/components/ui/input';
@@ -63,6 +63,7 @@ export function DropdownListManager({
     label: '',
     labelAr: ''
   });
+  const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
 
   // Load categories on mount
   useEffect(() => {

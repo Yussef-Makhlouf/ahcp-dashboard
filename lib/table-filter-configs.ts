@@ -1,4 +1,75 @@
 import { FieldFilter } from "@/components/data-table/table-filters";
+import { dropdownListsApi } from "@/lib/api/dropdown-lists";
+
+// Cache للتشخيصات والأدوية
+let diagnosisOptionsCache: { value: string; label: string; color: any }[] = [];
+let medicationsOptionsCache: { value: string; label: string; color: any }[] = [];
+let cacheTimestamp = 0;
+const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+
+// دالة لتحميل التشخيصات من القوائم المنسدلة
+async function loadDiagnosisOptions() {
+  const now = Date.now();
+  if (diagnosisOptionsCache.length > 0 && now - cacheTimestamp < CACHE_DURATION) {
+    return diagnosisOptionsCache;
+  }
+
+  try {
+    // تحميل جميع التشخيصات بدون حد (limit: 1000)
+    const response = await dropdownListsApi.getAll({ 
+      category: 'diagnosis',
+      limit: 1000 
+    });
+    
+    // فلترة النشطة فقط
+    const activeItems = response.data.filter(item => item.isActive !== false);
+    
+    diagnosisOptionsCache = activeItems.map((item, index) => ({
+      value: item.value,
+      label: item.labelAr || item.label,
+      color: ['default', 'secondary', 'outline', 'destructive'][index % 4] as any
+    }));
+    
+    cacheTimestamp = now;
+    console.log(`✅ Loaded ${diagnosisOptionsCache.length} diagnosis options for filters`);
+    return diagnosisOptionsCache;
+  } catch (error) {
+    console.error('❌ Error loading diagnosis options:', error);
+    return [];
+  }
+}
+
+// دالة لتحميل الأدوية من القوائم المنسدلة
+async function loadMedicationsOptions() {
+  const now = Date.now();
+  if (medicationsOptionsCache.length > 0 && now - cacheTimestamp < CACHE_DURATION) {
+    return medicationsOptionsCache;
+  }
+
+  try {
+    // تحميل جميع الأدوية بدون حد (limit: 1000)
+    const response = await dropdownListsApi.getAll({ 
+      category: 'medications',
+      limit: 1000 
+    });
+    
+    // فلترة النشطة فقط
+    const activeItems = response.data.filter(item => item.isActive !== false);
+    
+    medicationsOptionsCache = activeItems.map((item, index) => ({
+      value: item.value,
+      label: item.labelAr || item.label,
+      color: ['default', 'secondary', 'outline', 'destructive'][index % 4] as any
+    }));
+    
+    cacheTimestamp = now;
+    console.log(`✅ Loaded ${medicationsOptionsCache.length} medication options for filters`);
+    return medicationsOptionsCache;
+  } catch (error) {
+    console.error('❌ Error loading medications options:', error);
+    return [];
+  }
+}
 
 // تكوينات الفلاتر لكل جدول - محدثة بالقيم الفعلية من قاعدة البيانات
 export const TABLE_FILTER_CONFIGS: Record<string, FieldFilter[]> = {
@@ -195,14 +266,16 @@ export const TABLE_FILTER_CONFIGS: Record<string, FieldFilter[]> = {
   mobileClinics: [
     {
       key: "diagnosis",
-      label: "Diagnosis",
-      type: "multiselect" as const,
+      label: "التشخيص",
+      type: "select" as const,
+      placeholder: "اختر التشخيص",
       options: [] // سيتم ملؤها ديناميكياً من dropdown-lists API
     },
     {
       key: "medications",
-      label: "Medications",
-      type: "multiselect" as const,
+      label: "الأدوية",
+      type: "select" as const,
+      placeholder: "اختر الدواء",
       options: [] // سيتم ملؤها ديناميكياً من dropdown-lists API
     },
     {
@@ -286,6 +359,34 @@ export const TABLE_FILTER_CONFIGS: Record<string, FieldFilter[]> = {
 export function getTableFilterConfig(tableName: string): FieldFilter[] {
   return TABLE_FILTER_CONFIGS[tableName] || [];
 }
+
+// دالة للحصول على تكوين فلاتر مع تحميل البيانات الديناميكية
+export async function getTableFilterConfigWithDynamicData(tableName: string): Promise<FieldFilter[]> {
+  const baseConfig = TABLE_FILTER_CONFIGS[tableName] || [];
+  
+  if (tableName === 'mobileClinics') {
+    // تحميل التشخيصات والأدوية
+    const [diagnosisOptions, medicationsOptions] = await Promise.all([
+      loadDiagnosisOptions(),
+      loadMedicationsOptions()
+    ]);
+    
+    return baseConfig.map(filter => {
+      if (filter.key === 'diagnosis') {
+        return { ...filter, options: diagnosisOptions };
+      }
+      if (filter.key === 'medications') {
+        return { ...filter, options: medicationsOptions };
+      }
+      return filter;
+    });
+  }
+  
+  return baseConfig;
+}
+
+// تصدير الدوال لاستخدامها مباشرة
+export { loadDiagnosisOptions, loadMedicationsOptions };
 
 // دالة لتحويل الفلاتر إلى معاملات API
 export function filtersToApiParams(filters: Record<string, any>): Record<string, any> {

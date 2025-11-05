@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { MainLayout } from "@/components/layout/main-layout";
 import { DataTable } from "@/components/data-table/data-table";
 
@@ -21,8 +21,8 @@ import { apiConfig } from "@/lib/api-config";
 import { ImportExportManager } from "@/components/import-export";
 import { ImportDialog } from "@/components/common/ImportDialog";
 import { ResponsiveActions, createActions } from "@/components/ui/responsive-actions";
-import { TableFilters, useTableFilters } from "@/components/data-table/table-filters";
-import { getTableFilterConfig, filtersToApiParams } from "@/lib/table-filter-configs";
+import { TableFilters, useTableFilters, FieldFilter } from "@/components/data-table/table-filters";
+import { getTableFilterConfig, getTableFilterConfigWithDynamicData, filtersToApiParams } from "@/lib/table-filter-configs";
 import { DateRange } from "react-day-picker";
 
 // تعريف حقول النموذج
@@ -252,6 +252,16 @@ export default function MobileClinicsPage() {
   const [pageSize] = useState(30);
   const queryClient = useQueryClient();
   const { checkPermission } = usePermissions();
+  const [dynamicFilters, setDynamicFilters] = useState<FieldFilter[]>([]);
+
+  // تحميل الفلاتر الديناميكية عند بدء المكون
+  useEffect(() => {
+    const loadFilters = async () => {
+      const filters = await getTableFilterConfigWithDynamicData('mobileClinics');
+      setDynamicFilters(filters);
+    };
+    loadFilters();
+  }, []);
 
   // إعداد الفلاتر
   const {
@@ -439,7 +449,7 @@ export default function MobileClinicsPage() {
             value: dateRange,
             onDateChange: updateDateRange,
           }}
-          fieldFilters={getTableFilterConfig('mobileClinics')}
+          fieldFilters={dynamicFilters.length > 0 ? dynamicFilters : getTableFilterConfig('mobileClinics')}
           filterValues={filters}
           onFiltersChange={updateFilters}
           defaultExpanded={hasActiveFilters}

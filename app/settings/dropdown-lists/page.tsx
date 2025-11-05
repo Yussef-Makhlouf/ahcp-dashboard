@@ -1,18 +1,14 @@
 'use client';
 
 import React from 'react';
-import { DropdownListManager } from '@/components/dropdown-management/dropdown-list-manager';
+import { DropdownListManagerV2 } from '@/components/dropdown-management/dropdown-list-manager-v2';
 
 export default function DropdownListsPage() {
   return (
-    <div className="container mx-auto py-6">
-      <DropdownListManager 
-        title="إدارة القوائم المنسدلة"
-        description="إدارة جميع خيارات القوائم المنسدلة المستخدمة في النظام"
-        allowCreate={true}
+    <div className="container mx-auto py-8 px-4" dir="rtl">
+      <DropdownListManagerV2 
         allowEdit={true}
         allowDelete={true}
-        showInactive={true}
       />
     </div>
   );

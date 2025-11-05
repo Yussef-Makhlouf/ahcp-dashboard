@@ -307,33 +307,142 @@ export function getColumns({
         );
       },
     },
-    // Diagnosis & Treatment
+    // Diagnosis
     {
-      id: "medical",
-      header: "Medical Info",
+      id: "diagnosis",
+      header: "Diagnosis",
       cell: ({ row }) => {
         const diagnosis = row.original.diagnosis;
-        const treatment = row.original.treatment;
-        const hasDetails = Boolean(diagnosis) || Boolean(treatment);
+        
+        if (!diagnosis) {
+          return <span className="text-xs text-muted-foreground">غير محدد</span>;
+        }
+
+        // Handle both string and array formats
+        const diagnoses = Array.isArray(diagnosis) ? diagnosis : [diagnosis];
+        const diagnosisCount = diagnoses.length;
+        
+        if (diagnosisCount === 0) {
+          return <span className="text-xs text-muted-foreground">غير محدد</span>;
+        }
+
+        if (diagnosisCount === 1) {
+          const diagnosisText = typeof diagnoses[0] === 'object' 
+            ? (diagnoses[0] as any).label || (diagnoses[0] as any).labelAr || (diagnoses[0] as any).name || String(diagnoses[0]) 
+            : String(diagnoses[0]);
+          return (
+            <div className="flex items-center gap-2">
+              <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200 text-xs">
+                {diagnosisText.length > 25 ? diagnosisText.substring(0, 25) + '...' : diagnosisText}
+              </Badge>
+            </div>
+          );
+        }
+
+        const firstDiagnosis = typeof diagnoses[0] === 'object'
+          ? (diagnoses[0] as any).label || (diagnoses[0] as any).labelAr || (diagnoses[0] as any).name || String(diagnoses[0])
+          : String(diagnoses[0]);
 
         return (
-          <div className="text-xs space-y-1 max-w-[220px]">
-            {diagnosis && (
-              <div className="truncate" title={diagnosis}>
-                <strong>Diagnosis:</strong> {diagnosis}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm" className="h-8 px-3 gap-2 bg-purple-50 text-purple-700 border-purple-200 hover:bg-purple-100">
+                <span className="text-xs font-medium">
+                  {firstDiagnosis.length > 15 ? firstDiagnosis.substring(0, 15) + '...' : firstDiagnosis}
+                </span>
+                <Badge variant="secondary" className="h-5 w-5 rounded-full p-0 flex items-center justify-center text-[10px]">
+                  +{diagnosisCount - 1}
+                </Badge>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="w-80 max-h-96 overflow-y-auto">
+              <div className="px-2 py-1.5 text-sm font-semibold text-purple-700 border-b">
+                التشخيصات ({diagnosisCount})
               </div>
-            )}
-            {treatment && (
-              <div className="truncate" title={treatment}>
-                <strong>Treatment:</strong> {treatment}
-              </div>
-            )}
-            {!hasDetails && (
-              <span className="text-muted-foreground">لا توجد بيانات طبية متاحة</span>
-            )}
-          </div>
+              {diagnoses.map((item, index) => {
+                const diagnosisText = typeof item === 'object'
+                  ? (item as any).label || (item as any).labelAr || (item as any).name || String(item)
+                  : String(item);
+                return (
+                  <DropdownMenuItem key={index} className="py-2 px-3">
+                    <div className="flex items-start gap-2 w-full">
+                      <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200 text-xs shrink-0">
+                        {index + 1}
+                      </Badge>
+                      <span className="text-xs break-words flex-1">{diagnosisText}</span>
+                    </div>
+                  </DropdownMenuItem>
+                );
+              })}
+            </DropdownMenuContent>
+          </DropdownMenu>
         );
       },
+      size: 200,
+    },
+    // Medications (Treatment)
+    {
+      id: "medications",
+      header: "Medications",
+      cell: ({ row }) => {
+        // Use treatment field as it contains the medications/treatment text
+        const treatment = row.original.treatment;
+        
+        if (!treatment || treatment.trim() === '') {
+          return <span className="text-xs text-muted-foreground">غير محدد</span>;
+        }
+
+        // Split by common separators to show as list
+        const meds = treatment.split(/[,،؛;]+/).map(m => m.trim()).filter(m => m);
+        const medsCount = meds.length;
+        
+        if (medsCount === 0) {
+          return <span className="text-xs text-muted-foreground">غير محدد</span>;
+        }
+
+        if (medsCount === 1) {
+          return (
+            <div className="flex items-center gap-2">
+              <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 text-xs">
+                {meds[0].length > 25 ? meds[0].substring(0, 25) + '...' : meds[0]}
+              </Badge>
+            </div>
+          );
+        }
+
+        const firstMed = meds[0];
+
+        return (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm" className="h-8 px-3 gap-2 bg-green-50 text-green-700 border-green-200 hover:bg-green-100">
+                <span className="text-xs font-medium">
+                  {firstMed.length > 15 ? firstMed.substring(0, 15) + '...' : firstMed}
+                </span>
+                <Badge variant="secondary" className="h-5 w-5 rounded-full p-0 flex items-center justify-center text-[10px]">
+                  +{medsCount - 1}
+                </Badge>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="w-80 max-h-96 overflow-y-auto">
+              <div className="px-2 py-1.5 text-sm font-semibold text-green-700 border-b">
+                الأدوية ({medsCount})
+              </div>
+              {meds.map((medText, index) => (
+                <DropdownMenuItem key={index} className="py-2 px-3">
+                  <div className="flex items-start gap-2 w-full">
+                    <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 text-xs shrink-0">
+                      {index + 1}
+                    </Badge>
+                    <span className="text-xs break-words flex-1">{medText}</span>
+                  </div>
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        );
+      },
+      size: 200,
     },
     // Request Info
     {

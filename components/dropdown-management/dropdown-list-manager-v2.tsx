@@ -80,16 +80,20 @@ export function DropdownListManagerV2({
     
     setLoading(true);
     try {
+      // تحميل جميع الخيارات بدون حد (limit: 5000 لضمان تحميل الكل)
       const response = await dropdownListsApi.getAll({
         category: selectedCategory,
-        search: searchQuery || undefined
+        search: searchQuery || undefined,
+        limit: 5000 // تحميل جميع البيانات
       });
       
       const optionsData = Array.isArray(response.data) ? response.data : [];
       setOptions(optionsData);
+      
+      console.log(`✅ Loaded ${optionsData.length} options for category: ${selectedCategory}`);
     } catch (error) {
       console.error('Error loading options:', error);
-      toast.error('Failed to load options');
+      toast.error('فشل تحميل الخيارات');
     } finally {
       setLoading(false);
     }
@@ -218,94 +222,123 @@ export function DropdownListManagerV2({
   // Table columns
   const columns = [
     {
-      accessorKey: 'value',
-      header: 'Value',
+      accessorKey: 'labelAr',
+      header: () => <div className="text-right font-bold">الاسم بالعربية</div>,
       cell: ({ row }: any) => (
-        <code className="px-2 py-1 bg-gray-100 rounded text-md font-mono">
-          {row.original.value}
-        </code>
+        <div className="flex items-center gap-2 text-right">
+          <div className={`w-2 h-2 rounded-full ${row.original.isActive ? 'bg-green-500' : 'bg-gray-300'}`} />
+          <span className="font-bold text-primary">
+            {row.original.labelAr}
+          </span>
+        </div>
       )
     },
     {
       accessorKey: 'label',
-      header: 'English Name',
+      header: () => <div className="text-left font-bold" dir="ltr">الاسم بالإنجليزية</div>,
       cell: ({ row }: any) => (
-        <div className="font-medium">
+        <div className="font-medium text-gray-700 text-left" dir="ltr">
           {row.original.label}
         </div>
       )
     },
     {
-      accessorKey: 'labelAr',
-      header: 'Arabic Name',
+      accessorKey: 'value',
+      header: () => <div className="text-center font-bold">القيمة المُولدة</div>,
       cell: ({ row }: any) => (
-        <span className="text-gray-600">{row.original.labelAr}</span>
+        <div className="flex justify-center">
+          <code className="px-2 py-1 bg-primary/10 border border-primary/20 rounded text-sm font-mono text-primary">
+            {row.original.value}
+          </code>
+        </div>
       )
     },
     {
       accessorKey: 'isActive',
-      header: 'Status',
+      header: () => <div className="text-center font-bold">الحالة</div>,
       cell: ({ row }: any) => (
-        <Badge variant={row.original.isActive ? 'secondary' : 'destructive'}>
-          {row.original.isActive ? 'Active' : 'Inactive'}
-        </Badge>
+        <div className="flex justify-center">
+          <Badge variant={row.original.isActive ? 'secondary' : 'destructive'} className="gap-1">
+            {row.original.isActive ? (
+              <><CheckCircle className="h-3 w-3" /> نشط</>
+            ) : (
+              <><XCircle className="h-3 w-3" /> معطل</>
+            )}
+          </Badge>
+        </div>
       )
     },
     {
       id: 'actions',
-      header: 'Actions',
+      header: () => <div className="text-center font-bold">الإجراءات</div>,
       cell: ({ row }: any) => {
         const option = row.original;
         return (
-          <div className="flex items-center gap-1">
+          <div className="flex items-center justify-center gap-2">
+            {/* View Button */}
             <Button
-              variant="ghost"
+              variant="outline"
               size="sm"
               onClick={() => handleView(option)}
-              className="h-8 w-8 p-0"
+              className="h-9 px-3 gap-2 border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100 hover:text-blue-800 hover:border-blue-300"
+              title="عرض التفاصيل"
             >
               <Eye className="h-4 w-4" />
+              <span className="text-xs font-medium">عرض</span>
             </Button>
             
+            {/* Edit Button */}
             {allowEdit && (
               <Button
-                variant="ghost"
+                variant="outline"
                 size="sm"
                 onClick={() => handleEdit(option)}
-                className="h-8 w-8 p-0"
+                className="h-9 px-3 gap-2 border-green-200 bg-green-50 text-green-700 hover:bg-green-100 hover:text-green-800 hover:border-green-300"
+                title="تعديل الخيار"
               >
                 <Edit className="h-4 w-4" />
+                <span className="text-xs font-medium">تعديل</span>
               </Button>
             )}
             
+            {/* Toggle Active Button */}
             {allowEdit && (
               <Button
-                variant="ghost"
+                variant="outline"
                 size="sm"
                 onClick={() => handleToggleActive(option)}
-                className={`h-8 w-8 p-0 ${
+                className={`h-9 px-3 gap-2 ${
                   option.isActive 
-                    ? 'text-orange-600 hover:text-orange-800 hover:bg-orange-50' 
-                    : 'text-green-600 hover:text-green-800 hover:bg-green-50'
+                    ? 'border-orange-200 bg-orange-50 text-orange-700 hover:bg-orange-100 hover:text-orange-800 hover:border-orange-300' 
+                    : 'border-green-200 bg-green-50 text-green-700 hover:bg-green-100 hover:text-green-800 hover:border-green-300'
                 }`}
-                title={option.isActive ? 'Deactivate' : 'Activate'}
+                title={option.isActive ? 'إيقاف الخيار' : 'تفعيل الخيار'}
               >
                 {option.isActive ? (
-                  <XCircle className="h-4 w-4" />
+                  <>
+                    <XCircle className="h-4 w-4" />
+                    <span className="text-xs font-medium">إيقاف</span>
+                  </>
                 ) : (
-                  <CheckCircle className="h-4 w-4" />
+                  <>
+                    <CheckCircle className="h-4 w-4" />
+                    <span className="text-xs font-medium">تفعيل</span>
+                  </>
                 )}
               </Button>
             )}
             
+            {/* Delete Button */}
             {allowDelete && (
               <Button
-                variant="ghost"
+                variant="outline"
                 size="sm"
                 onClick={() => handleDelete(option)}
-                className="h-8 w-8 p-0 text-red-600 hover:text-red-800 hover:bg-red-50"
+                className="h-9 px-3 gap-2 border-red-200 bg-red-50 text-red-700 hover:bg-red-100 hover:text-red-800 hover:border-red-300"
+                title="حذف الخيار"
               >
                 <Trash2 className="h-4 w-4" />
+                <span className="text-xs font-medium">حذف</span>
               </Button>
             )}
           </div>
@@ -317,13 +350,13 @@ export function DropdownListManagerV2({
   const currentCategory = categories.find(cat => cat.category === selectedCategory);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" dir="rtl">
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="">
-          <h2 className="text-2xl font-bold">Dropdown Lists Management</h2>
-          <p className="text-muted-foreground">
-            Manage dropdown options used throughout the system
+        <div className="text-right">
+          <h2 className="text-3xl font-bold bg-gradient-to-l from-primary to-primary/60 bg-clip-text text-transparent">إدارة القوائم المنسدلة</h2>
+          <p className="text-muted-foreground mt-1">
+            إدارة شاملة لجميع خيارات القوائم المنسدلة المستخدمة في النظام
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -334,29 +367,85 @@ export function DropdownListManagerV2({
             className="gap-2"
           >
             <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-            Refresh
+            تحديث
           </Button>
           {selectedCategory && (
-            <Button onClick={handleCreate} className="gap-2">
+            <Button onClick={handleCreate} className="gap-2 bg-primary hover:bg-primary/90">
               <Plus className="h-4 w-4" />
-              Add New Option
+              إضافة خيار جديد
             </Button>
           )}
         </div>
       </div>
 
+      {/* Statistics Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <Card className="border-r-4 border-r-primary hover:shadow-lg transition-shadow">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div className="text-right">
+                <p className="text-sm text-muted-foreground">إجمالي الفئات</p>
+                <p className="text-2xl font-bold text-primary">{categories.length}</p>
+              </div>
+              <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
+                <span className="text-2xl">📋</span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="border-r-4 border-r-blue-500 hover:shadow-lg transition-shadow">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div className="text-right">
+                <p className="text-sm text-muted-foreground">إجمالي الخيارات</p>
+                <p className="text-2xl font-bold text-blue-600">{options.length}</p>
+              </div>
+              <div className="w-12 h-12 rounded-full bg-blue-500/10 flex items-center justify-center">
+                <span className="text-2xl">📝</span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="border-r-4 border-r-green-500 hover:shadow-lg transition-shadow">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div className="text-right">
+                <p className="text-sm text-muted-foreground">الخيارات النشطة</p>
+                <p className="text-2xl font-bold text-green-600">{options.filter(o => o.isActive).length}</p>
+              </div>
+              <div className="w-12 h-12 rounded-full bg-green-500/10 flex items-center justify-center">
+                <CheckCircle className="h-6 w-6 text-green-600" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="border-r-4 border-r-orange-500 hover:shadow-lg transition-shadow">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div className="text-right">
+                <p className="text-sm text-muted-foreground">الخيارات المعطلة</p>
+                <p className="text-2xl font-bold text-orange-600">{options.filter(o => !o.isActive).length}</p>
+              </div>
+              <div className="w-12 h-12 rounded-full bg-orange-500/10 flex items-center justify-center">
+                <XCircle className="h-6 w-6 text-orange-600" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
       {/* Category Selection */}
-      <Card>
-        <CardHeader className="flex items-center justify-between" >
-          <CardTitle>Category Selection</CardTitle>
+      <Card className="border-t-4 border-t-primary">
+        <CardHeader className="text-right">
+          <CardTitle className="text-xl">اختيار الفئة</CardTitle>
           <CardDescription>
-            Choose the category you want to manage options for
+            اختر الفئة التي تريد إدارة خياراتها
           </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
             <div className="lg:col-span-2">
-              <Label htmlFor="category-select">Category</Label>
+              <Label htmlFor="category-select" className="text-right block mb-2 font-semibold">الفئة</Label>
               <Select 
                 value={selectedCategory} 
                 onValueChange={(value) => {
@@ -366,19 +455,19 @@ export function DropdownListManagerV2({
                 }}
               >
                 <SelectTrigger id="category-select">
-                  <SelectValue placeholder="Select Category" />
+                  <SelectValue placeholder="اختر الفئة" />
                 </SelectTrigger>
                 <SelectContent>
                   {categories.length === 0 ? (
                     <SelectItem value="no-categories" disabled>
-                      No categories available
+                      لا توجد فئات متاحة
                     </SelectItem>
                   ) : (
                     categories.map((cat) => (
                       <SelectItem key={cat.category} value={cat.category}>
-                        <div className="flex items-center justify-between w-full">
-                          <span>{CATEGORY_LABELS[cat.category as keyof typeof CATEGORY_LABELS]?.en || cat.label || cat.category}</span>
-                          <Badge variant="secondary" className="ml-2">
+                        <div className="flex items-center justify-between w-full gap-2">
+                          <span className="font-medium">{CATEGORY_LABELS[cat.category as keyof typeof CATEGORY_LABELS]?.ar || cat.labelAr || cat.category}</span>
+                          <Badge variant="secondary" className="mr-2">
                             {cat.total || 0}
                           </Badge>
                         </div>
@@ -391,11 +480,14 @@ export function DropdownListManagerV2({
             
             {currentCategory && (
               <div className="flex items-end">
-                <div className="w-full">
-                  <Label>Category Statistics</Label>
-                  <div className="flex items-center gap-2 mt-2">
-                    <Badge variant="outline" className="gap-1">
-                      Total: {currentCategory.total || 0}
+                <div className="w-full text-right">
+                  <Label className="font-semibold">إحصائيات الفئة</Label>
+                  <div className="flex items-center gap-2 mt-2 justify-end">
+                    <Badge variant="outline" className="gap-1 text-sm">
+                      الإجمالي: {currentCategory.total || 0}
+                    </Badge>
+                    <Badge variant="secondary" className="gap-1 text-sm">
+                      نشط: {options.filter(o => o.isActive).length}
                     </Badge>
                   </div>
                 </div>
@@ -407,19 +499,19 @@ export function DropdownListManagerV2({
 
       {/* Search and Options */}
       {selectedCategory && (
-        <Card>
+        <Card className="border-t-4 border-t-primary">
           <CardHeader>
             <div className="flex items-center justify-between">
-              <div>
-                <CardTitle>
-                  {CATEGORY_LABELS[selectedCategory as keyof typeof CATEGORY_LABELS]?.en || currentCategory?.label || selectedCategory}
+              <div className="text-right">
+                <CardTitle className="text-xl">
+                  {CATEGORY_LABELS[selectedCategory as keyof typeof CATEGORY_LABELS]?.ar || currentCategory?.labelAr || selectedCategory}
                 </CardTitle>
                 <CardDescription>
-                  Manage options for this category
+                  إدارة خيارات هذه الفئة
                 </CardDescription>
               </div>
-              <Badge variant="secondary">
-                {options.length} options
+              <Badge variant="secondary" className="text-base px-3 py-1">
+                {options.length} خيار
               </Badge>
             </div>
           </CardHeader>
@@ -427,25 +519,73 @@ export function DropdownListManagerV2({
             {/* Search */}
             <div className="flex items-center gap-4">
               <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
-                  placeholder="Search options..."
+                  placeholder="ابحث في الخيارات..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10"
+                  className="pr-10 text-right"
+                  dir="rtl"
                 />
               </div>
             </div>
 
             {/* Options Table */}
-            <DataTable
-              columns={columns}
-              data={options}
-              isLoading={loading}
-              enableSelection={false}
-              enableBulkDelete={false}
-              showPagination={options.length > 10}
-            />
+            <div className="space-y-4">
+              <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg border">
+                <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2 text-sm">
+                    <span className="text-muted-foreground">عرض:</span>
+                    <Badge variant="secondary" className="text-base font-bold">
+                      {options.length}
+                    </Badge>
+                    <span className="text-muted-foreground">خيار</span>
+                  </div>
+                  {options.filter(o => o.isActive).length !== options.length && (
+                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                      <span>•</span>
+                      <span className="text-green-600 font-semibold">{options.filter(o => o.isActive).length} نشط</span>
+                      <span>•</span>
+                      <span className="text-orange-600 font-semibold">{options.filter(o => !o.isActive).length} معطل</span>
+                    </div>
+                  )}
+                </div>
+                {options.length > 0 && (
+                  <div className="text-xs text-muted-foreground flex items-center gap-1">
+                    <Search className="h-3 w-3" />
+                    <span>استخدم البحث أعلاه لتصفية الخيارات</span>
+                  </div>
+                )}
+              </div>
+              
+              {options.length === 0 && !loading ? (
+                <Card className="border-dashed">
+                  <CardContent className="flex flex-col items-center justify-center py-12 text-center">
+                    <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4">
+                      <span className="text-3xl">📋</span>
+                    </div>
+                    <h3 className="text-lg font-semibold mb-2">لا توجد خيارات</h3>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      لم يتم إضافة أي خيارات لهذه الفئة بعد
+                    </p>
+                    <Button onClick={handleCreate} className="gap-2">
+                      <Plus className="h-4 w-4" />
+                      إضافة خيار جديد
+                    </Button>
+                  </CardContent>
+                </Card>
+              ) : (
+                <DataTable
+                  columns={columns}
+                  data={options}
+                  isLoading={loading}
+                  enableSelection={false}
+                  enableBulkDelete={false}
+                  showPagination={true}
+                  pageSize={500}
+                />
+              )}
+            </div>
           </CardContent>
         </Card>
       )}
@@ -456,35 +596,18 @@ export function DropdownListManagerV2({
         if (!open) resetForm();
       }}>
         <DialogContent className="max-w-md p-4">
-          <DialogHeader>
-            <DialogTitle>
-              {editingOption ? 'Edit Option' : 'Add New Option'}
+          <DialogHeader className="text-right">
+            <DialogTitle className="text-xl">
+              {editingOption ? 'تعديل الخيار' : 'إضافة خيار جديد'}
             </DialogTitle>
             <DialogDescription>
-              {editingOption ? 'Edit the option details' : 'Enter the new option details'}
+              {editingOption ? 'قم بتعديل تفاصيل الخيار' : 'أدخل تفاصيل الخيار الجديد'}
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4">
             <div className="flex flex-col gap-2">
-              <Label htmlFor="option-name-en" className="text-left">English Name *</Label>
-              <Input
-                id="option-name-en"
-                value={formData.label}
-                onChange={(e) => {
-                  setFormData({ 
-                    ...formData, 
-                    label: e.target.value
-                  });
-                }}
-                placeholder="Enter item name in English"
-                className="text-left"
-                dir="ltr"
-              />
-            </div>
-
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="option-name-ar" className="text-right">Arabic Name *</Label>
+              <Label htmlFor="option-name-ar" className="text-right font-semibold">الاسم بالعربية *</Label>
               <Input
                 id="option-name-ar"
                 value={formData.labelAr}
@@ -495,18 +618,35 @@ export function DropdownListManagerV2({
                   });
                 }}
                 placeholder="أدخل اسم العنصر بالعربية"
-                className="text-right"
+                className="text-right text-lg"
                 dir="rtl"
+              />
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="option-name-en" className="text-right font-semibold">الاسم بالإنجليزية *</Label>
+              <Input
+                id="option-name-en"
+                value={formData.label}
+                onChange={(e) => {
+                  setFormData({ 
+                    ...formData, 
+                    label: e.target.value
+                  });
+                }}
+                placeholder="Enter item name in English"
+                className="text-left text-lg"
+                dir="ltr"
               />
             </div>
 
    
 
             {formData.label && (
-              <div className="p-3 bg-gray-50 rounded-lg space-y-2">
-                <div className="text-sm">
-                  <span className="font-medium">Generated Value Preview: </span>
-                  <code className="bg-white px-2 py-1 rounded text-xs">
+              <div className="p-4 bg-primary/5 border border-primary/20 rounded-lg space-y-2">
+                <div className="text-sm text-right">
+                  <span className="font-semibold text-primary">معاينة القيمة المُولدة: </span>
+                  <code className="bg-white px-3 py-1.5 rounded text-sm font-mono border border-primary/30">
                     {formData.label.replace(/\s+/g, '_').toLowerCase()}
                   </code>
                 </div>
@@ -522,15 +662,17 @@ export function DropdownListManagerV2({
               resetForm();
             }}
             disabled={loading}
+            className="min-w-[100px]"
           >
-            Cancel
+            إلغاء
           </Button>
           <LoadingButton 
             loading={loading} 
             onClick={handleSave}
             disabled={!formData.labelAr.trim() || !formData.label.trim()}
+            className="min-w-[100px] bg-primary hover:bg-primary/90"
           >
-            {editingOption ? 'Update' : 'Create'}
+            {editingOption ? 'تحديث' : 'إضافة'}
           </LoadingButton>
         </div>
       </DialogContent>
@@ -538,57 +680,57 @@ export function DropdownListManagerV2({
 
     {/* View Dialog */}
     <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
-      <DialogContent className="max-w-md p-4">
-        <DialogHeader>
-          <DialogTitle>View Option Details</DialogTitle>
+      <DialogContent className="max-w-md p-6" dir="rtl">
+        <DialogHeader className="text-right">
+          <DialogTitle className="text-xl font-bold">تفاصيل الخيار</DialogTitle>
         </DialogHeader>
 
         {viewingOption && (
           <div className="space-y-4">
             <div className="grid grid-cols-1 gap-4">
-              <div>
-                <Label className="text-md font-medium text-muted-foreground">English Name</Label>
+              <div className="text-right">
+                <Label className="text-sm font-medium text-muted-foreground">الاسم بالعربية</Label>
+                <p className="mt-1 text-xl font-bold text-primary">{viewingOption.labelAr}</p>
+              </div>
+              
+              <div className="text-right">
+                <Label className="text-sm font-medium text-muted-foreground">الاسم بالإنجليزية</Label>
                 <p className="mt-1 text-lg font-medium">{viewingOption.label}</p>
               </div>
               
-              <div>
-                <Label className="text-md font-medium text-muted-foreground">Arabic Name</Label>
-                <p className="mt-1 text-lg font-medium">{viewingOption.labelAr}</p>
-              </div>
-              
-              <div>
-                <Label className="text-md font-medium text-muted-foreground">Generated Value</Label>
-                <code className="block mt-1 px-3 py-2 bg-gray-100 rounded text-md font-mono">
+              <div className="text-right">
+                <Label className="text-sm font-medium text-muted-foreground">القيمة المُولدة</Label>
+                <code className="block mt-1 px-3 py-2 bg-primary/5 border border-primary/20 rounded text-sm font-mono">
                   {viewingOption.value}
                 </code>
               </div>
 
-              <div>
-                <Label className="text-md font-medium text-muted-foreground">Category</Label>
-                <p className="mt-1">{CATEGORY_LABELS[viewingOption.category as keyof typeof CATEGORY_LABELS]?.en || viewingOption.category}</p>
+              <div className="text-right">
+                <Label className="text-sm font-medium text-muted-foreground">الفئة</Label>
+                <p className="mt-1 font-medium">{CATEGORY_LABELS[viewingOption.category as keyof typeof CATEGORY_LABELS]?.ar || viewingOption.category}</p>
               </div>
 
-              <div>
-                <Label className="text-md font-medium text-muted-foreground">Status</Label>
-                <div className="mt-1 flex items-center gap-2">
-                  <Badge variant={viewingOption.isActive ? 'secondary' : 'destructive'}>
-                    {viewingOption.isActive ? 'Active' : 'Inactive'}
+              <div className="text-right">
+                <Label className="text-sm font-medium text-muted-foreground">الحالة</Label>
+                <div className="mt-1 flex items-center gap-2 justify-end">
+                  <Badge variant={viewingOption.isActive ? 'secondary' : 'destructive'} className="text-sm px-3 py-1">
+                    {viewingOption.isActive ? 'نشط ✓' : 'معطل ✗'}
                   </Badge>
                 </div>
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4 pt-4 border-t text-md text-muted-foreground">
-              <div>
-                <Label className="text-md font-medium text-muted-foreground">Created Date</Label>
-                <p className="mt-1">
-                  {viewingOption.createdAt ? new Date(viewingOption.createdAt).toLocaleDateString('en-US') : '-'}
+            <div className="grid grid-cols-2 gap-4 pt-4 border-t text-sm text-muted-foreground">
+              <div className="text-right">
+                <Label className="text-xs font-medium text-muted-foreground">تاريخ الإنشاء</Label>
+                <p className="mt-1 font-medium">
+                  {viewingOption.createdAt ? new Date(viewingOption.createdAt).toLocaleDateString('ar-SA') : '-'}
                 </p>
               </div>
-              <div>
-                <Label className="text-md font-medium text-muted-foreground">Updated Date</Label>
-                <p className="mt-1">
-                  {viewingOption.updatedAt ? new Date(viewingOption.updatedAt).toLocaleDateString('en-US') : '-'}
+              <div className="text-right">
+                <Label className="text-xs font-medium text-muted-foreground">تاريخ التحديث</Label>
+                <p className="mt-1 font-medium">
+                  {viewingOption.updatedAt ? new Date(viewingOption.updatedAt).toLocaleDateString('ar-SA') : '-'}
                 </p>
               </div>
             </div>

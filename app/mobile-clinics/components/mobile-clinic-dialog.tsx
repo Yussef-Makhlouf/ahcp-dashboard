@@ -70,9 +70,6 @@ const interventionCategories = [
 interface Medication {
   id: string;
   name: string;
-  dosage?: string;
-  quantity?: number;
-  route?: string;
 }
 
 export function MobileClinicDialog({ open, onOpenChange, clinic, onSave }: MobileClinicDialogProps) {
@@ -160,9 +157,6 @@ export function MobileClinicDialog({ open, onOpenChange, clinic, onSave }: Mobil
   const [newMedication, setNewMedication] = useState<Medication>({
     id: "",
     name: "",
-    dosage: "",
-    quantity: 0,
-    route: "",
   });
 
 
@@ -229,10 +223,7 @@ export function MobileClinicDialog({ open, onOpenChange, clinic, onSave }: Mobil
         medicationsUsed: Array.isArray(clinic.medicationsUsed) 
           ? clinic.medicationsUsed.map((med: any, index: number) => ({
               id: med._id || `med-${index}`,
-              name: med.name || '',
-              dosage: med.dosage || '',
-              quantity: med.quantity || 0,
-              route: med.administrationRoute || med.route || ''
+              name: med.name || ''
             }))
           : [],
       });
@@ -363,10 +354,7 @@ export function MobileClinicDialog({ open, onOpenChange, clinic, onSave }: Mobil
     try {
       // تحويل الأدوية إلى البنية المطلوبة من الباك إند
       const medicationsUsed = formData.medicationsUsed.map(med => ({
-        name: med.name,
-        dosage: med.dosage || '',
-        quantity: med.quantity || 0,
-        administrationRoute: med.route || ''
+        name: med.name
       }));
       
       const treatmentText = formData.treatments.length > 0
@@ -465,9 +453,6 @@ export function MobileClinicDialog({ open, onOpenChange, clinic, onSave }: Mobil
       setNewMedication({
         id: "",
         name: "",
-        dosage: "",
-        quantity: 0,
-        route: "",
       });
     }
   };
@@ -491,9 +476,6 @@ export function MobileClinicDialog({ open, onOpenChange, clinic, onSave }: Mobil
       setNewMedication({
         id: "",
         name: "",
-        dosage: "",
-        quantity: 0,
-        route: "",
       });
     }
   };
@@ -1029,54 +1011,15 @@ export function MobileClinicDialog({ open, onOpenChange, clinic, onSave }: Mobil
                   {/* إضافة دواء جديد */}
                   <div className="space-y-4">
                     <Label className="text-base font-semibold">إضافة دواء جديد:</Label>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <div className="space-y-2">
-                        <Label>اسم الدواء *</Label>
-                        <DynamicSelect
-                          category="MEDICATIONS"
-                          value={newMedication.name || ""}
-                          onValueChange={(value) => setNewMedication({ ...newMedication, name: value })}
-                          placeholder="اختر الدواء"
-                          language="en"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label>الجرعة</Label>
-                        <Input
-                          value={newMedication.dosage || ""}
-                          onChange={(e) => setNewMedication({ ...newMedication, dosage: e.target.value })}
-                          placeholder="مثال: 10 مل"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label>الكمية</Label>
-                        <Input
-                          type="number"
-                          min="0"
-                          value={newMedication.quantity || 0}
-                          onChange={(e) => setNewMedication({ ...newMedication, quantity: parseInt(e.target.value) || 0 })}
-                          placeholder="العدد"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label>طريقة الإعطاء</Label>
-                        <Select
-                          value={newMedication.route || ""}
-                          onValueChange={(value) => setNewMedication({ ...newMedication, route: value })}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="اختر الطريقة" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="Oral">فموي</SelectItem>
-                            <SelectItem value="Injection">حقن</SelectItem>
-                            <SelectItem value="Topical">موضعي</SelectItem>
-                            <SelectItem value="Intravenous">وريدي</SelectItem>
-                            <SelectItem value="Intramuscular">عضلي</SelectItem>
-                            <SelectItem value="Subcutaneous">تحت الجلد</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
+                    <div className="space-y-2">
+                      <Label>اسم الدواء *</Label>
+                      <DynamicSelect
+                        category="MEDICATIONS"
+                        value={newMedication.name || ""}
+                        onValueChange={(value) => setNewMedication({ ...newMedication, name: value })}
+                        placeholder="اختر الدواء"
+                        language="en"
+                      />
                     </div>
                   </div>
 
@@ -1105,11 +1048,6 @@ export function MobileClinicDialog({ open, onOpenChange, clinic, onSave }: Mobil
                               <div className="font-medium flex items-center gap-2">
                                 <Heart className="h-4 w-4 text-primary" />
                                 {medication.name}
-                              </div>
-                              <div className="text-xs text-muted-foreground space-y-0.5">
-                                {medication.dosage && <div>الجرعة: {medication.dosage}</div>}
-                                {medication.quantity && <div>الكمية: {medication.quantity}</div>}
-                                {medication.route && <div>الطريقة: {medication.route}</div>}
                               </div>
                             </div>
                             <Button
