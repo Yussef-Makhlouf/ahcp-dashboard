@@ -2,7 +2,7 @@
 const nextConfig = {
   // إعدادات البيئة
   env: {
-    NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || 'http://ulaahcprp.cloud/api',
+    NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || 'https://ulaahcprp.cloud/api',
 
   },
   

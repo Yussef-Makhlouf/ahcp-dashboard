@@ -87,8 +87,8 @@
 ```
 الواجهة الأمامية: http://localhost:3000
 الخادم الخلفي: http://https://ahcp-backend.vercel.app
-توثيق API: https://ahcp-backend.vercel.app/api-docs
-فحص الصحة: http://https://ahcp-backend.vercel.app/health
+توثيق API: https://ulaahcprp.cloud/api-docs
+فحص الصحة: http://https://ulaahcprp.cloud/health
 ```
 
 ### 🚀 **كيفية التشغيل:**

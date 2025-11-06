@@ -132,7 +132,7 @@ npm run dev
 ## 🔗 **الروابط المهمة:**
 - **لوحة التحكم:** http://localhost:3000
 - **API الخادم:** http://https://ahcp-backend.vercel.app
-- **فحص الصحة:** http://https://ahcp-backend.vercel.app/health
+- **فحص الصحة:** http://https://ulaahcprp.cloud/health
 
 ## 📝 **ملاحظات مهمة:**
 

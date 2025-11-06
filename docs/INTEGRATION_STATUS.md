@@ -95,8 +95,8 @@ npm run dev
 
 - **لوحة التحكم:** http://localhost:3000
 - **API الخادم:** http://https://ahcp-backend.vercel.app
-- **فحص الصحة:** http://https://ahcp-backend.vercel.app/health
-- **توثيق API:** https://ahcp-backend.vercel.app/api-docs
+- **فحص الصحة:** http://https://ulaahcprp.cloud/health
+- **توثيق API:** https://ulaahcprp.cloud/api-docs
 
 ## 👤 **معلومات المصادقة:**
 

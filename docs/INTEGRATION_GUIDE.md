@@ -292,7 +292,7 @@ const formFields = [
 // lib/config.ts
 export const config = {
   api: {
-    baseUrl: 'https://ahcp-backend.vercel.app/api',
+    baseUrl: 'https://ulaahcprp.cloud/api',
     timeout: 30000,
   },
   pagination: {

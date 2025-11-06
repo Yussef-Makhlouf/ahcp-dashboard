@@ -2,7 +2,7 @@
 export const config = {
   // API Configuration
   api: {
-    baseUrl: process.env.NEXT_PUBLIC_API_URL || 'https://ahcp-backend.vercel.app/api',
+    baseUrl: process.env.NEXT_PUBLIC_API_URL || 'https://ulaahcprp.cloud/api',
     timeout: 30000,
   },
   
