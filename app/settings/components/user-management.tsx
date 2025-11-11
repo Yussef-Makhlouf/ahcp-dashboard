@@ -601,7 +601,7 @@ export function UserManagement({ onRefresh }: UserManagementProps) {
 
       {/* Delete User Confirmation Dialog */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen} >
-        <AlertDialogContent className="bg-white">
+          <AlertDialogContent className="bg-white">
           <AlertDialogHeader>
             <AlertDialogTitle className="text-right">تأكيد الحذف</AlertDialogTitle>
             <AlertDialogDescription className="text-right">
